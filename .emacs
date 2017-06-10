@@ -733,8 +733,8 @@
     (fic-mode company-web company-lua lua-mode elpy helm-gitlab exec-path-from-shell pug-mode ein company-irony-c-headers company-irony ace-jump-mode irony spotify helm-spotify-plus company-go go-mode ox-asciidoc ox-rst sparql-mode slime-company slime ess nyan-mode spaceline smart-mode-line smart-mode-line-powerline-theme haskell-mode org-journal calfw json-mode pytest realgud cmake-ide rtags org-tree-slide ox-reveal org-bullets graphviz-dot-mode dot-mode toml-mode cargo dockerfile-mode org-ref ob-ipython markdown-preview-mode gitlab yaml-mode web-mode use-package undo-tree typescript-mode solarized-theme smartparens skewer-mode rainbow-delimiters racer org omnisharp ob-http multiple-cursors magit iedit htmlize helm-projectile helm-emmet helm-descbinds groovy-mode ensime edit-server dirtree darktooth-theme cql-mode company-tern company-racer company-quickhelp company-jedi cider centered-cursor-mode atom-one-dark-theme arduino-mode ace-window)))
  '(python-indent-guess-indent-offset nil)
  '(python-shell-completion-native-disabled-interpreters (quote ("pypy" "ipython")))
- '(python-shell-interpreter "jupyter")
- '(python-shell-interpreter-args "console --existing --simple-prompt")
+ '(python-shell-interpreter "ipython3")
+ '(python-shell-interpreter-args "--simple-prompt -i")
  '(python-shell-interpreter-interactive-arg "")
  '(racer-rust-src-path
    "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/" t)
