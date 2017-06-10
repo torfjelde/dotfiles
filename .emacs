@@ -10,6 +10,8 @@
  default-tab-width 4
 
  org-export-babel-evaluate nil
+ 
+ omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe"
 
  ;; slime
  inferior-lisp-program "/usr/local/bin/sbcl"
@@ -57,8 +59,7 @@
 	 "/usr/local/bin:"
 	 (getenv "PATH"))
 	;; need to do `rustup component add rust-src' for `racer' to work
-	(setq racer-rust-src-path "/home/tor/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/")
-    (setq omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe")))))
+	(setq racer-rust-src-path "/home/tor/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/")))))
 
 ;; (add-to-list 'exec-path "/usr/local/bin/:")
 
