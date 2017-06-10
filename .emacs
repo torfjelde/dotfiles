@@ -24,6 +24,21 @@
 (setq-default indent-tabs-mode nil)
 
 
+;;; Custom functions for note-taking ;;;
+(defun notes:code-directory ()
+    (let* ((filepath (buffer-file-name))
+           (directory (file-name-directory filepath))
+           (filebase (file-name-base filepath)))
+      (concat
+       directory
+       (file-name-as-directory (concat "." filebase))
+       (file-name-as-directory "code"))))
+
+(defun notes:code-file-path (filename)
+  (let ((code-dir (notes:code-directory)))
+    (concat code-dir filename)))
+
+
 ;;; OS specific variables ;;;
 (cond
  ;; Windows
@@ -242,9 +257,10 @@
   :config
   (progn
 	(add-hook 'prog-mode-hook 'company-mode)
+    (add-to-list 'company-backends '(company-jedi :with company-capf))
+    (add-to-list 'company-backends 'ein:company-backend)
 	(add-to-list 'company-backends '(company-irony-c-headers
-									 company-irony
-									 ein:company-backend))))
+									 company-irony))))
 (use-package company-quickhelp)
 
 ;; yasnippet
@@ -550,9 +566,8 @@
   :pin melpa-stable
   :config
   (progn
-    (add-to-list 'company-backends 'company-jedi)
 	(add-hook 'python-mode-hook 'pretty-greek)
-    (add-hook 'python-mode-hook 'jedi-mode)
+    ;; (add-hook 'python-mode-hook 'jedi-mode)
 	(add-hook 'python-mode-hook 'elpy-mode)
     (add-hook 'python-mode-hook
 	  (lambda ()
@@ -561,7 +576,9 @@
     ))
 
 (use-package ein
-  :init (setq ein:use-smartrep t))
+  :init (progn
+          (setq ein:use-smartrep t)
+          (add-hook 'ein:notebook-mode-hook 'company-mode)))
 
 ;; haskell
 (use-package haskell-mode
@@ -651,9 +668,10 @@
  '(custom-enabled-themes (quote (atom-one-dark)))
  '(custom-safe-themes
    (quote
-	("a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "36d92f830c21797ce34896a4cf074ce25dbe0dabe77603876d1b42316530c99d" "b04425cc726711a6c91e8ebc20cf5a3927160681941e06bc7900a5a5bfe1a77f" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "5ecdec97d6697c14c9cbbd634ac93979d199e3f65b7d60d2c2c357bcb40e2821" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "47aa6e82734866b2915781c6e1d9517bd897d45fe8aec360dd4b6294fec73068" "6254372d3ffe543979f21c4a4179cd819b808e5dd0f1787e2a2a647f5759c1d1" default)))
- '(ein:console-args (quote ("--simple-prompt" "-i")))
+    ("a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "36d92f830c21797ce34896a4cf074ce25dbe0dabe77603876d1b42316530c99d" "b04425cc726711a6c91e8ebc20cf5a3927160681941e06bc7900a5a5bfe1a77f" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "5ecdec97d6697c14c9cbbd634ac93979d199e3f65b7d60d2c2c357bcb40e2821" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "47aa6e82734866b2915781c6e1d9517bd897d45fe8aec360dd4b6294fec73068" "6254372d3ffe543979f21c4a4179cd819b808e5dd0f1787e2a2a647f5759c1d1" default)))
+ '(ein:console-args (quote ("--simple-prompt")))
  '(ein:org-execute-timeout 999999)
+ '(elpy-rpc-python-command "python3")
  '(fci-rule-color "#3E4451")
  '(flycheck-clang-language-standard "c++11")
  '(flycheck-disabled-checkers nil)
@@ -663,48 +681,48 @@
  '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
  '(highlight-symbol-colors
    (--map
-	(solarized-color-blend it "#002b36" 0.25)
-	(quote
-	 ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
+    (solarized-color-blend it "#002b36" 0.25)
+    (quote
+     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
  '(highlight-symbol-foreground-color "#93a1a1")
  '(highlight-tail-colors
    (quote
-	(("#073642" . 0)
-	 ("#546E00" . 20)
-	 ("#00736F" . 30)
-	 ("#00629D" . 50)
-	 ("#7B6000" . 60)
-	 ("#8B2C02" . 70)
-	 ("#93115C" . 85)
-	 ("#073642" . 100))))
+    (("#073642" . 0)
+     ("#546E00" . 20)
+     ("#00736F" . 30)
+     ("#00629D" . 50)
+     ("#7B6000" . 60)
+     ("#8B2C02" . 70)
+     ("#93115C" . 85)
+     ("#073642" . 100))))
  '(hl-bg-colors
    (quote
-	("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00")))
+    ("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00")))
  '(hl-fg-colors
    (quote
-	("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
+    ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
  '(js-indent-level 2)
  '(magit-diff-use-overlays nil)
  '(nyan-mode t)
  '(org-agenda-files
    (quote
-	("~/Dropbox/notes/projects/octochain/tasks.org" "~/Dropbox/notes/projects/octochain/octo.org" "~/Dropbox/org/gtd.org")))
+    ("~/Dropbox/notes/projects/octochain/tasks.org" "~/Dropbox/notes/projects/octochain/octo.org" "~/Dropbox/org/gtd.org")))
  '(org-babel-python-command "python3")
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
-	(("*" bold)
-	 ("/" italic)
-	 ("`" underline)
-	 ("=" org-verbatim verbatim)
-	 ("~" org-code verbatim)
-	 ("+"
-	  (:strike-through t)))))
+    (("*" bold)
+     ("/" italic)
+     ("`" underline)
+     ("=" org-verbatim verbatim)
+     ("~" org-code verbatim)
+     ("+"
+      (:strike-through t)))))
  '(org-export-babel-evaluate nil)
  '(org-format-latex-options
    (quote
-	(:foreground default :background default :scale 2.0 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
-				 ("begin" "$1" "$" "$$" "\\(" "\\["))))
+    (:foreground default :background default :scale 2.0 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
+                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
  '(org-journal-dir "~/Dropbox/org/journal")
  '(org-reveal-single-file t)
  '(org-src-block-faces nil)
@@ -712,10 +730,12 @@
  '(org-src-tab-acts-natively nil)
  '(package-selected-packages
    (quote
-	(fic-mode nginx-mode company-web company-lua lua-mode elpy helm-gitlab exec-path-from-shell pug-mode ein company-irony-c-headers company-irony ace-jump-mode irony spotify helm-spotify-plus company-go go-mode ox-asciidoc ox-rst sparql-mode slime-company slime ess nyan-mode spaceline smart-mode-line smart-mode-line-powerline-theme haskell-mode org-journal calfw json-mode pytest realgud cmake-ide rtags org-tree-slide ox-reveal org-bullets graphviz-dot-mode dot-mode toml-mode cargo dockerfile-mode org-ref ob-ipython markdown-preview-mode gitlab yaml-mode web-mode use-package undo-tree typescript-mode solarized-theme smartparens skewer-mode rainbow-delimiters racer org omnisharp ob-http multiple-cursors magit jedi iedit htmlize helm-projectile helm-emmet helm-descbinds groovy-mode ensime edit-server dirtree darktooth-theme cql-mode company-tern company-racer company-quickhelp company-jedi cider centered-cursor-mode atom-one-dark-theme arduino-mode ace-window)))
+    (fic-mode company-web company-lua lua-mode elpy helm-gitlab exec-path-from-shell pug-mode ein company-irony-c-headers company-irony ace-jump-mode irony spotify helm-spotify-plus company-go go-mode ox-asciidoc ox-rst sparql-mode slime-company slime ess nyan-mode spaceline smart-mode-line smart-mode-line-powerline-theme haskell-mode org-journal calfw json-mode pytest realgud cmake-ide rtags org-tree-slide ox-reveal org-bullets graphviz-dot-mode dot-mode toml-mode cargo dockerfile-mode org-ref ob-ipython markdown-preview-mode gitlab yaml-mode web-mode use-package undo-tree typescript-mode solarized-theme smartparens skewer-mode rainbow-delimiters racer org omnisharp ob-http multiple-cursors magit iedit htmlize helm-projectile helm-emmet helm-descbinds groovy-mode ensime edit-server dirtree darktooth-theme cql-mode company-tern company-racer company-quickhelp company-jedi cider centered-cursor-mode atom-one-dark-theme arduino-mode ace-window)))
  '(python-indent-guess-indent-offset nil)
- '(python-shell-interpreter "ipython3")
- '(python-shell-interpreter-args "--simple-prompt -i")
+ '(python-shell-completion-native-disabled-interpreters (quote ("pypy" "ipython")))
+ '(python-shell-interpreter "jupyter")
+ '(python-shell-interpreter-args "console --existing --simple-prompt")
+ '(python-shell-interpreter-interactive-arg "")
  '(racer-rust-src-path
    "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/" t)
  '(recentf-keep (quote (recentf-keep-default-predicate)))
@@ -725,71 +745,71 @@
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(sml/mode-width
    (if
-	   (eq
-		(powerline-current-separator)
-		(quote arrow))
-	   (quote right)
-	 (quote full)))
+       (eq
+        (powerline-current-separator)
+        (quote arrow))
+       (quote right)
+     (quote full)))
  '(sml/pos-id-separator
    (quote
-	(""
-	 (:propertize " " face powerline-active1)
-	 (:eval
-	  (propertize " "
-				  (quote display)
-				  (funcall
-				   (intern
-					(format "powerline-%s-%s"
-							(powerline-current-separator)
-							(car powerline-default-separator-dir)))
-				   (quote powerline-active1)
-				   (quote powerline-active2))))
-	 (:propertize " " face powerline-active2))))
+    (""
+     (:propertize " " face powerline-active1)
+     (:eval
+      (propertize " "
+                  (quote display)
+                  (funcall
+                   (intern
+                    (format "powerline-%s-%s"
+                            (powerline-current-separator)
+                            (car powerline-default-separator-dir)))
+                   (quote powerline-active1)
+                   (quote powerline-active2))))
+     (:propertize " " face powerline-active2))))
  '(sml/pos-minor-modes-separator
    (quote
-	(""
-	 (:propertize " " face powerline-active1)
-	 (:eval
-	  (propertize " "
-				  (quote display)
-				  (funcall
-				   (intern
-					(format "powerline-%s-%s"
-							(powerline-current-separator)
-							(cdr powerline-default-separator-dir)))
-				   (quote powerline-active1)
-				   nil)))
-	 (:propertize " " face sml/global))))
+    (""
+     (:propertize " " face powerline-active1)
+     (:eval
+      (propertize " "
+                  (quote display)
+                  (funcall
+                   (intern
+                    (format "powerline-%s-%s"
+                            (powerline-current-separator)
+                            (cdr powerline-default-separator-dir)))
+                   (quote powerline-active1)
+                   nil)))
+     (:propertize " " face sml/global))))
  '(sml/pre-id-separator
    (quote
-	(""
-	 (:propertize " " face sml/global)
-	 (:eval
-	  (propertize " "
-				  (quote display)
-				  (funcall
-				   (intern
-					(format "powerline-%s-%s"
-							(powerline-current-separator)
-							(car powerline-default-separator-dir)))
-				   nil
-				   (quote powerline-active1))))
-	 (:propertize " " face powerline-active1))))
+    (""
+     (:propertize " " face sml/global)
+     (:eval
+      (propertize " "
+                  (quote display)
+                  (funcall
+                   (intern
+                    (format "powerline-%s-%s"
+                            (powerline-current-separator)
+                            (car powerline-default-separator-dir)))
+                   nil
+                   (quote powerline-active1))))
+     (:propertize " " face powerline-active1))))
  '(sml/pre-minor-modes-separator
    (quote
-	(""
-	 (:propertize " " face powerline-active2)
-	 (:eval
-	  (propertize " "
-				  (quote display)
-				  (funcall
-				   (intern
-					(format "powerline-%s-%s"
-							(powerline-current-separator)
-							(cdr powerline-default-separator-dir)))
-				   (quote powerline-active2)
-				   (quote powerline-active1))))
-	 (:propertize " " face powerline-active1))))
+    (""
+     (:propertize " " face powerline-active2)
+     (:eval
+      (propertize " "
+                  (quote display)
+                  (funcall
+                   (intern
+                    (format "powerline-%s-%s"
+                            (powerline-current-separator)
+                            (cdr powerline-default-separator-dir)))
+                   (quote powerline-active2)
+                   (quote powerline-active1))))
+     (:propertize " " face powerline-active1))))
  '(sml/pre-modes-separator (propertize " " (quote face) (quote sml/modes)))
  '(sml/theme (quote dark))
  '(spaceline-helm-mode t)
@@ -802,28 +822,28 @@
  '(vc-annotate-background nil)
  '(vc-annotate-color-map
    (quote
-	((20 . "#dc322f")
-	 (40 . "#c85d17")
-	 (60 . "#be730b")
-	 (80 . "#b58900")
-	 (100 . "#a58e00")
-	 (120 . "#9d9100")
-	 (140 . "#959300")
-	 (160 . "#8d9600")
-	 (180 . "#859900")
-	 (200 . "#669b32")
-	 (220 . "#579d4c")
-	 (240 . "#489e65")
-	 (260 . "#399f7e")
-	 (280 . "#2aa198")
-	 (300 . "#2898af")
-	 (320 . "#2793ba")
-	 (340 . "#268fc6")
-	 (360 . "#268bd2"))))
+    ((20 . "#dc322f")
+     (40 . "#c85d17")
+     (60 . "#be730b")
+     (80 . "#b58900")
+     (100 . "#a58e00")
+     (120 . "#9d9100")
+     (140 . "#959300")
+     (160 . "#8d9600")
+     (180 . "#859900")
+     (200 . "#669b32")
+     (220 . "#579d4c")
+     (240 . "#489e65")
+     (260 . "#399f7e")
+     (280 . "#2aa198")
+     (300 . "#2898af")
+     (320 . "#2793ba")
+     (340 . "#268fc6")
+     (360 . "#268bd2"))))
  '(vc-annotate-very-old-color nil)
  '(weechat-color-list
    (quote
-	(unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83"))))
+    (unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83"))))
 
 
 (custom-set-faces
