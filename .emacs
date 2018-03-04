@@ -1,5 +1,6 @@
 (setq
  inhibit-startup-screen t
+ inhibit-splash-screen t
  create-lockfiles nil
  column-number-mode t
  scroll-error-top-bottom t
@@ -8,20 +9,60 @@
  sentence-end-double-space nil 
  global-prettify-symbols-mode t
  default-tab-width 4
+ tool-bar-mode nil
 
- org-export-babel-evaluate nil
+ org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
+
+ ;; set the backup folder to be the temp-folder
+ backup-directory-alist `((".*" . ,temporary-file-directory))
+ auto-save-file-name-transforms `((".*" ,temporary-file-directory t))
  
- omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe"
+ ;; omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe"
+
+ yas-triggers-in-field t; Enable nested triggering of snippets
 
  ;; slime
  inferior-lisp-program "/usr/local/bin/sbcl"
  slime-lisp-implementations '((sbcl ("sbcl")))
  ;; lisp-indent-function 'common-lisp-indent-function
  ;; slime-complete-symbol-function 'slime-fuzzy-complete-symbol
+
+ safe-local-variable-values '((visual-line-mode . 1)
+                              (visual-line-mode . t)
+                              (org-export-with-toc)
+                              (org-after-todo-state-change-hook . tor/reading-list-done-hook)
+                              (org-after-todo-state-change-hook . tor/impl-list-done-hook))
  )
+
+(defun eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+(global-set-key (kbd "C-c e") 'eval-and-replace)
+
+;; Allows you to fold everything on a indentation-level greater than the current.
+;; Source: https://stackoverflow.com/a/4459159
+(defun aj-toggle-fold ()
+  "Toggle fold all lines larger than indentation on current line"
+  (interactive)
+  (let ((col 1))
+    (save-excursion
+      (back-to-indentation)
+      (setq col (+ 1 (current-column)))
+      (set-selective-display
+       (if selective-display nil (or col 1))))))
+(global-set-key [(M C i)] 'aj-toggle-fold)
 
 ;; PEP-8 tells me not to use tabs..so by defalt we disable this
 (setq-default indent-tabs-mode nil)
+
+;; bar-customization
+(menu-bar-mode -1)
 
 
 ;;; Custom functions for note-taking ;;;
@@ -38,45 +79,6 @@
   (let ((code-dir (notes:code-directory)))
     (concat code-dir filename)))
 
-
-;;; OS specific variables ;;;
-(cond
- ;; Windows
- ((string-equal system-type "windows-nt") ; Microsoft Windows
-  (progn
-    (message "Microsoft Windows")))
- 
- ;; Mac OS X
- ;; We want to disable left-cmd and bind left-option to Meta
- ;; due to terminal apps using left-cmd for stuff, and I
- ;; want uniform bindings independent of the environment.
- ;; These variables are for this version of Emacs for Mac OS X:
- ;; https://bitbucket.org/mituharu/emacs-mac
- ((string-equal system-type "darwin") ; Mac OS X
-  (progn
-    (message "Mac OS X")
-    (setq mac-command-modifier nil  ;; disables bindings to left-cmd on Mac
-		  mac-option-modifier (quote (:ordinary meta :function alt :mouse alt))  ;; binds left-option to Meta
-		  mac-right-option-modifier nil)  ;; disables it as a modifier so we can type properly, e.g. "[]|∞≈"
-
-    (setenv "PATH"
-	(concat
-	 "/usr/local/bin:"
-	 (getenv "PATH"))
-	(setq racer-rust-src-path "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/"))))
-
- ;; Linux
- ((string-equal system-type "gnu/linux") ; linux
-  (progn
-    (message "Linux")
-    (setenv "PATH"
-	(concat
-	 "/usr/local/bin:"
-	 (getenv "PATH"))
-	;; need to do `rustup component add rust-src' for `racer' to work
-	(setq racer-rust-src-path "/home/tor/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/")))))
-
-;; (add-to-list 'exec-path "/usr/local/bin/:")
 
 ;; fancy letters
 (defun pretty-greek ()
@@ -147,7 +149,7 @@
 ;; global keys
 (global-set-key (kbd "C-c c") 'org-capture)
 (global-set-key (kbd "C-c C-d") 'my/duplicate-line)
-(global-set-key (kbd "C-;") 'iedit-mode)
+;; (global-set-key (kbd "C-;") 'iedit-mode)
 
 ;; the package manager
 (require 'package)
@@ -169,21 +171,333 @@
 ;; :init - executes BEFORE loading package
 ;; :config - executes AFTER loading package
 
+;; required by some OS specific stuff
+(use-package exec-path-from-shell)
+
+;;; OS specific variables ;;;
+(cond
+ ;; Windows
+ ((string-equal system-type "windows-nt") ; Microsoft Windows
+  (progn
+    (message "Microsoft Windows")))
+ 
+ ;; Mac OS X
+ ;; We want to disable left-cmd and bind left-option to Meta
+ ;; due to terminal apps using left-cmd for stuff, and I
+ ;; want uniform bindings independent of the environment.
+ ;; These variables are for this version of Emacs for Mac OS X:
+ ;; https://bitbucket.org/mituharu/emacs-mac
+ ((string-equal system-type "darwin") ; Mac OS X
+  (progn
+    (message "Mac OS X")
+    (setq mac-command-modifier nil  ;; disables bindings to left-cmd on Mac
+		  mac-option-modifier (quote (:ordinary meta :function alt :mouse alt))  ;; binds left-option to Meta
+		  mac-right-option-modifier nil)  ;; disables it as a modifier so we can type properly, e.g. "[]|∞≈"
+    (exec-path-from-shell-initialize)
+	(setq racer-rust-src-path "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/")))
+
+ ;; Linux
+ ((string-equal system-type "gnu/linux") ; linux
+  (progn
+    (message "Linux")
+    (exec-path-from-shell-initialize)            
+	;; need to do `rustup component add rust-src' for `racer' to work
+    (setq racer-rust-src-path "~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/")
+
+    ;; use xclip to yank, allowing you to yank in terminal to the GLOBAL clipboard
+    (use-package xclip
+      :init (xclip-mode))
+    )))
+
+;;; xclip
+
 ;;; general ;;;
+;; pdf-tools - much improved way to view pdfs
+;; IMPORTANT: need to run `(pdf-tools-install)' to install dependencies
+(use-package pdf-tools
+  :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
+  :init (if (string-equal system-type "gnu/linux") (pdf-tools-install)))
+
 ;; org-mode
+
+;; TODO: create a customized publishing function
+(defun tor/org-html-publish-to-html (plist filename pub-dir)
+  "My customized HTML publishing function. Publish an org file to HTML.
+
+PLIST is the property list of the given object.
+FILENAME is the filename of the Org file to be published. 
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  ;; TODO: need to update/republish "local" index if it exists
+  (org-html-publish-to-html plist filename pub-dir))
+
+(defun tor/publish-html (plist filename pub-dir)
+  (message "%s" plist)
+  (message "%s" filename)
+  (message "%s" pub-dir)
+  (copy-file filename (concat pub-dir (file-name-nondirectory filename)) t)
+  (concat pub-dir (file-name-nondirectory filename)))
+
+;; TODO: format paths properly to avoid recursion and so on.
+(defun tor/org-publish-attachment (plist filename pub-dir)
+  "Publish a file with no transformation of any kind.
+
+PLIST is the property list for the given project.
+FILENAME is the filename of the Org file to be published.  
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  (org-publish-attachment plist filename pub-dir))
+
+(defun tor/filename-to-title (filename)
+  "Transform FILENAME into title by splitting on _ and concatenating."
+  (string-join
+   (mapcar #'capitalize
+           (split-string (string-remove-suffix ".org" filename) "\[-_ \]" t))
+   " "))
+
+(use-package mustache
+  :config (require 'ht))
+
+(defun tor/directory-p (d)
+  (string-match-p "\\." d))
+
+(defun tor/org-file-p (p)
+  (string-match-p "\\.org" p))
+
+(defun tor/not-org-file-p (p)
+  (not (tor/org-file-p p)))
+
+(defun tor/posts-render-front-page (files)
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (mustache-render "{{> posts }}"
+                     (ht ("posts"
+                          (-map
+                           (lambda (c) (ht ("title" (tor/filename-to-title c))
+                                      ("link" (concat base-dir c))))
+                           (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/"))))))))
+
+(defun tor/prepare-blog-post-publish (export-options)
+  (let ((files (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/")))
+        (mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (with-temp-buffer
+      (insert (mustache-render "{{> posts }}"
+                               (ht ("posts"
+                                    (-map
+                                     (lambda (c) (ht ("title" (tor/filename-to-title c))
+                                                ("link" (concat base-dir (replace-regexp-in-string "\\.org" ".html" c)))))
+                                     files)))))
+      (write-region nil nil "~/org-blog/posts/index.html"))))
+
+(defun tor/render-html-preamble (export-options)
+  "Renders the HTML preamble. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+                     (ht ("categories"
+                          (-map
+                           (lambda (c) (ht ("category" (tor/filename-to-title c))
+                                      ("link" (concat base-dir c "/index.html"))))
+                           (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
+
+(defun tor/render-html-preamble--posts (export-options)
+  "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+                     (ht ("categories"
+                          `(,(ht ("category" "Posts") ("link" (concat base-dir "index.html")))
+                            ,(ht ("category" "Wiki") ("link" (concat base-dir "../notes/index.html")))
+                            ,(ht ("category" "Notes from papers") ("link" (concat base-dir "../papers/index.html")))
+                            ,(ht ("category" "About me") ("link" (concat base-dir "../about.html")))))))))
+
+(defun tor/element--sort-elements-by-raw-value (el1 el2)
+  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
+  (string-greaterp (org-element-property :raw-value el2)
+                   (org-element-property :raw-value el1)))
+
+(defun tor/element--get-begin (el)
+  "Get beginning of EL."
+  (org-element-property :begin el))
+
+(defun tor/element--get-end (el)
+  "Get end of EL."
+  (org-element-property :end el))
+
+(defun tor/reading-list-sort (&optional level)
+  "Sort reading list at LEVEL."
+  (interactive)
+  (let* ((i 0)
+         (headline-level (or level 1))
+         (parsed (org-element-parse-buffer))
+         (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
+                            (org-element-map parsed 'headline 'identity)))
+         (start (-min (-map 'tor/element--get-begin headlines)))
+         (end (-max (-map 'tor/element--get-end headlines))))
+    (delete-region start end)
+    (goto-char start)
+    (insert (string-join
+             ;; TODO: update indices
+             (-map
+              (lambda (el)
+                (progn
+                  (setq i (+ i 1))
+                  (replace-regexp-in-string "* TODO [0-9]+\\."
+                                            (format "* TODO %03d." i)
+                                             el)))
+              (-map 'org-element-interpret-data
+                         (sort headlines 'tor/element--sort-elements-by-raw-value)))
+             ""))))
+
+(defun tor/reading-list--get-next-idx (&optional level category)
+  "Get index for reading list at LEVEL and ."
+  (let* ((headline-level (or level 1))
+         (parsed (org-element-parse-buffer))
+         (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
+                                          ;; FIXME: BROKEN. Grab this from the property-drawer
+                                          (if category
+                                              (org-element-property :category el)
+                                            t)))
+                             (org-element-map parsed 'headline 'identity))))
+    (+ 1 (-max
+          (or (-filter
+               (lambda (x) (not (= x 0)))
+               (-map (lambda (el)
+                       (string-to-number
+                        (car (split-string
+                              (org-element-property :raw-value el) "\\."))))
+                     headlines))
+              '(0))))))
+
+(defun tor/list-done-hook (filename)
+  "Remove number of completed todo and re-sort reading list."
+  (when (and (boundp 'org-state) (string-equal org-state "DONE"))
+    (save-excursion
+      (with-current-buffer (find-file-noselect filename)
+        (goto-char (point-min))
+        ;; ONLY match one instead of going on a spree here
+        (if (re-search-forward "* DONE \\([0-9]+\\)\\." nil t)
+            ;; replace the completed heading            
+            (let ((n (string-to-number (buffer-substring (match-beginning 1) (match-end 1)))))
+              (message (buffer-substring (match-beginning 0) (match-end 0)))
+              (replace-match "* DONE" nil nil nil 0)
+              ;; search for next headings which need to be updated; +1 to their number
+              (message (number-to-string (point)))
+              (message (buffer-name))
+              (goto-char (match-end 0))
+              (while (re-search-forward "* TODO [0-9]+\\." nil t)
+                (message (number-to-string n))
+                (replace-match (format "* TODO %03d." n))
+                (setf n (+ n 1)))))
+        ;; sort reading-list
+        (tor/reading-list-sort)
+        ))))
+
+(defun tor/reading-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
+
+;; used to have this `-*- org-after-todo-state-change-hook: tor/reading-list-done-hook; -*-'
+;; at the top of `reading.org', but it doesn't quite work for some reason
+;; ACTUALLY this is not what's causing the issue I believe, so I reactivated it.
+(defun tor/reading-list-done-hook ()
+  (tor/list-done-hook "~/Dropbox/org/reading.org"))
+
+(defun tor/impl-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/implement.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
+
+(defun tor/impl-list-done-hook ()
+  (tor/list-done-hook "~/Dropbox/org/implement.org"))
+
+;; TODO: setup this to properly work
+;; currently having issues with inactive timestamps used in the appointments
+(defun tor/clocks-to-clocked-string (start end)
+  (format "%s--%s"
+          (format-time-string "[%Y-%m-%d %H:%M]" start)
+          (format-time-string "[%Y-%m-%d %H:%M]" end)))
+
+(defun tor/appt-fake-clock-hook ()
+  "Create 'fake' clock-in and clock-out entry for appointment with time-range."
+  (org-back-to-heading)
+  (let* ((hl (org-element-headline-parser 1000))
+         (sch (org-element-property :scheduled hl))
+         (closed (org-element-property :closed hl)))
+    (message "%s" hl)
+    (when (and sch (or (string-equal (org-element-property :type sch) "active-range")
+                       (and (string-equal (org-element-property :type closed) "inactive")
+                            (org-element-property :year-end closed))))
+      ;; instead of creating the entire entry, we create a small one and replace the values
+      (message "clocking in and out")
+      (org-clock-in)
+      (org-clock-out)
+
+      (if (re-search-forward "CLOCK: \\[.+\\]--\\[.+\\]" nil t 1)
+          (format-time-string "[%Y-%m-%d]" (current-time))
+        (replace-match (concat
+                        "CLOCK: "
+                        (tor/clocks-to-clocked-string
+                         (date-to-time (format "%s %02d:%02d"
+                                               (current-time)
+                                               ;; (org-element-property :year-start sch)
+                                               ;; (org-element-property :month-start sch)
+                                               ;; (org-element-property :day-start sch)
+                                               (org-element-property :hour-start sch)
+                                               (org-element-property :minute-start sch)))
+                         (date-to-time (format "%s %02d:%02d"
+                                               (current-time)
+                                               ;; (org-element-property :year-end sch)
+                                               ;; (org-element-property :month-end sch)
+                                               ;; (org-element-property :day-end sch)
+                                               (org-element-property :hour-end sch)
+                                               (org-element-property :minute-end sch)))))))
+      (org-clock-update-time-maybe)
+      (message "%s" sch))))
+
 (use-package ob-http)
-(use-package ob-ipython)
+(use-package ob-ipython
+  :config (setq ob-ipython-resources-dir "/tmp/obipy-resources/"))
+(use-package ob-sql-mode)
 (use-package org
-  ;; :pin org
+  :pin org
   :bind (("C-c l" . org-store-link))
   :init
   (progn
     (setq org-confirm-babel-evaluate nil
 		  org-export-headline-levels 5
 		  org-export-with-toc 2
-		  org-export-babel-evaluate nil))
+		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
+          )
+    ;; disable execution on export UNLESS otherwise specified
+    (add-to-list 'org-babel-default-header-args '(:eval . "never-export")))
   :config
   (progn
+    (setq org-confirm-babel-evaluate nil
+		  org-export-headline-levels 5
+		  org-export-with-toc 2
+		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
+          )
+    ;; disable execution on export UNLESS otherwise specified
+    (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+
+    (global-set-key (kbd "C-c å") 'org-agenda)
+    (global-set-key (kbd "C-c ¤") 'org-mark-ring-goto)
+    
     (setcar org-emphasis-regexp-components " \t('\"{[:alpha:]")
     (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
     (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
@@ -197,51 +511,265 @@
 							   (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
 
     ;; org-agenda / org-capture
+    (setq org-agenda-files '("~/Dropbox/org/gtd.org"
+                             "~/Dropbox/org/school.org"
+                             "~/Dropbox/org/reading.org"
+                             "~/Dropbox/org/implement.org"))
     (setq org-default-notes-file "~/Dropbox/org/gtd.org")
     (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
 			       ("~/Dropbox/org/someday.org" :level . 2)))
     (setq org-capture-templates
-	  '(("t"        ;; shortcut
-	     "Todo"     ;; title
-	     entry      ;; type of template
-	     (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
-	     "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
-	     :empty-lines 1 ;; property
-	     )
-	    
-	    ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
-	     "* %?\nEntered on %U\n  %i\n  %a")
-	    
-	    ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))))
+          '(("t"        ;; shortcut
+             "Todo"     ;; title
+             entry      ;; type of template
+             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+             "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
+             :empty-lines 1 ;; property
+             )
+            
+            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+             "* %?\nEntered on %U\n  %i\n  %a")
+            
+            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+            ("s" "School" entry
+             (file "~/Dropbox/org/school.org")
+             "* TODO %^{Brief Description} %^{COURSE}p %^g\n  %?" :empty-lines 1)
+
+            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+             "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+             "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+            ))
     (setq org-agenda-custom-commands
-	  '(("p" . "PROJECT+Name tags searches")
-	    ("pi" tags "+PROJECT+My")
-	    ("po" tags "+PROJECT+Octochain")
-	    ("pm" tags "+PROJECT+Masterloop")))
+          '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
+            ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
+            ("i" alltodo "" ((org-agenda-files '("~/Dropbox/org/implement.org"))))
+            ("p" . "PROJECT+Name tags searches")
+            ("pI" tags "+PROJECT+My")
+            ("po" tags "+PROJECT+Octochain")
+            ("pm" tags "+PROJECT+Masterloop")
+            ("pe" tags "+PROJECT+Easee")
+            ("pp" tags "+PROJECT+Public")))
 
     ;; babel
-    (require 'ob-clojure)
     (setq org-babel-clojure-backend 'cider)
     (add-hook 'org-babel-after-execute-hook 'org-babel-python-strip-session-chars)
 
+    ;; Latex
+    (require 'ox-latex)
+    (add-to-list 'org-latex-packages-alist '("" "listingsutf8"))
+    (add-to-list 'org-latex-packages-alist '("" "color"))
+
+    (add-hook 'org-mode-hook 'visual-line-mode)
+
+    ;; if you ever have issues with org-evaluate being disabled
+    ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
     (org-babel-do-load-languages
      'org-babel-load-languages
-     '((shell . t)
+     '((emacs-lisp t)
+       (shell . t)
 	   (C . t)
        (dot . t)
+       (latex . t)
        (sql . t)
        (clojure . t)
        (python . t)
+       ;; (R . t)
 	   (ein . t)
        (ipython . t)
        (scala . t)
-       ;; (rust . t)
+       (rust . t)
 	   (haskell . t)
        ;; (csharp. t)
-       (ditaa . t)))))
+       (ditaa . t)))
+
+    ;; ensure that we use Py3 to evaluate Python blocks
+    (setq org-babel-python-command "python3")
+
+    ;; customization for HTML export using MathJax
+    (setq org-html-mathjax-template "<script type=\"text/x-mathjax-config\">
+ MathJax.Hub.Config({
+   displayAlign: \"%ALIGN\",
+   displayIndent: \"%INDENT\",
+
+   \"HTML-CSS\": { scale: %SCALE,
+                 linebreaks: { automatic: \"%LINEBREAKS\" },
+                 webFont: \"%FONT\"
+   },
+   SVG: {scale: %SCALE,
+         linebreaks: { automatic: \"%LINEBREAKS\" },
+         font: \"%FONT\"},
+   NativeMML: {scale: %SCALE},
+   TeX: { equationNumbers: {autoNumber: \"%AUTONUMBER\"},
+          MultLineWidth: \"%MULTLINEWIDTH\",
+          TagSide: \"%TAGSIDE\",
+          TagIndent: \"%TAGINDENT\",
+          extensions: [\"color.js\", \"cancel.js\"]
+   },
+   extensions: [\"[Contrib]/physics/physics.js\"]
+ });
+</script>
+<script type=\"text/javascript\"
+        src=\"%PATH\"></script>
+
+")
+
+    ;; show agenda on startup
+    (setq initial-buffer-choice (lambda ()
+                                  (org-agenda-list)
+                                  (get-buffer "*Org Agenda*")))
+
+    ()
+    
+    ;; ox-publish
+    (require 'ox-publish)
+    (setq org-publish-project-alist
+          '(
+            ;; ... add all the components here (see below)...
+            ("org-posts"
+             :base-directory "~/org-blog/posts/"
+             :base-extension "org"
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :recursive nil
+             :publishing-function tor/org-html-publish-to-html
+             ;; :preparation-function tor/prepare-blog-post-publish
+             :headline-levels 4
+             :auto-preamble t
+             :html-preamble tor/render-html-preamble--posts)
+
+            ("org-posts-index"
+             :base-directory "~/org-blog/posts"
+             :base-extension "html"
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :publishing-function tor/publish-html
+             :preparation-function tor/prepare-blog-post-publish
+             :recursive nil
+             :auto-preamble nil
+             :html-preamble nil)
+
+            ("org-blog" :components ("org-posts" "org-posts-index"))
+            
+            ("org-notes"
+             :base-directory "~/org-blog/notes/"
+             :base-extension "org"
+             :publishing-directory "~/org-blog/public_html/notes/"
+             :recursive t
+             :publishing-function tor/org-html-publish-to-html
+             :headline-levels 4             ; Just the default for this project.
+             :auto-preamble t
+             :html-preamble tor/render-html-preamble
+             )
+
+            ("org-notes-assets"
+             :base-directory "~/org-blog/notes/"
+             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/notes/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org-static"
+             :base-directory "~/org-blog/assets/"
+             :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/assets/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org"
+             :components ("org-notes" "org-notes-assets" "org-static"))
+
+            ("org-papers"
+             ;; :base-directory "~/Dropbox/bibliography/notes/"
+             :base-directory "~/org-blog/papers/"
+             :base-extension "org"
+             :publishing-directory "~/org-blog/public_html/papers/"
+             :recursive nil
+             :publishing-function tor/org-html-publish-to-html
+             :headline-levels 4
+             :auto-premable t)
+            ))
+    ))
 
 (use-package org-bullets
   :init (add-hook 'org-mode-hook 'org-bullets-mode))
+
+(defun tor/org-ref-open-bibtex-pdf ()
+  "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
+  (interactive)
+  (save-excursion
+    (bibtex-beginning-of-entry)
+    (let* ((bibtex-expand-strings t)
+           (entry (bibtex-parse-entry t))
+           (key (reftex-get-bib-field "=key=" entry))
+           (pdf (org-ref-get-mendeley-filename key)))
+      (message "%s" pdf)
+      (if (file-exists-p pdf)
+          (org-open-link-from-string (format "[[file:%s]]" pdf))
+        (ding)))))
+
+(use-package org-ref
+  :pin melpa
+  :config (progn
+            (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib")
+                  org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
+                  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
+                  org-ref-pdf-directory "~/Dropbox/bibliography/pdfs/"
+                  biblio-download-directory "~/Dropbox/bibliography/pdfs/"
+                  bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
+                  ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
+                  bibtex-completion-notes-path "/home/tor/org-blog/papers/"
+                  bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
+
+                  ;; ensures that the use of #+NAME: works properly when exporting
+                  org-latex-prefer-user-labels t
+
+                  ;; with this activated it's horrendously SLOW for large files
+                  org-ref-show-broken-links nil
+
+                  org-latex-pdf-process '("pdflatex -interaction nonstopmode -output-directory %o %f"
+                                          "bibtex %b"
+                                          "pdflatex -interaction nonstopmode -output-directory %o %f"
+                                          "pdflatex -interaction nonstopmode -output-directory %o %f")
+                  ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
+                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf)
+
+            ;; overwrites the 'inbook' BibTeX type defined by doi-utils
+            ;; FIXME: getting an issue with "mandatory field is missing: chapter"
+            (doi-utils-def-bibtex-type book ("book")
+                                       author title booktitle series publisher year pages doi url)
+            (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
+                                       author title booktitle series publisher year pages doi url)
+
+            ;; NOT WORKING
+            ;; (defun my-pdf-proxy (orig-fun &rest args)
+            ;;   (let* ((pdf-url (apply orig-fun args))
+            ;;          (url-struct (url-generic-parse-url pdf-url)))
+            ;;     (setf (url-host url-struct)
+            ;;           (concat (url-host url-struct) ".ezproxy.is.ed.ac.uk"))
+            ;;     (url-recreate-url url-struct)))
+
+            ;; remove it like this.
+            ;; (advice-remove 'doi-utils-get-pdf-url #'my-pdf-proxy)
+            ;; (advice-add 'doi-utils-get-pdf-url :around #'my-pdf-proxy)
+            )
+  :init (progn
+          (require 'org-ref-pdf)))
+
+;; AucTeX
+;; (use-package auctex
+;;   :init (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
+;;   :config (add-hook 'latex-mode-hook 'company-mode))
+(use-package company-auctex
+  :config (progn
+            (company-auctex-init)
+            (add-hook 'latex-mode-hook 'company-mode)))
+
+;; anki-editor
+(use-package anki-editor
+  :pin melpa
+  :init (progn
+          (setq anki-editor-break-consecutive-braces-in-latex t)))
 
 ;; flycheck
 (use-package flycheck
@@ -317,11 +845,14 @@
 (use-package multiple-cursors
   :bind (("C->" . mc/mark-next-like-this)))
 
-(use-package ace-jump-mode
-  :bind ("C-." . ace-jump-mode))
+;; (use-package ace-jump-mode
+;;   :bind ("C-." . ace-jump-mode))
+(use-package avy
+  :bind ("M-æ" . avy-goto-word-or-subword-1))
 (use-package ace-window
-  :config (global-set-key (kbd "M-p") 'ace-window))
-(use-package iedit)
+  :config (global-set-key (kbd "M-å") 'ace-window))
+(use-package iedit
+  :bind ("C-c ,"))
 (use-package rainbow-delimiters)
 (use-package centered-cursor-mode)
 (use-package htmlize)
@@ -329,11 +860,7 @@
 
 
 
-
-
-
-
-
+(message "Parsing programming setup")
 
 
 ;;; programming languages ;;;
@@ -364,7 +891,10 @@
       (setq w32-pipe-read-delay 0))
     ;; Set the buffer size to 64K on Windows (from the original 4K)
     (when (boundp 'w32-pipe-buffer-size)
-      (setq irony-server-w32-pipe-buffer-size (* 64 1024)))))
+      (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
+  :init (progn
+          ;; default to C++11
+          (setq irony-additional-clang-options '("-std=c++11"))))
 
 (use-package company-irony-c-headers)
 (use-package company-irony)
@@ -376,6 +906,10 @@
 	(add-hook 'c++-mode-hook 'irony-mode)
     (add-hook 'c-mode-hook 'irony-mode)
     (add-hook 'objc-mode-hook 'irony-mode)
+
+    ;; used to be set globally but this messed up when opening C files
+    (add-hook 'c++-mode-hook (lambda () (setq flycheck-clang-language-standard "c++11")))
+    (add-hook 'c++-mode-hook (lambda () (setq flycheck-gcc-language-standard "c++11")))
 
     (add-hook 'irony-mode-hook 'my-irony-mode-hook)
     (c-set-offset 'case-label '+)
@@ -408,20 +942,21 @@
 		 rear-nonsticky
 		 (slime-repl-prompt read-only font-lock-face intangible)))))
 
+;; COMMENTED SLIME for a faster startup => uncomment if you want to use it
 ;; (add-to-list 'load-path "/Users/tef/.emacs.d/elpa/slime-2.19/contrib/")
-(use-package "slime-company")
-(use-package "slime"
-  ;; :mode "\\.lisp\\.?$"
+;; (use-package "slime-company")
+;; (use-package "slime"
+;;   ;; :mode "\\.lisp\\.?$"
   
-  :init
-  (progn
-	;; (require 'slime-repl)
-	;; (add-hook 'slime-repl-mode-hook 'slime-repl-font-lock-setup)
-	(setq slime-net-coding-system 'utf-8-unix)
-	(slime-setup '(slime-fancy slime-company))
-	(slime-setup '(slime-fancy slime-company))
-	(setq slime-enable-evaluate-in-emacs t)
-	))
+;;   :init
+;;   (progn
+;; 	;; (require 'slime-repl)
+;; 	;; (add-hook 'slime-repl-mode-hook 'slime-repl-font-lock-setup)
+;; 	(setq slime-net-coding-system 'utf-8-unix)
+;; 	(slime-setup '(slime-fancy slime-company))
+;; 	(slime-setup '(slime-fancy slime-company))
+;; 	(setq slime-enable-evaluate-in-emacs t)
+;; 	))
 
 (use-package "eldoc"
   :diminish eldoc-mode
@@ -432,6 +967,13 @@
   (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
   (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
   (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
+
+;; https://github.com/magnars/dash.el
+(use-package dash
+  :pin melpa-stable)
+
+(use-package helpful
+  :pin melpa-stable)
 
 ;; clojure
 (use-package clojure-mode)
@@ -447,6 +989,7 @@
 (use-package rust-mode
   :init
   (progn
+    ;; (add-hook 'rust-mode-hook 'flycheck-rust-setup)  ;; newly added
 	(add-hook 'rust-mode-hook 'pretty-greek)
 	(add-hook 'rust-mode-hook 'my-prettiest-symbols)))
 (use-package racer
@@ -459,7 +1002,6 @@
 (use-package company-racer)
 
 ;; java
-
 
 ;; scala
 (use-package scala-mode
@@ -484,6 +1026,13 @@
 ;;   :init (setq omnisharp-server-executable-path "/Users/tef/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe")
 ;;   :config (add-to-list 'company-backends 'company-omnisharp))
 
+;; Golang
+(use-package go-mode
+  :mode "\\.go\\.?$"
+  :pin melpa-stable
+  :config (add-to-list 'company-backends 'company-go))
+(use-package company-go)
+
 ;; web development
 ;; from FAQ at http://web-mode.org/ for smartparens
 (defun my/web-mode-hook ()
@@ -494,11 +1043,31 @@
        (not (or (get-text-property (point) 'part-side)
                 (get-text-property (point) 'block-side)))))
 
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+
+(use-package tide)
+
 (use-package web-mode
-  :mode "\\.\\(html?\\|jinja\\).$"
+  :mode "\\.\\(html?\\|jinja||tsx\\).$"
   :config
   (progn
     (add-hook 'web-mode-hook  'my/web-mode-hook)
+    ;; setup Tide with web-mode
+    (add-hook 'web-mode-hook
+          (lambda ()
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+    
     (sp-local-pair 'web-mode "<" nil :when '(my/sp-web-mode-is-code-context))
     (setq web-mode-markup-indent-offset 2)
     (setq web-mode-code-indent-offset 2)
@@ -516,11 +1085,16 @@
 (use-package helm-emmet)
 
 ;; javascript
-(use-package js2-mode
+(use-package js2-mode)
+(use-package rjsx-mode
   :mode "\\.js\\.?$")
 (use-package skewer-mode
   :init
   (progn
+    ;; disable warning on missing semi-colons
+    (setq js2-strict-missing-semi-warning nil
+          js2-missing-semi-one-line-override nil)
+    
     (add-hook 'js2-mode-hook 'skewer-mode)
     (add-hook 'css-mode-hook 'skewer-css-mode)
     (add-hook 'html-mode-hook 'skewer-html-mode))
@@ -533,6 +1107,7 @@
     (bind-key "C-c C-c" 'compile tern-mode-keymap)
     (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
     (add-hook 'js2-mode-hook 'tern-mode)
+    (add-hook 'rjsx-mode-hook 'tern-mode)
     (setq company-tern-property-marker nil)))
 
 (use-package company-tern
@@ -542,24 +1117,29 @@
 (use-package typescript-mode
   :init (sp-local-pair 'csharp-mode "{" nil :post-handlers '((my/open-block-c-mode "RET"))))
 
+;; R
+(use-package ess
+  :pin melpa-stable)
+
 ;; python
 (use-package jedi
   :pin melpa-stable
   :config
   (progn
+    (setq jedi:environment-virtualenv (list "virtualenv" "--system-site-packages"))
     (jedi:setup)))
 
 (use-package company-jedi
   :pin melpa-stable)
 
-;; (use-package elpy
-;;   :pin melpa
-;;   :config
-;;   (progn
-;;     (when (require 'flycheck nil t)
-;; 	  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-;; 	  (add-hook 'elpy-mode-hook 'flycheck-mode)))
-;;   )
+(use-package elpy
+  :pin melpa
+  :config
+  (progn
+    (when (require 'flycheck nil t)
+	  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+	  (add-hook 'elpy-mode-hook 'flycheck-mode)))
+  )
 
 (use-package python
   :mode ("\\.py\\.?$" . python-mode)
@@ -605,10 +1185,17 @@
   :mode "\\.cql?$")
 
 
+;; Lua
+(use-package lua-mode
+  :pin melpa
+  :mode "\\.lua?$")
+
+
 (add-hook 'lisp-mode-hook 'pretty-greek)
 (add-hook 'emacs-lisp-mode-hook 'pretty-greek)
 
 ;;; themes ;;;
+(message "Parsing themes")
 (use-package solarized-theme)
 (use-package darktooth-theme)
 (use-package atom-one-dark-theme)
@@ -619,9 +1206,14 @@
   ;;           (if window-system
   ;;               nil
   ;; 	      (set-frame-parameter nil 'background-color "#2B2B2B")
-  ;; 	      ))))
+;; 	      ))))
 
-(enable-theme 'atom-one-dark)
+(defun on-frame-open (&optional frame)
+  "If the FRAME created in terminal don't load background color."
+  (unless (display-graphic-p frame)
+    (set-face-background 'default "unspecified-bg" frame)))
+
+(add-hook 'after-make-frame-functions 'on-frame-open)
 
 (use-package smart-mode-line)
 (use-package spaceline
@@ -630,227 +1222,41 @@
 	(require 'spaceline-config)
 	(spaceline-emacs-theme)))
 
-(let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-                             ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-                             ((x-list-fonts "Verdana")         '(:font "Verdana"))
-                             ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                             (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-       (base-font-color     (face-foreground 'default nil 'default))
-       (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+;; (let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+;;                              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+;;                              ((x-list-fonts "Verdana")         '(:font "Verdana"))
+;;                              ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+;;                              (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+;;        (base-font-color     (face-foreground 'default nil 'default))
+;;        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
-	  ;; some settings for makin headings and bullets nicer
-	  (custom-theme-set-faces 'user
-							  `(org-level-8 ((t (,@headline ,@variable-tuple))))
-							  `(org-level-7 ((t (,@headline ,@variable-tuple))))
-							  `(org-level-6 ((t (,@headline ,@variable-tuple))))
-							  `(org-level-5 ((t (,@headline ,@variable-tuple))))
-							  `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-							  `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-							  `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-							  `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-							  `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
+;; 	  ;; some settings for makin headings and bullets nicer
+;; 	  (custom-theme-set-faces 'user
+;; 							  `(org-level-8 ((t (,@headline ,@variable-tuple))))
+;; 							  `(org-level-7 ((t (,@headline ,@variable-tuple))))
+;; 							  `(org-level-6 ((t (,@headline ,@variable-tuple))))
+;; 							  `(org-level-5 ((t (,@headline ,@variable-tuple))))
+;; 							  `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
+;; 							  `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
+;; 							  `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
+;; 							  `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
+;; 							  `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
+
+(message "Parsing custom-variables")
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ansi-color-names-vector
-   ["#073642" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#657b83"])
- '(asana-my-tasks-project-id nil t)
- '(asana-selected-workspace (quote ((id . 31298705178401) (name . "octochain"))) t)
- '(compilation-message-face (quote default))
- '(cua-global-mark-cursor-color "#2aa198")
- '(cua-normal-cursor-color "#839496")
- '(cua-overwrite-cursor-color "#b58900")
- '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes (quote (atom-one-dark)))
- '(custom-safe-themes
-   (quote
-    ("a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "36d92f830c21797ce34896a4cf074ce25dbe0dabe77603876d1b42316530c99d" "b04425cc726711a6c91e8ebc20cf5a3927160681941e06bc7900a5a5bfe1a77f" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "5ecdec97d6697c14c9cbbd634ac93979d199e3f65b7d60d2c2c357bcb40e2821" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "47aa6e82734866b2915781c6e1d9517bd897d45fe8aec360dd4b6294fec73068" "6254372d3ffe543979f21c4a4179cd819b808e5dd0f1787e2a2a647f5759c1d1" default)))
- '(ein:console-args (quote ("--simple-prompt")))
- '(ein:org-execute-timeout 999999)
- '(elpy-rpc-python-command "python3")
- '(fci-rule-color "#3E4451")
- '(flycheck-clang-language-standard "c++11")
- '(flycheck-disabled-checkers nil)
- '(flycheck-gcc-language-standard "c++11")
- '(flycheck-highlighting-mode (quote symbols))
- '(flycheck-scss-executable "/usr/local/bin/sass")
- '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
- '(highlight-symbol-colors
-   (--map
-    (solarized-color-blend it "#002b36" 0.25)
-    (quote
-     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
- '(highlight-symbol-foreground-color "#93a1a1")
- '(highlight-tail-colors
-   (quote
-    (("#073642" . 0)
-     ("#546E00" . 20)
-     ("#00736F" . 30)
-     ("#00629D" . 50)
-     ("#7B6000" . 60)
-     ("#8B2C02" . 70)
-     ("#93115C" . 85)
-     ("#073642" . 100))))
- '(hl-bg-colors
-   (quote
-    ("#7B6000" "#8B2C02" "#990A1B" "#93115C" "#3F4D91" "#00629D" "#00736F" "#546E00")))
- '(hl-fg-colors
-   (quote
-    ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
- '(js-indent-level 2)
- '(magit-diff-use-overlays nil)
- '(nyan-mode t)
- '(org-agenda-files
-   (quote
-    ("~/Dropbox/notes/projects/octochain/tasks.org" "~/Dropbox/notes/projects/octochain/octo.org" "~/Dropbox/org/gtd.org")))
- '(org-babel-python-command "python3")
- '(org-edit-src-content-indentation 0)
- '(org-emphasis-alist
-   (quote
-    (("*" bold)
-     ("/" italic)
-     ("`" underline)
-     ("=" org-verbatim verbatim)
-     ("~" org-code verbatim)
-     ("+"
-      (:strike-through t)))))
- '(org-export-babel-evaluate nil)
- '(org-format-latex-options
-   (quote
-    (:foreground default :background default :scale 2.0 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
-                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
- '(org-journal-dir "~/Dropbox/org/journal")
- '(org-reveal-single-file t)
- '(org-src-block-faces nil)
- '(org-src-preserve-indentation nil)
- '(org-src-tab-acts-natively nil)
- '(package-selected-packages
-   (quote
-    (fic-mode company-web company-lua lua-mode elpy helm-gitlab exec-path-from-shell pug-mode ein company-irony-c-headers company-irony ace-jump-mode irony spotify helm-spotify-plus company-go go-mode ox-asciidoc ox-rst sparql-mode slime-company slime ess nyan-mode spaceline smart-mode-line smart-mode-line-powerline-theme haskell-mode org-journal calfw json-mode pytest realgud cmake-ide rtags org-tree-slide ox-reveal org-bullets graphviz-dot-mode dot-mode toml-mode cargo dockerfile-mode org-ref ob-ipython markdown-preview-mode gitlab yaml-mode web-mode use-package undo-tree typescript-mode solarized-theme smartparens skewer-mode rainbow-delimiters racer org omnisharp ob-http multiple-cursors magit iedit htmlize helm-projectile helm-emmet helm-descbinds groovy-mode ensime edit-server dirtree darktooth-theme cql-mode company-tern company-racer company-quickhelp company-jedi cider centered-cursor-mode atom-one-dark-theme arduino-mode ace-window)))
- '(python-indent-guess-indent-offset nil)
- '(python-shell-completion-native-disabled-interpreters (quote ("pypy" "ipython")))
- '(python-shell-interpreter "ipython3")
- '(python-shell-interpreter-args "--simple-prompt -i")
- '(python-shell-interpreter-interactive-arg "")
- '(racer-rust-src-path
-   "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/" t)
- '(recentf-keep (quote (recentf-keep-default-predicate)))
- '(rtags-path "/Users/tef/rtags/bin/")
- '(safe-local-variable-values (quote ((org-export-with-toc))))
- '(scroll-bar-mode nil)
- '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
- '(sml/mode-width
-   (if
-       (eq
-        (powerline-current-separator)
-        (quote arrow))
-       (quote right)
-     (quote full)))
- '(sml/pos-id-separator
-   (quote
-    (""
-     (:propertize " " face powerline-active1)
-     (:eval
-      (propertize " "
-                  (quote display)
-                  (funcall
-                   (intern
-                    (format "powerline-%s-%s"
-                            (powerline-current-separator)
-                            (car powerline-default-separator-dir)))
-                   (quote powerline-active1)
-                   (quote powerline-active2))))
-     (:propertize " " face powerline-active2))))
- '(sml/pos-minor-modes-separator
-   (quote
-    (""
-     (:propertize " " face powerline-active1)
-     (:eval
-      (propertize " "
-                  (quote display)
-                  (funcall
-                   (intern
-                    (format "powerline-%s-%s"
-                            (powerline-current-separator)
-                            (cdr powerline-default-separator-dir)))
-                   (quote powerline-active1)
-                   nil)))
-     (:propertize " " face sml/global))))
- '(sml/pre-id-separator
-   (quote
-    (""
-     (:propertize " " face sml/global)
-     (:eval
-      (propertize " "
-                  (quote display)
-                  (funcall
-                   (intern
-                    (format "powerline-%s-%s"
-                            (powerline-current-separator)
-                            (car powerline-default-separator-dir)))
-                   nil
-                   (quote powerline-active1))))
-     (:propertize " " face powerline-active1))))
- '(sml/pre-minor-modes-separator
-   (quote
-    (""
-     (:propertize " " face powerline-active2)
-     (:eval
-      (propertize " "
-                  (quote display)
-                  (funcall
-                   (intern
-                    (format "powerline-%s-%s"
-                            (powerline-current-separator)
-                            (cdr powerline-default-separator-dir)))
-                   (quote powerline-active2)
-                   (quote powerline-active1))))
-     (:propertize " " face powerline-active1))))
- '(sml/pre-modes-separator (propertize " " (quote face) (quote sml/modes)))
- '(sml/theme (quote dark))
- '(spaceline-helm-mode t)
- '(tab-width 4)
- '(term-default-bg-color "#002b36")
- '(term-default-fg-color "#839496")
- '(tool-bar-mode nil)
- '(tool-bar-position (quote top))
- '(tramp-mode t)
- '(vc-annotate-background nil)
- '(vc-annotate-color-map
-   (quote
-    ((20 . "#dc322f")
-     (40 . "#c85d17")
-     (60 . "#be730b")
-     (80 . "#b58900")
-     (100 . "#a58e00")
-     (120 . "#9d9100")
-     (140 . "#959300")
-     (160 . "#8d9600")
-     (180 . "#859900")
-     (200 . "#669b32")
-     (220 . "#579d4c")
-     (240 . "#489e65")
-     (260 . "#399f7e")
-     (280 . "#2aa198")
-     (300 . "#2898af")
-     (320 . "#2793ba")
-     (340 . "#268fc6")
-     (360 . "#268bd2"))))
- '(vc-annotate-very-old-color nil)
- '(weechat-color-list
-   (quote
-    (unspecified "#002b36" "#073642" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#839496" "#657b83"))))
-
-
+ '(TeX-shell-command-option "-c -shell-escape --synctex=1"))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(default ((t (:inherit nil :stipple nil :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 113 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
  '(fic-author-face ((t (:foreground "dark violet" :underline t))))
  '(fic-face ((t (:foreground "magenta" :weight bold))))
  '(org-block ((t (:inherit shadow :background "gray20"))))
