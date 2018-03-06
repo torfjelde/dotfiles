@@ -481,7 +481,16 @@ Return output file name."
     (setq org-confirm-babel-evaluate nil
 		  org-export-headline-levels 5
 		  org-export-with-toc 2
-		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
+		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
+
+          ;; customization for latex-preview in org-mode
+          org-format-latex-options '(:foreground default
+                                                 :background default
+                                                 :scale 2.0
+                                                 :html-foreground "Black"
+                                                 :html-background "Transparent"
+                                                 :html-scale 1.0
+                                                 :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
           )
     ;; disable execution on export UNLESS otherwise specified
     (add-to-list 'org-babel-default-header-args '(:eval . "never-export")))
@@ -757,9 +766,9 @@ Return output file name."
           (require 'org-ref-pdf)))
 
 ;; AucTeX
-;; (use-package auctex
-;;   :init (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
-;;   :config (add-hook 'latex-mode-hook 'company-mode))
+;; (require 'auctex)
+(setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
+
 (use-package company-auctex
   :config (progn
             (company-auctex-init)
@@ -1250,7 +1259,13 @@ Return output file name."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(TeX-shell-command-option "-c -shell-escape --synctex=1"))
+ '(custom-safe-themes
+   (quote
+    ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+ '(package-selected-packages
+   (quote
+    (yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy ein edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+ '(scroll-bar-mode nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
