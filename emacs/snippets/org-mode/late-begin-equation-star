@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-begin-equation
+# key: begeqn*
+# --
+\begin{equation*}
+  $1
+\end{equation*}

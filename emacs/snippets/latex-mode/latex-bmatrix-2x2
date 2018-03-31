@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: latex-bmatrix-2x2
+# key: bmat2x2
+# --
+\begin{bmatrix}
+  $1 & $2 \\
+  $4 & $5
+\end{bmatrix}

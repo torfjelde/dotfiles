@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-sequence
+# key: seq
+# --
+$1_1, $1_2, \dots, $1_$2

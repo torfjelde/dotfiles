@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-square-brackets-inline
+# key: $sbr
+# --
+$\left[ $1 \right]

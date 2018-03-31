@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: begin-note
+# key: beg-note
+# --
+#+begin_note
+$1
+#+end_note

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-laplace
+# key: laplace
+# --
+\mathcal{L}\{$1\}

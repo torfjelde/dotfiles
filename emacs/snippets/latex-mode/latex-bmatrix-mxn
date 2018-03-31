@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: latex-bmatrix-mxn
+# key: bmatmxn
+# --
+\begin{bmatrix}
+  $1_{11} & \dots & $1_{1n} \\\\
+  \vdots & \ddots & \vdots \\\\
+  $1_{m1} & \dots & $1_{mn}
+\end{bmatrix}

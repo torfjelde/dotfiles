@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-physics-ket-inline
+# key: $ket
+# --
+$\ket{$1}

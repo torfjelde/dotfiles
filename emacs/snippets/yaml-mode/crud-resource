@@ -1,0 +1,99 @@
+# -*- mode: snippet -*-
+# name: crud-resource
+# key: crud-resource
+# --
+  /$1:
+    get:
+      tags:
+        - $1
+      summary: Search through all entities of type $1.
+      description: Search through all entities of type $1.
+      operationId: $1.search
+      x-swagger-router-controller: "octochain_internal.views"
+      parameters:
+        - $ref: "#/parameters/FilterId"
+        - $ref: "#/parameters/Include"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              links:
+                $ref: "#/definitions/Links"
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/$2"
+    post:
+      tags:
+        - $1
+      summary: Create a new $1.
+      description: Create a new $1.
+      operationId: $1.create
+      x-swagger-router-controller: "octochain_internal.views"
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: Representation of the $1.
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/$2"
+      responses:
+        200:
+          description: Already existed, and so you were redirected here.
+          schema:
+            type: object
+            properties:
+              links:
+                $ref: "#/definitions/Links"
+              data:
+                $ref: "#/definitions/$2"
+        201:
+          description: Created
+          schema:
+            type: object
+            properties:
+              links:
+                $ref: "#/definitions/Links"
+              data:
+                $ref: "#/definitions/$2"
+        303:
+          $ref: "#/responses/AlreadyExists"
+
+  "/$1/{id}":
+    parameters:
+      - in: path
+        name: id
+        required: true
+        type: integer
+    get:
+      tags:
+        - $1
+      summary: Retrieve a single $1 by its id.
+      description: Retrieve a single $1 by its id.
+      operationId: $1.get
+      x-swagger-router-controller: "octochain_internal.views"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              links:
+                $ref: "#/definitions/Links"
+              data:
+                $ref: "#/definitions/$2"
+    delete:
+      tags:
+        - $1
+      summary: Delete the $1
+      description: Delete the $1
+      operationId: $1.delete
+      x-swagger-router-controller: "octochain_internal.views"
+      responses:
+        204:
+          $ref: "#/responses/SuccessEmpty"

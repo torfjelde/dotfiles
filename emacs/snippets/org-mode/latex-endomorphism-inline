@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-endomorphism-inline
+# key: $End
+# --
+$\text{End}($1)

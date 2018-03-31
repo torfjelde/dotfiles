@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: numpy-doc-func-returns
+# key: Returns
+# --
+Returns
+-------
+$1

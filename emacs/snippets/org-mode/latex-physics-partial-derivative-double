@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-physics-partial-derivative-double
+# key: pdv2
+# --
+\pdv{$1}{$2}{$3}

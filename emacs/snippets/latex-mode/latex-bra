@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-bra
+# key: bra
+# --
+\bra{$1}

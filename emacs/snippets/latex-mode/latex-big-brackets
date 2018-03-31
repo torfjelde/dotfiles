@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-big-brackets
+# key: bigb
+# --
+\big[ $1 \big]

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-theorem
+# key: begin-thm
+# --
+#+name: thm:$1
+#+begin_theorem :title "$2"
+$3
+#+end_theorem

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-physics-commutator
+# key: comm
+# --
+\comm{$1}{$2}

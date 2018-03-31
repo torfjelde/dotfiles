@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-physics-poisson-bracket-inline
+# key: $pb
+# --
+$\pb{$1}{$2}

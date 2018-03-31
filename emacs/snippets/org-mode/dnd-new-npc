@@ -1,0 +1,29 @@
+# -*- mode: snippet -*-
+# name: dnd-new-npc
+# key: new-npc
+# --
+*** $1
+    :PROPERTIES:
+    :CUSTOM_ID: $1
+    :END:
+**** Appearance
+|------+-----+--------+--------+-------+-------+---------+-------|
+| Race | Age | Gender | Height | Voice | Desc. | Clothes | Extra |
+|------+-----+--------+--------+-------+-------+---------+-------|
+| $3   | $4  | $5     | $6     | $7    | $8    | $9      | $10   |
+|------+-----+--------+--------+-------+-------+---------+-------|
+**** Personality
+$11
+**** Motivations / desires
+$12
+**** Player relationships
+$13
+**** NPC relationships
+$14
+**** General
+$15
+**** Quests
+$16
+**** Knowledge
+$17
+**** Developments

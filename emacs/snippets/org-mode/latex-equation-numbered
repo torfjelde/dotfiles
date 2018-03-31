@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-equation-numbered
+# key: eqnn
+# --
+\begin{equation}
+$1
+\end{equation}

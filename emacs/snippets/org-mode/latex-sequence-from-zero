@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-sequence-from-zero
+# key: seq-from-zero
+# --
+$1_0, $1_1, \dots, $1_n

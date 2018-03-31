@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-product-indexed
+# key: prod
+# --
+\prod_{$1}^{$2}

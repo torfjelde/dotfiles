@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-tilde-inline
+# key: $tilde
+# --
+$\tilde{$1}

@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: latex-bmatrix3x3
+# key: bmat3x3
+# --
+\begin{bmatrix}
+  $1 & $2 & $3 \\
+  $4 & $5 & $6 \\
+  $7 & $8 & $9
+\end{bmatrix}

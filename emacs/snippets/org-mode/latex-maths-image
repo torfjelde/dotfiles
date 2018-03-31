@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-maths-image
+# key: im
+# --
+\text{im}($1)

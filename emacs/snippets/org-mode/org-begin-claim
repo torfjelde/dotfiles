@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: begin-claim
+# key: begin-claim
+# --
+#+begin_claim
+$1
+#+end_claim

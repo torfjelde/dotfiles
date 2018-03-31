@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-boldsymbol-inline
+# key: $bs
+# --
+$\boldsymbol{$1}

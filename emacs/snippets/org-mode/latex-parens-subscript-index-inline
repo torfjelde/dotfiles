@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-parens-subscript-index-inline
+# key: $subidx
+# --
+$$1_{($2)}

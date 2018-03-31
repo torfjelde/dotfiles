@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-Big-parenthesis
+# key: Bigp
+# --
+\Big( $1 \Big)

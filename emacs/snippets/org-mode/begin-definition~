@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-definition
+# key: begin-def
+# --
+#+name: def:$1
+#+begin_definition :title $2
+$3
+#+end_definition

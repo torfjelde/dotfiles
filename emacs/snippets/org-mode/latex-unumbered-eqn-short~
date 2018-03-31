@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-unumbered-eqn-short
+# key: eqn
+# --
+\begin{equation*}
+$1
+\end{equation*}

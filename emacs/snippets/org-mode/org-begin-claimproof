@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: org-begin-claimproof
+# key: begin-claimproof
+# --
+#+begin_claimproof
+$1
+#+end_claimproof

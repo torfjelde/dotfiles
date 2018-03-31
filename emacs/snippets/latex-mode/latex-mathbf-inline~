@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-mathbf-inline
+# key: $mbf
+# --
+$\matbf{$1}$

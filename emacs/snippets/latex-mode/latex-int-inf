@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-int-inf
+# key: int-inf
+# --
+\int_{-\infty}^{\infty}

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-parens-superscript-index
+# key: supidx
+# --
+$1^{($2)}

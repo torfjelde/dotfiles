@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-absolute-value
+# key: abs
+# --
+\left| $1 \right|

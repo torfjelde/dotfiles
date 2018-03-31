@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-physics-bra-inline
+# key: $bra
+# --
+$\bra{$1}

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-proof
+# key: begin-proof
+# --
+#+name: proof:$1
+#+begin_proof :theorem $2
+$3
+#+end_proof

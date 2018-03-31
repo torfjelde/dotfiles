@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-mathfrak
+# key: mf
+# --
+\mathfrak{$1}

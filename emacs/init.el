@@ -216,7 +216,17 @@
 ;; IMPORTANT: need to run `(pdf-tools-install)' to install dependencies
 (use-package pdf-tools
   :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
-  :init (if (string-equal system-type "gnu/linux") (pdf-tools-install)))
+  :init (progn
+          (if (string-equal system-type "gnu/linux") (pdf-tools-install))
+          ;; copied from the source-code, but uses `org-mode' as default major-mode for text-annotations
+          (setq pdf-annot-edit-contents-setup-function
+                (lambda (a)
+                   (let ((mode (if (funcall pdf-annot-latex-string-predicate
+                                            (pdf-annot-get a 'contents))
+                                   'latex-mode
+                                 'org-mode)))
+                     (unless (derived-mode-p mode)
+                       (funcall mode)))))))
 
 ;; org-mode
 
@@ -629,8 +639,6 @@ Return output file name."
     (setq initial-buffer-choice (lambda ()
                                   (org-agenda-list)
                                   (get-buffer "*Org Agenda*")))
-
-    ()
     
     ;; ox-publish
     (require 'ox-publish)
@@ -770,9 +778,10 @@ Return output file name."
 (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
 
 (use-package company-auctex
-  :config (progn
-            (company-auctex-init)
-            (add-hook 'latex-mode-hook 'company-mode)))
+  :init (progn
+          (company-auctex-init)
+          (add-hook 'LaTeX-mode-hook 'company-mode)
+          (add-hook 'latex-mode-hook 'company-mode)))
 
 ;; anki-editor
 (use-package anki-editor
@@ -1166,7 +1175,8 @@ Return output file name."
 
 (use-package ein
   :init (progn
-          (setq ein:use-smartrep t)
+          ;; BUG: this does not currently work for some reason; also I think I need it
+          ;; (setq ein:use-smartrep t)
           (add-hook 'ein:notebook-mode-hook 'company-mode)))
 
 ;; haskell
@@ -1259,13 +1269,26 @@ Return output file name."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(bibtex-completion-pdf-field "file")
  '(custom-safe-themes
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+ '(elpy-rpc-python-command "python")
+ '(org-emphasis-alist
+   (quote
+    (("*" bold)
+     ("/" italic)
+     ("_" default)
+     ("=" org-verbatim verbatim)
+     ("~" org-code verbatim)
+     ("+"
+      (:strike-through t)))))
  '(package-selected-packages
    (quote
-    (yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy ein edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
- '(scroll-bar-mode nil))
+    (xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+ '(python-shell-interpreter "python3")
+ '(scroll-bar-mode nil)
+ '(yas-indent-line (quote fixed)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

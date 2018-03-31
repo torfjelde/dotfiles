@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-align
+# key: align
+# --
+\begin{align}
+  $1
+\end{align}

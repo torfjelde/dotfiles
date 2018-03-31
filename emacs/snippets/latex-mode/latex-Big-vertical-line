@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-Big-vertical-line
+# key: Bigv
+# --
+\Big|_{$1}

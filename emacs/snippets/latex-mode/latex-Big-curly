@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-Big-curly
+# key: Bigc
+# --
+\Big\\{ $1 \Big\\}

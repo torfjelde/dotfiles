@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-frac-inline
+# key: $frac
+# --
+$\frac{$1}{$2}

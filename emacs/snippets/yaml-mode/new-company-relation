@@ -1,0 +1,52 @@
+# -*- mode: snippet -*-
+# name: company-relationship-route
+# key: c-rel-route
+# --
+  '/company/{slug}/$1':
+    parameters:
+      - $ref: "#/parameters/CompanySlug"
+    get:
+      tags:
+        - company
+      summary: Search through $1 associated with company.
+      description: Search through $1 associated with company.
+      responses:
+        200:
+          $ref: "#/responses/$3"
+        404:
+          $ref: "#/responses/NotFound"
+    post:
+      tags:
+        - company
+      summary: Add a relationship between the company and $1
+      description: Add a relationship between the company and $1
+      responses:
+        200:
+          $ref: "#/responses/$3"
+        201:
+          $ref: "#/responses/$3"
+        303:
+          $ref: "#/responses/AlreadyExists"
+  '/company/{slug}/$1/{$1_id}':
+    parameters:
+      - $ref: "#/parameters/CompanySlug"
+      - in: path
+        name: $1_id
+        required: true
+        type: integer
+    post:
+      tags:
+        - company
+      summary: Add a relationship between the company and the $1
+      description: Add a relationship between the company and the $1
+      responses:
+        204:
+          $ref: "#/responses/SuccessEmpty"
+    delete:
+      tags:
+        - company
+      summary: Remove the relationship between the company and the $1
+      description: Remove the relationship between the company and the $1
+      responses:
+        204:
+          $ref: "#/responses/SuccessEmpty"
