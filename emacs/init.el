@@ -11,6 +11,7 @@
  default-tab-width 4
  tool-bar-mode nil
 
+ org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
  org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
 
  ;; set the backup folder to be the temp-folder
@@ -229,6 +230,24 @@
                        (funcall mode)))))))
 
 ;; org-mode
+(defmacro tor/with-local (var val &rest body)
+  "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
+  `(let ((prev ,var))
+     (setq ,var ,val)
+     (let ((res (progn ,@body)))
+       (setq ,var prev)
+       res)))
+
+(defvar tor/latex-publish-directory "./.latex/")
+
+(defun tor/blog-dir-as-relative (dir filename)
+  (file-relative-name dir (file-name-directory filename)))
+
+(defun tor/blog-get-latex-directory (plist filename pub-dir)
+  (cond
+   ((plist-member plist :latex-directory) (file-relative-name (plist-get plist :latex-directory) (file-name-directory filename)))
+   ;; ((plist-member plist :assets-directory) (file-relative-name (concat (plist-get plist :assets-directory) "latex/") (file-name-directory filename)))
+   ((plist-member plist :project-directory) (file-relative-name (concat (plist-get plist :project-directory) "assets/latex/") (file-name-directory filename)))))
 
 ;; TODO: create a customized publishing function
 (defun tor/org-html-publish-to-html (plist filename pub-dir)
@@ -240,7 +259,10 @@ PUB-DIR is the publishing directory.
 
 Return output file name."
   ;; TODO: need to update/republish "local" index if it exists
-  (org-html-publish-to-html plist filename pub-dir))
+  (tor/with-local org-preview-latex-image-directory
+                  (or (tor/blog-get-latex-directory plist filename pub-dir)
+                      tor/latex-publish-directory)
+                  (org-html-publish-to-html plist filename pub-dir)))
 
 (defun tor/publish-html (plist filename pub-dir)
   (message "%s" plist)
@@ -259,6 +281,10 @@ PUB-DIR is the publishing directory.
 
 Return output file name."
   (org-publish-attachment plist filename pub-dir))
+
+(defun tor/org-publish-attachment-local (plist)
+  "Use PLIST to copy the entire base-directory to publishing-directory."
+  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
 
 (defun tor/filename-to-title (filename)
   "Transform FILENAME into title by splitting on _ and concatenating."
@@ -497,7 +523,7 @@ Return output file name."
           org-format-latex-options '(:foreground default
                                                  :background default
                                                  :scale 2.0
-                                                 :html-foreground "Black"
+                                                 :html-foreground "steelblue"
                                                  :html-background "Transparent"
                                                  :html-scale 1.0
                                                  :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
@@ -645,7 +671,26 @@ Return output file name."
     (setq org-publish-project-alist
           '(
             ;; ... add all the components here (see below)...
+            ("blog-latex"
+             :base-directory "~/org-blog/assets/latex"
+             :publishing-directory "~/org-blog/public_html/assets/latex"
+             :recursive t
+             :publishing-function tor/org-publish-attachment
+             :base-extension "png\\|jpg\\|gif\\\\|ogg\\|swf")
+
+            ;; ;; TODO: somehow allow us to simply copy the files in one go instead of going through
+            ;; ;; all files to check if modified
+            ("blog-latex-local"
+             :base-directory "~/org-blog/assets/latex"
+             :publishing-directory "~/org-blog/public_html/assets/latex"
+             :recursive nil
+             :preparation-function tor/org-publish-attachment-local
+             :publishing-function identity
+             :base-extension "")
+            
             ("org-posts"
+             :project-directory "~/org-blog/"
+             :assets-directory "~/org-blog/assets/"
              :base-directory "~/org-blog/posts/"
              :base-extension "org"
              :publishing-directory "~/org-blog/public_html/posts/"
@@ -654,7 +699,9 @@ Return output file name."
              ;; :preparation-function tor/prepare-blog-post-publish
              :headline-levels 4
              :auto-preamble t
-             :html-preamble tor/render-html-preamble--posts)
+             :html-preamble tor/render-html-preamble--posts
+             :html-html5-fancy t
+             :html-metadata-timestamp-format "%Y-%m-%d %a")
 
             ("org-posts-index"
              :base-directory "~/org-blog/posts"
@@ -669,6 +716,8 @@ Return output file name."
             ("org-blog" :components ("org-posts" "org-posts-index"))
             
             ("org-notes"
+             :project-directory "~/org-blog/"
+             :assets-directory "̃~/org-blog/assets/"
              :base-directory "~/org-blog/notes/"
              :base-extension "org"
              :publishing-directory "~/org-blog/public_html/notes/"
@@ -677,6 +726,8 @@ Return output file name."
              :headline-levels 4             ; Just the default for this project.
              :auto-preamble t
              :html-preamble tor/render-html-preamble
+             :html-html5-fancy t
+             :html-metadata-timestamp-format "%Y-%m-%d %a"
              )
 
             ("org-notes-assets"
@@ -687,6 +738,7 @@ Return output file name."
              :publishing-function tor/org-publish-attachment)
 
             ("org-static"
+             :project-directory "~/org-blog/"
              :base-directory "~/org-blog/assets/"
              :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
              :publishing-directory "~/org-blog/public_html/assets/"
@@ -1283,6 +1335,32 @@ Return output file name."
      ("~" org-code verbatim)
      ("+"
       (:strike-through t)))))
+ '(org-preview-latex-process-alist
+   (quote
+    ((dvipng :programs
+             ("latex" "dvipng")
+             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+             (1.0 . 1.0)
+             :latex-compiler
+             ("latex -interaction nonstopmode -output-directory %o %f")
+             :image-converter
+             ("dvipng -fg %F -bg %B -D %D -T tight -o %O %f"))
+     (dvisvgm :programs
+              ("latex" "dvisvgm")
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :use-xcolor t :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+              (1.7 . 1.5)
+              :latex-compiler
+              ("latex -interaction nonstopmode -output-directory %o %f")
+              :image-converter
+              ("dvisvgm %f -n -b min -c %S -o %O"))
+     (imagemagick :programs
+                  ("latex" "convert")
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :use-xcolor t :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  (1.0 . 1.0)
+                  :latex-compiler
+                  ("pdflatex -interaction nonstopmode -output-directory %o %f")
+                  :image-converter
+                  ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
  '(package-selected-packages
    (quote
     (xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
