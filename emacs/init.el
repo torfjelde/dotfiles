@@ -232,11 +232,12 @@
 ;; org-mode
 (defmacro tor/with-local (var val &rest body)
   "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
-  `(let ((prev ,var))
+  `(let ((prev ,var)
+         (res nil))
      (setq ,var ,val)
-     (let ((res (progn ,@body)))
-       (setq ,var prev)
-       res)))
+     (setq res (progn ,@body))
+     (setq ,var prev)
+     res))
 
 (defvar tor/latex-publish-directory "./.latex/")
 
@@ -324,7 +325,7 @@ Return output file name."
                                (ht ("posts"
                                     (-map
                                      (lambda (c) (ht ("title" (tor/filename-to-title c))
-                                                ("link" (concat base-dir (replace-regexp-in-string "\\.org" ".html" c)))))
+                                                ("link" (replace-regexp-in-string "\\.org" ".html" c))))
                                      files)))))
       (write-region nil nil "~/org-blog/posts/index.html"))))
 
@@ -335,14 +336,26 @@ Return output file name."
   (require 'ht)
 
   (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+        (base-dir (file-truename (plist-get export-options :base-directory)))
+        (input-file (file-truename (plist-get export-options :input-file))))
     (message base-dir)
     (mustache-render "{{> base }}"
                      (ht ("categories"
                           (-map
                            (lambda (c) (ht ("category" (tor/filename-to-title c))
-                                      ("link" (concat base-dir c "/index.html"))))
+                                      ("link" (concat (file-relative-name
+                                                       (concat base-dir "/" c)
+                                                       (file-name-directory input-file))
+                                                      "/index.html"))))
                            (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
+
+(defun tor/render-html-postamble (export-options)
+  "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
+  (require 'mustache)
+  ;; (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/")))
+    (mustache-render "{{> footer}}" (ht ("" nil)))))
 
 (defun tor/render-html-preamble--posts (export-options)
   "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
@@ -355,10 +368,10 @@ Return output file name."
     (message base-dir)
     (mustache-render "{{> base }}"
                      (ht ("categories"
-                          `(,(ht ("category" "Posts") ("link" (concat base-dir "index.html")))
-                            ,(ht ("category" "Wiki") ("link" (concat base-dir "../notes/index.html")))
-                            ,(ht ("category" "Notes from papers") ("link" (concat base-dir "../papers/index.html")))
-                            ,(ht ("category" "About me") ("link" (concat base-dir "../about.html")))))))))
+                          `(,(ht ("category" "Posts") ("link" "index.html"))
+                            ,(ht ("category" "Wiki") ("link" "../notes/index.html"))
+                            ,(ht ("category" "Notes from papers") ("link" "../papers/index.html"))
+                            ,(ht ("category" "About me") ("link" "../about.html"))))))))
 
 (defun tor/element--sort-elements-by-raw-value (el1 el2)
   "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
@@ -700,6 +713,7 @@ Return output file name."
              :headline-levels 4
              :auto-preamble t
              :html-preamble tor/render-html-preamble--posts
+             :html-postamble nil
              :html-html5-fancy t
              :html-metadata-timestamp-format "%Y-%m-%d %a")
 
@@ -711,6 +725,7 @@ Return output file name."
              :preparation-function tor/prepare-blog-post-publish
              :recursive nil
              :auto-preamble nil
+             :html-postamble nil
              :html-preamble nil)
 
             ("org-blog" :components ("org-posts" "org-posts-index"))
@@ -726,7 +741,9 @@ Return output file name."
              :headline-levels 4             ; Just the default for this project.
              :auto-preamble t
              :html-preamble tor/render-html-preamble
-             :html-html5-fancy t
+             :html-postamble nil
+             ;; :html-postamble tor/render-html-postamble
+             ;; :html-html5-fancy t
              :html-metadata-timestamp-format "%Y-%m-%d %a"
              )
 
@@ -740,7 +757,8 @@ Return output file name."
             ("org-static"
              :project-directory "~/org-blog/"
              :base-directory "~/org-blog/assets/"
-             :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
+             ;; :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
+             :base-extension "css\\|js\\|gif\\|mp3\\|ogg\\|swf"
              :publishing-directory "~/org-blog/public_html/assets/"
              :recursive t
              :publishing-function tor/org-publish-attachment)
@@ -750,13 +768,16 @@ Return output file name."
 
             ("org-papers"
              ;; :base-directory "~/Dropbox/bibliography/notes/"
+             :project-directory "~/org-blog/"
+             :assets-directory "̃~/org-blog/assets/"
              :base-directory "~/org-blog/papers/"
              :base-extension "org"
              :publishing-directory "~/org-blog/public_html/papers/"
              :recursive nil
              :publishing-function tor/org-html-publish-to-html
              :headline-levels 4
-             :auto-premable t)
+             :auto-premable t
+             :html-postamble nil)
             ))
     ))
 
@@ -1326,6 +1347,7 @@ Return output file name."
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(elpy-rpc-python-command "python")
+ '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
     (("*" bold)
@@ -1335,6 +1357,10 @@ Return output file name."
      ("~" org-code verbatim)
      ("+"
       (:strike-through t)))))
+ '(org-format-latex-options
+   (quote
+    (:foreground default :background default :scale 2.0 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
+                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
  '(org-preview-latex-process-alist
    (quote
     ((dvipng :programs
