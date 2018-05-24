@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-lemma
+# key: begin-lemma
+# --
+#+name: lemma:$1
+#+begin_lemma :title "$2"
+$3
+#+end_lemma

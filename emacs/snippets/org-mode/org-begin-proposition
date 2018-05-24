@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-proposition
+# key: begin-prop
+# --
+#+name: proposition:$1
+#+begin_proposition :title "$2"
+$3
+#+end_proposition

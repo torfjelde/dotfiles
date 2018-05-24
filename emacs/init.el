@@ -822,7 +822,11 @@ Return output file name."
                                           "pdflatex -interaction nonstopmode -output-directory %o %f"
                                           "pdflatex -interaction nonstopmode -output-directory %o %f")
                   ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
-                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf)
+                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
+
+                  ;; adds more entry-types, e.g. @misc and @online
+                  bibtex-dialect 'biblatex
+                  )
 
             ;; overwrites the 'inbook' BibTeX type defined by doi-utils
             ;; FIXME: getting an issue with "mandatory field is missing: chapter"
@@ -830,6 +834,8 @@ Return output file name."
                                        author title booktitle series publisher year pages doi url)
             (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
                                        author title booktitle series publisher year pages doi url)
+            (doi-utils-def-bibtex-type online ("online")
+                                       author title url year)
 
             ;; NOT WORKING
             ;; (defun my-pdf-proxy (orig-fun &rest args)
@@ -1343,6 +1349,7 @@ Return output file name."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(bibtex-completion-pdf-field "file")
+ '(custom-enabled-themes nil)
  '(custom-safe-themes
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
@@ -1387,6 +1394,7 @@ Return output file name."
                   ("pdflatex -interaction nonstopmode -output-directory %o %f")
                   :image-converter
                   ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
+ '(org-ref-bib-html "")
  '(package-selected-packages
    (quote
     (xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
