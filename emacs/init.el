@@ -837,6 +837,11 @@ Return output file name."
             (doi-utils-def-bibtex-type online ("online")
                                        author title url year)
 
+            ;; setup html formatting for @online
+            (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
+            ;; and mics
+            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t."))
+
             ;; NOT WORKING
             ;; (defun my-pdf-proxy (orig-fun &rest args)
             ;;   (let* ((pdf-url (apply orig-fun args))
