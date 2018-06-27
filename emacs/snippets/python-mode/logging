@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: logging
+# key: logging
+# --
+import logging
+
+LOG_LEVEL = "INFO"
+LOG_FORMAT = '%(asctime)-15s %(levelname)-9s %(module)s: %(message)s'
+logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, LOG_LEVEL))
