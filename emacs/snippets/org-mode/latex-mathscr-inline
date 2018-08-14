@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-mathscr-inline
+# key: $mscr
+# --
+$\mathscr{$1}

@@ -35,6 +35,7 @@
                               (org-after-todo-state-change-hook . tor/impl-list-done-hook))
  )
 
+
 (defun eval-and-replace ()
   "Replace the preceding sexp with its value."
   (interactive)
@@ -555,6 +556,10 @@ Return output file name."
 
     (global-set-key (kbd "C-c å") 'org-agenda)
     (global-set-key (kbd "C-c ¤") 'org-mark-ring-goto)
+
+    ;; https://emacs.stackexchange.com/a/18146
+    (require 'bind-key)
+    (unbind-key "C-c [" org-mode-map)
     
     (setcar org-emphasis-regexp-components " \t('\"{[:alpha:]")
     (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
@@ -825,22 +830,28 @@ Return output file name."
                   org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
 
                   ;; adds more entry-types, e.g. @misc and @online
-                  bibtex-dialect 'biblatex
+                  ;; bibtex-dialect 'biblatex
                   )
 
             ;; overwrites the 'inbook' BibTeX type defined by doi-utils
-            ;; FIXME: getting an issue with "mandatory field is missing: chapter"
+            ;; +FIXME+: getting an issue with "mandatory field is missing: chapter"
+            ;; the above was due to the choice of dialect
             (doi-utils-def-bibtex-type book ("book")
                                        author title booktitle series publisher year pages doi url)
             (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
                                        author title booktitle series publisher year pages doi url)
-            (doi-utils-def-bibtex-type online ("online")
-                                       author title url year)
+            ;;
 
-            ;; setup html formatting for @online
-            (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
-            ;; and mics
-            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t."))
+            ;; FIXME: for now we make `misc' a placeholder for `online'
+            ;; since the dialect `BibTeX' does not support `online'
+            ;; which causes issues when exporting Org-files
+
+            ;; (doi-utils-def-bibtex-type online ("online")
+            ;;                            author title url year)
+            ;; (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
+            ;; and misc
+            
+            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t, <a href=\"%U\">link</a>.. %N"))
 
             ;; NOT WORKING
             ;; (defun my-pdf-proxy (orig-fun &rest args)
@@ -855,7 +866,9 @@ Return output file name."
             ;; (advice-add 'doi-utils-get-pdf-url :around #'my-pdf-proxy)
             )
   :init (progn
-          (require 'org-ref-pdf)))
+          (require 'org-ref-pdf)
+          (bind-key "C-c [" 'org-ref-insert-ref-link)
+          (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
 
 ;; AucTeX
 ;; (require 'auctex)
@@ -1189,7 +1202,8 @@ Return output file name."
 ;; javascript
 (use-package js2-mode)
 (use-package rjsx-mode
-  :mode "\\.js\\.?$")
+  :mode "\\.js\\.?$"
+  :config (setq js-indent-level 2))
 (use-package skewer-mode
   :init
   (progn
@@ -1345,6 +1359,10 @@ Return output file name."
 ;; 							  `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
 ;; 							  `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
+;; add the private files to `load-path'
+(message "Loading private files")
+(add-to-list 'load-path "~/.emacs.d/private/")
+(load "utilities")
 
 (message "Parsing custom-variables")
 
@@ -1359,6 +1377,9 @@ Return output file name."
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(elpy-rpc-python-command "python")
+ '(org-agenda-files
+   (quote
+    ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
@@ -1373,6 +1394,18 @@ Return output file name."
    (quote
     (:foreground default :background default :scale 2.0 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
                  ("begin" "$1" "$" "$$" "\\(" "\\["))))
+ '(org-html-mathjax-options
+   (quote
+    ((path "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML")
+     (scale "100")
+     (align "center")
+     (font "Neo-Euler")
+     (linebreaks "false")
+     (autonumber "AMS")
+     (indent "0em")
+     (multlinewidth "85%")
+     (tagindent ".8em")
+     (tagside "right"))))
  '(org-preview-latex-process-alist
    (quote
     ((dvipng :programs
@@ -1402,9 +1435,10 @@ Return output file name."
  '(org-ref-bib-html "")
  '(package-selected-packages
    (quote
-    (xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rjsx-mode rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
- '(python-shell-interpreter "python3")
+    (sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+ '(python-shell-interpreter "python")
  '(scroll-bar-mode nil)
+ '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))
  '(yas-indent-line (quote fixed)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

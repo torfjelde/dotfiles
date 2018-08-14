@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-Adjoint-inline
+# key: $Ad
+# --
+$\rm{Ad}_{$1}

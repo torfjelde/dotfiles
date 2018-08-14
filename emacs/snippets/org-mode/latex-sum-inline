@@ -2,4 +2,4 @@
 # name: latex-sum-inline
 # key: $sum
 # --
-$\sum{$1}^{$2}
+$\sum_{$1}^{$2}

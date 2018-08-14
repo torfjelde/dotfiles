@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: tikz-cd-src-block
+# key: tikz-cd
+# --
+
+#+begin_src latex :file ./.`(insert (string-remove-suffix ".org" (file-relative-name (buffer-file-name))))`/figures/$1.png :imagemagick yes :fit yes :results none :packages '(("" "tikz-cd")) :exports none
+\begin{tikzpicture}[baseline= (a).base]
+  \node[scale=3.] (a) at (0,0){
+    \begin{tikzcd}
+      $2
+    \end{tikzcd}
+  };
+\end{tikzpicture}
+#+end_src
+
+[[./.`(insert (string-remove-suffix ".org" (file-relative-name (buffer-file-name))))`/figures/$1.png]]
