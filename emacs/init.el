@@ -629,6 +629,7 @@ Return output file name."
     (require 'ox-latex)
     (add-to-list 'org-latex-packages-alist '("" "listingsutf8"))
     (add-to-list 'org-latex-packages-alist '("" "color"))
+    (add-to-list 'org-latex-packages-alist '("" "minted"))
 
     (add-hook 'org-mode-hook 'visual-line-mode)
 
@@ -829,10 +830,10 @@ Return output file name."
                   ;; with this activated it's horrendously SLOW for large files
                   org-ref-show-broken-links nil
 
-                  org-latex-pdf-process '("pdflatex -interaction nonstopmode -output-directory %o %f"
+                  org-latex-pdf-process '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
                                           "bibtex %b"
-                                          "pdflatex -interaction nonstopmode -output-directory %o %f"
-                                          "pdflatex -interaction nonstopmode -output-directory %o %f")
+                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")
                   ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
                   org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
 
@@ -1437,6 +1438,9 @@ Return output file name."
      (multlinewidth "85%")
      (tagindent ".8em")
      (tagside "right"))))
+ '(org-latex-pdf-process
+   (quote
+    ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
  '(org-preview-latex-process-alist
    (quote
     ((dvipng :programs
