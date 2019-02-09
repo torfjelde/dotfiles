@@ -1,4 +1,6 @@
 (setq
+ desktop-restore-forces-onscreen nil ;; fixes an error occurring when using restoring `desktop'
+ 
  inhibit-startup-screen t
  inhibit-splash-screen t
  create-lockfiles nil
@@ -11,6 +13,7 @@
  default-tab-width 4
  tool-bar-mode nil
 
+ org-adapt-indentation nil  ;; don't indent text in a section to align with section-level
  org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
  org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
 
@@ -533,10 +536,12 @@ Return output file name."
 		  org-export-with-toc 2
 		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
 
+          org-latex-listings 'minted ;; use `minted' instead of `listings' when exporting to latex
+
           ;; customization for latex-preview in org-mode
           org-format-latex-options '(:foreground default
                                                  :background default
-                                                 :scale 2.0
+                                                 :scale 1.5
                                                  :html-foreground "steelblue"
                                                  :html-background "Transparent"
                                                  :html-scale 1.0
@@ -591,13 +596,13 @@ Return output file name."
              )
             
             ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
-             "* %?\nEntered on %U\n  %i\n  %a")
+             "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
             
             ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
 
             ("s" "School" entry
              (file "~/Dropbox/org/school.org")
-             "* TODO %^{Brief Description} %^{COURSE}p %^g\n  %?" :empty-lines 1)
+             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
 
             ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
              "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
@@ -814,6 +819,8 @@ Return output file name."
                   bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
                   ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
                   bibtex-completion-notes-path "/home/tor/org-blog/papers/"
+                  bibtex-completion-notes-template-multiple-files "#+SETUPFILE: ../setup-level-1.org\n#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n\n"
+                  
                   bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
 
                   ;; ensures that the use of #+NAME: works properly when exporting
@@ -987,7 +994,8 @@ Return output file name."
   (progn
 	(add-hook 'prog-mode-hook 'fic-mode)
 	(set-face-attribute 'fic-author-face nil :foreground "dark violet" :underline t)
-	(set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)))
+	(set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)
+    (add-to-list 'fic-highlighted-words "HACK")))
 
 ;; c/c++
 ;; replace the `completion-at-point' and `complete-symbol' bindings in
@@ -1147,6 +1155,15 @@ Return output file name."
   :pin melpa-stable
   :config (add-to-list 'company-backends 'company-go))
 (use-package company-go)
+
+;; Julia
+(use-package julia-mode
+  :config
+  (progn
+    (load "ess-site")
+    (add-hook 'julia-mode #'ess-julia-mode)
+    ;; overwrite this rebinding from `ess-julia-mode'
+    (bind-key "TAB" 'julia-latexsub-or-indent ess-julia-mode-map)))
 
 ;; web development
 ;; from FAQ at http://web-mode.org/ for smartparens
@@ -1359,10 +1376,23 @@ Return output file name."
 ;; 							  `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
 ;; 							  `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
+;; Tor's keybindings
+(defun tor/duplicate-downward (begin end)
+  "https://emacs.stackexchange.com/a/32515"
+  (interactive "r")
+  (let (deactivate-mark (point (point)))
+    (insert (buffer-substring begin end))
+    (push-mark point)))
+
+(bind-keys*
+ ("C-x C-y" . tor/duplicate-downward)
+ ("C-c C-x C-m" . mc/mark-all-in-region))
+
 ;; add the private files to `load-path'
 (message "Loading private files")
 (add-to-list 'load-path "~/.emacs.d/private/")
 (load "utilities")
+(require 'bookmark+)
 
 (message "Parsing custom-variables")
 
@@ -1372,6 +1402,7 @@ Return output file name."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(bibtex-completion-pdf-field "file")
+ '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
  '(custom-enabled-themes nil)
  '(custom-safe-themes
    (quote
@@ -1379,7 +1410,7 @@ Return output file name."
  '(elpy-rpc-python-command "python")
  '(org-agenda-files
    (quote
-    ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
+    ("~/Projects/mine/dissertation/todo.org" "~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
@@ -1392,7 +1423,7 @@ Return output file name."
       (:strike-through t)))))
  '(org-format-latex-options
    (quote
-    (:foreground default :background default :scale 2.0 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
+    (:foreground default :background default :scale 1.5 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
                  ("begin" "$1" "$" "$$" "\\(" "\\["))))
  '(org-html-mathjax-options
    (quote
@@ -1433,9 +1464,10 @@ Return output file name."
                   :image-converter
                   ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
  '(org-ref-bib-html "")
+ '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+    (graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
  '(python-shell-interpreter "python")
  '(scroll-bar-mode nil)
  '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))

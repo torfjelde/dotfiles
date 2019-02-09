@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-remark
+# key: begin-remark
+# --
+#+name: remark:$1
+#+begin_remark
+$2
+#+end_remark

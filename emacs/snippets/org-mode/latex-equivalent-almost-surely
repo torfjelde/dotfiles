@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-equivalent-almost-surely
+# key: eq-as
+# --
+\overset{\text{a.s.}}{=}

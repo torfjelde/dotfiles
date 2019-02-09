@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-alignat
+# key: alignat
+# --
+\begin{alignat*}{$1}
+$2
+\end{alignat*}

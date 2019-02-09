@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-bigcup-inline
+# key: $bigcup
+# --
+$\bigcup_{$1}^{$2}

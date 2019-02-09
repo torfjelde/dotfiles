@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-corollary
+# key: begin-cor
+# --
+#+name: corollary:$1
+#+begin_corollary :title "$2"
+$3
+#+end_corollary

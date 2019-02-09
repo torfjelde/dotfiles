@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-mathtools-hookarrow
+# key: inclarr
+# --
+\xhookrightarrow{$1}

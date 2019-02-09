@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-SU-group-inline
+# key: $SU
+# --
+$\text{SU}($1)

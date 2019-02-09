@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-idd-drawn
+# key: iid
+# --
+\overset{\text{i.i.d.}}{\sim}

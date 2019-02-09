@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-seqn
+# key: seqn
+# --
+\big( x_{$1} \big)_{$1 = $2}^{\infty}

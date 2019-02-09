@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-tensor-reversed-inline
+# key: $tensr
+# --
+$\tensor{$1}{_{$2}^{$3}}

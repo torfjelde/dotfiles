@@ -2,4 +2,4 @@
 # name: latex-pd-at
 # key: pd-at
 # --
-\frac{\partial $1}{\partial $2}\bigg_{$3}
+\pdv{$1}{$2}\bigg|_{$3}

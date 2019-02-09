@@ -2,4 +2,4 @@
 # name: latex-Adjoint
 # key: Ad
 # --
-\rm{Ad}_{$1}
+\text{Ad}_{$1}

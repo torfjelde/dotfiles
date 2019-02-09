@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-integral-inline
+# key: $int
+# --
+$\int_{$1}^{$2}

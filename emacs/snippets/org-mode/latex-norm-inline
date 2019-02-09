@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-norm-inline
+# key: $norm
+# --
+$\norm{$1}

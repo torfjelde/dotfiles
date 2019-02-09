@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-infset-inline
+# key: $infset
+# --
+$\left\{ $1 \right\}_{n = 1}^{\infty}

@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
 # name: latex-maths-lrangle
-# key: lrangle
+# key: lrang
 # --
 \left\langle $1 \right\rangle

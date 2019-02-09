@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-partial-derivative-inline
+# key: $pd
+# --
+$\pdv{$1}{$2}

@@ -2,4 +2,4 @@
 # name: latex-partial-derivative
 # key: pd
 # --
-\frac{\partial $1}{\partial $2}
+\pdv{$1}{$2}

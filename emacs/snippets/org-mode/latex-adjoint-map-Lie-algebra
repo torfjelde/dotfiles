@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-adjoint-map-Lie-algebra
+# key: ad
+# --
+\text{ad}_{$1}

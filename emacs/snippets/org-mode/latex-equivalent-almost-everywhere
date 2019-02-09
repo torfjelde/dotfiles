@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-equivalent-almost-everywhere
+# key: eq-ae
+# --
+\overset{\text{a.e.}}{=}

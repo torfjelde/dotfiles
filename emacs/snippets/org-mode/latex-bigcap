@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-bigcap
+# key: bigcap
+# --
+\bigcap_{$1}^{$2}

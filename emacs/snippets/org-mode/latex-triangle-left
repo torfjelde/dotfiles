@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-triangle-left
+# key: tril
+# --
+\triangleleft

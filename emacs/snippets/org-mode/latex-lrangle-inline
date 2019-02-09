@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-lrangle-inline
+# key: $lrang
+# --
+$\left\langle $1 \right\rangle
