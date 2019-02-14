@@ -522,6 +522,16 @@ Return output file name."
       (org-clock-update-time-maybe)
       (message "%s" sch))))
 
+(defun tor/latex-export-sqlite-blocks (text backend info)
+  "Replaces `sqlite' src blocks by `sql' src blocks, as these are handled by minted."
+  (when (org-export-derived-backend-p backend 'latex)
+    (with-temp-buffer
+      (insert text)
+      ;; replace verbatim env by listings
+      (goto-char (point-min))
+      (replace-string "\\begin{minted}[]{sqlite}" "\\begin{minted}[]{sql}")
+      (buffer-substring-no-properties (point-min) (point-max)))))
+
 (use-package ob-http)
 (use-package ob-ipython
   :config (setq ob-ipython-resources-dir "/tmp/obipy-resources/"))
@@ -531,6 +541,9 @@ Return output file name."
   :bind (("C-c l" . org-store-link))
   :init
   (progn
+    ;; `sqlite' not avaiable using `minted', so we change those blocks to std `sql' blocks
+    (add-to-list 'org-export-filter-src-block-functions
+         'tor/latex-export-sqlite-blocks)
     (setq org-confirm-babel-evaluate nil
 		  org-export-headline-levels 5
 		  org-export-with-toc 2
@@ -643,6 +656,7 @@ Return output file name."
        (dot . t)
        (latex . t)
        (sql . t)
+       (sqlite . t)
        (clojure . t)
        (python . t)
        ;; (R . t)
