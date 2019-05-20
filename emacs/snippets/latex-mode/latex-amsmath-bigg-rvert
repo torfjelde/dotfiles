@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-amsmath-bbrvert
+# key: bbrvert
+# --
+\bigg\rvert

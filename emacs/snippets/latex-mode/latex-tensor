@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-tensor
+# key: tens
+# --
+\tensor{$1}{^{$2}_{$3}}

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-exercise
+# key: begin-exercise
+# --
+#+name: exercise:$1
+#+begin_exercise
+$2
+#+end_exercise

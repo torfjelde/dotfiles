@@ -2,4 +2,4 @@
 # name: latex-set
 # key: set
 # --
-\\{ $1 \\}
+\left\\{ $1 \right\\}

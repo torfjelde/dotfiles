@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-rm-inline
+# key: $rm
+# --
+$\rm{$1}

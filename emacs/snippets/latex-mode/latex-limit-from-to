@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: limit-from-to
+# key: limft
+# --
+\lim_{${1:from} \to ${2:to}}

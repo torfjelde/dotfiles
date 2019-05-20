@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-maths-kernel
+# key: ker
+# --
+\text{ker}($1)

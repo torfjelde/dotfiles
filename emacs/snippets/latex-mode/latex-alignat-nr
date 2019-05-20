@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-alignat-numbered
+# key: alignatnr
+# --
+\begin{alignat}{$1}
+$2
+\end{alignat}

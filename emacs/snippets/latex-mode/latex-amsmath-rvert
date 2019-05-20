@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-amsmath-rvert
+# key: rvert
+# --
+\rvert

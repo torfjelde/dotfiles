@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-maths-text-inline
+# key: $text
+# --
+$\text{$1}

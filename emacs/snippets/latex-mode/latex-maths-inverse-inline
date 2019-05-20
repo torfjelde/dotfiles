@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-maths-inverse-inline
+# key: $inv
+# --
+$$1^{-1}

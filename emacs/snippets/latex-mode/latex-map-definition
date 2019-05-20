@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: latex-map-definition
+# key: map-def
+# --
+\begin{equation*}
+\begin{split}
+  ${1:map}: \quad & ${2:from} \to ${3:to} \\\\
+  & ${4:in} \mapsto ${5:out}
+\end{split}
+\end{equation*}

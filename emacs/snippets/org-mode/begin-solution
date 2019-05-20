@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-begin-solution
+# key: begin-solution
+# --
+#+name: solution:$1
+#+begin_solution :exercise $2
+$3
+#+end_solution

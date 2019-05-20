@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-wedge-dotted
+# key: wdts
+# --
+$1^1 \wedge \dots \wedge $1^{$2}

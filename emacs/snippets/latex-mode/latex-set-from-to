@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-from-to
+# key: setft
+# --
+\left\{ $1 \right\}_{$2}^{$3}

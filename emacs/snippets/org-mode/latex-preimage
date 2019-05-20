@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-preimage
+# key: preim
+# --
+\preim_{$1}

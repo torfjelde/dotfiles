@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-C-infinity
+# key: C-inf
+# --
+\mathcal{C}^{\infty}($1)

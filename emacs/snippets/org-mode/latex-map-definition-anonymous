@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: latex-map-definition-anonymous
+# key: map-def-anon
+# --
+\begin{equation*}
+\begin{split}
+  ${1:from} & \to ${2:to} \\\\
+  ${3:in} & \mapsto ${4:out}
+\end{split}
+\end{equation*}

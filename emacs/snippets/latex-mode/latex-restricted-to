@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-restricted-to
+# key: restr-to
+# --
+\big|_{$1}

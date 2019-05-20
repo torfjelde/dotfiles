@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-matrix-space
+# key: Mat
+# --
+\text{Mat}($1)

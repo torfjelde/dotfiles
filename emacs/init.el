@@ -17,6 +17,9 @@
  org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
  org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
 
+ ;; TeX stuff
+ TeX-source-correlate-start-server t  ;; clicking in document takes you to source
+
  ;; set the backup folder to be the temp-folder
  backup-directory-alist `((".*" . ,temporary-file-directory))
  auto-save-file-name-transforms `((".*" ,temporary-file-directory t))
@@ -48,7 +51,65 @@
              (current-buffer))
     (error (message "Invalid expression")
            (insert (current-kill 0)))))
-(global-set-key (kbd "C-c e") 'eval-and-replace)
+;; (global-set-key (kbd "C-c e") 'eval-and-replace)
+
+
+;; https://emacs.stackexchange.com/a/34900
+(defun shell-command-on-region-and-select
+    (start end command
+           &optional output-buffer replace
+           error-buffer display-error-buffer
+           region-noncontiguous-p)
+  "Wrapper for 'shell-command-on-region', re-selecting the output.
+
+Useful when called with a selection, so it can be modified in-place"
+  (interactive)
+  (let ((buffer-size-init (buffer-size)))
+    (shell-command-on-region
+     start end command output-buffer replace
+     error-buffer display-error-buffer
+     region-noncontiguous-p)
+    (setq deactivate-mark t)
+    (setq end (+ end (- (buffer-size) buffer-size-init)))
+    ;; (set-mark start)
+    (goto-char end)
+    (activate-mark)
+    ))
+
+;; TODO: make of these sweeties
+(defun eval-region-as-sympy-simplify ()
+  "Evaluate selection as a python expression, replacing it with the result"
+  (interactive)
+  (shell-command-on-region-and-select
+   (region-beginning)
+   (region-end)
+   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).simplify()))'" 0 t))
+
+(defun eval-region-as-sympy-expand ()
+  "Evaluate selection as a python expression, replacing it with the result"
+  (interactive)
+  (shell-command-on-region-and-select
+   (region-beginning)
+   (region-end)
+   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).expand()))'" 0 t))
+
+(defun eval-region-as-sympy-sum ()
+  "Evaluate selection as a python expression, replacing it with the result"
+  (interactive)
+  (shell-command-on-region-and-select
+   (region-beginning)
+   (region-end)
+   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).doit()))'" 0 t))
+
+(defun eval-region-as-sympy-integrate ()
+  "Evaluate selection as a python expression, replacing it with the result"
+  (interactive)
+  (shell-command-on-region-and-select
+   (region-beginning)
+   (region-end)
+   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).integrate()))'" 0 t))
+
+;; (global-set-key (kbd "C-c e p") 'eval-and-replace)
 
 ;; Allows you to fold everything on a indentation-level greater than the current.
 ;; Source: https://stackoverflow.com/a/4459159
@@ -541,9 +602,9 @@ Return output file name."
   :bind (("C-c l" . org-store-link))
   :init
   (progn
-    ;; `sqlite' not avaiable using `minted', so we change those blocks to std `sql' blocks
-    (add-to-list 'org-export-filter-src-block-functions
-         'tor/latex-export-sqlite-blocks)
+    ;; `sqlite' not available using `minted', so we change those blocks to std `sql' blocks
+    (require 'ox)
+    (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
     (setq org-confirm-babel-evaluate nil
 		  org-export-headline-levels 5
 		  org-export-with-toc 2
@@ -895,6 +956,9 @@ Return output file name."
 ;; AucTeX
 ;; (require 'auctex)
 (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
+;; Update PDF buffers after successful LaTeX runs
+(add-hook 'TeX-after-compilation-finished-functions
+           #'TeX-revert-document-buffer)
 
 (use-package company-auctex
   :init (progn
@@ -1416,6 +1480,15 @@ Return output file name."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(TeX-view-program-selection
+   (quote
+    (((output-dvi has-no-display-manager)
+      "dvi2tty")
+     ((output-dvi style-pstricks)
+      "dvips and gv")
+     (output-dvi "xdvi")
+     (output-pdf "PDF Tools")
+     (output-html "xdg-open"))))
  '(bibtex-completion-pdf-field "file")
  '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
  '(custom-enabled-themes nil)
@@ -1485,7 +1558,7 @@ Return output file name."
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+    (sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
  '(python-shell-interpreter "python")
  '(scroll-bar-mode nil)
  '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))

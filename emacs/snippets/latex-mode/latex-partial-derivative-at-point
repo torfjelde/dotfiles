@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-pd-at
+# key: pd-at
+# --
+\pdv{$1}{$2}\bigg|_{$3}

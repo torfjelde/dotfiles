@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-maths-variance-inline
+# key: $var
+# --
+$\text{Var}
