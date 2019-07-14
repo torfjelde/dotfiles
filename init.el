@@ -595,8 +595,27 @@ Return output file name."
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (use-package ob-http)
-(use-package ob-ipython
-  :config (setq ob-ipython-resources-dir "/tmp/obipy-resources/"))
+;; (use-package ob-ipython
+;;   :config (progn
+;;             (setq ob-ipython-resources-dir "/tmp/obipy-resources/")
+
+;;             ;; HACK: the one below is an improvement
+;;             ;; (advice-add 'ob-ipython--collect-json :before
+;;             ;; (lambda (&rest args)
+;;             ;;   (when (re-search-forward "{" nil t)
+;;             ;;     (backward-char))))
+;;             (advice-add 'ob-ipython--collect-json :before
+;;                         (lambda (&rest args)
+;;                           (let ((start (point)))
+;;                             (set-mark (point))
+;;                             (while (re-search-forward "{" nil t)
+;;                               (backward-char)
+;;                               (kill-region (region-beginning) (region-end))
+;;                               (re-search-forward "}\n" nil t)
+;;                               (set-mark (point)))
+;;                             (end-of-buffer)
+;;                             (kill-region (region-beginning) (region-end))
+;;                             (goto-char start))))))
 (use-package ob-sql-mode)
 (use-package org
   :pin org
@@ -723,7 +742,7 @@ Return output file name."
        (python . t)
        ;; (R . t)
        (ein . t)
-       (ipython . t)
+       ;; (ipython . t)
        (scala . t)
        (rust . t)
        (haskell . t)
@@ -794,6 +813,7 @@ Return output file name."
              :assets-directory "~/org-blog/assets/"
              :base-directory "~/org-blog/posts/"
              :base-extension "org"
+             :exclude ".*\\.org_archive|.*\\.org_old"  ;; HACK: this allows us to filter out posts
              :publishing-directory "~/org-blog/public_html/posts/"
              :recursive nil
              :publishing-function tor/org-html-publish-to-html
@@ -816,7 +836,14 @@ Return output file name."
              :html-postamble nil
              :html-preamble nil)
 
-            ("org-blog" :components ("org-posts" "org-posts-index"))
+            ("org-posts-assets"
+             :base-directory "~/org-blog/posts/"
+             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org-blog" :components ("org-posts" "org-posts-index" "org-posts-assets"))
             
             ("org-notes"
              :project-directory "~/org-blog/"
@@ -1059,7 +1086,11 @@ Return output file name."
 (use-package rainbow-delimiters)
 (use-package centered-cursor-mode)
 (use-package htmlize)
-(use-package magit)
+
+(use-package magit
+  :pin melpa)
+(use-package forge
+  :pin melpa)
 
 
 
@@ -1501,6 +1532,7 @@ Return output file name."
  '(custom-safe-themes
    (quote
     ("ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+ '(default-text-scale-mode t nil (default-text-scale))
  '(elpy-rpc-python-command "python")
  '(org-agenda-files
    (quote
@@ -1534,6 +1566,7 @@ Return output file name."
  '(org-latex-pdf-process
    (quote
     ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
+ '(org-link-file-path-type (quote relative))
  '(org-preview-latex-process-alist
    (quote
     ((dvipng :programs
@@ -1564,7 +1597,7 @@ Return output file name."
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-ipython ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode magit lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+    (forge dash default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
  '(python-shell-interpreter "python")
  '(scroll-bar-mode nil)
  '(tool-bar-mode nil)
