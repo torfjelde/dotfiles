@@ -1,3 +1,5 @@
+(setq package-check-signature nil)  ;; FIXME: hack because signatures fail
+
 (setq
  desktop-restore-forces-onscreen nil ;; fixes an error occurring when using restoring `desktop'
  
@@ -12,11 +14,12 @@
  global-prettify-symbols-mode t
  default-tab-width 4
  tool-bar-mode nil
+ scroll-bar-mode nil
  blink-cursor-mode nil
 
  org-adapt-indentation nil  ;; don't indent text in a section to align with section-level
  org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
- org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
+ org-preview-latex-image-directory "/scratch/tef30/.ltximg/"  ;; this '/' at the end is VERY important..
 
  ;; TeX stuff
  TeX-source-correlate-start-server t  ;; clicking in document takes you to source
@@ -523,22 +526,22 @@ Return output file name."
 
 (defun tor/reading-list-next-idx ()
   (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+    (with-current-buffer (find-file-noselect "/scratch/tef30/Dropbox/org/reading.org")
       (format "%03d" (tor/reading-list--get-next-idx)))))
 
 ;; used to have this `-*- org-after-todo-state-change-hook: tor/reading-list-done-hook; -*-'
 ;; at the top of `reading.org', but it doesn't quite work for some reason
 ;; ACTUALLY this is not what's causing the issue I believe, so I reactivated it.
 (defun tor/reading-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/reading.org"))
+  (tor/list-done-hook "/scratch/tef30/Dropbox/org/reading.org"))
 
 (defun tor/impl-list-next-idx ()
   (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/implement.org")
+    (with-current-buffer (find-file-noselect "/scratch/tef30/Dropbox/org/implement.org")
       (format "%03d" (tor/reading-list--get-next-idx)))))
 
 (defun tor/impl-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/implement.org"))
+  (tor/list-done-hook "/scratch/tef30/Dropbox/org/implement.org"))
 
 ;; TODO: setup this to properly work
 ;; currently having issues with inactive timestamps used in the appointments
@@ -673,41 +676,41 @@ Return output file name."
 							   (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
 
     ;; org-agenda / org-capture
-    (setq org-agenda-files '("~/Dropbox/org/gtd.org"
-                             "~/Dropbox/org/school.org"
-                             "~/Dropbox/org/reading.org"
-                             "~/Dropbox/org/implement.org"))
-    (setq org-default-notes-file "~/Dropbox/org/gtd.org")
-    (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
-			       ("~/Dropbox/org/someday.org" :level . 2)))
+    (setq org-agenda-files '("/scratch/tef30/Dropbox/org/gtd.org"
+                             "/scratch/tef30/Dropbox/org/school.org"
+                             "/scratch/tef30/Dropbox/org/reading.org"
+                             "/scratch/tef30/Dropbox/org/implement.org"))
+    (setq org-default-notes-file "/scratch/tef30/Dropbox/org/gtd.org")
+    (setq org-refile-targets '(("/scratch/tef30/Dropbox/org/gtd.org" :maxlevel . 2) 
+			       ("/scratch/tef30/Dropbox/org/someday.org" :level . 2)))
     (setq org-capture-templates
           '(("t"        ;; shortcut
              "Todo"     ;; title
              entry      ;; type of template
-             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+             (file+headline "/scratch/tef30/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
              "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
              :empty-lines 1 ;; property
              )
             
-            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+            ("j" "Journal" entry (file+datetree "/scratch/tef30/Dropbox/org/journal.org")
              "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
             
-            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+            ("i" "Idea" item (file "/scratch/tef30/Dropbox/org/ideas.org"))
 
             ("s" "School" entry
-             (file "~/Dropbox/org/school.org")
+             (file "/scratch/tef30/Dropbox/org/school.org")
              "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
 
-            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+            ("r" "Reading" entry (file "/scratch/tef30/Dropbox/org/reading.org")
              "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
 
-            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+            ("I" "Implement" entry (file "/scratch/tef30/Dropbox/org/implement.org")
              "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
             ))
     (setq org-agenda-custom-commands
-          '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
-            ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
-            ("i" alltodo "" ((org-agenda-files '("~/Dropbox/org/implement.org"))))
+          '(("s" alltodo "" ((org-agenda-files '("/scratch/tef30/Dropbox/org/school.org"))))
+            ("r" alltodo "" ((org-agenda-files '("/scratch/tef30/Dropbox/org/reading.org"))))
+            ("i" alltodo "" ((org-agenda-files '("/scratch/tef30/Dropbox/org/implement.org"))))
             ("p" . "PROJECT+Name tags searches")
             ("pI" tags "+PROJECT+My")
             ("po" tags "+PROJECT+Octochain")
@@ -741,10 +744,10 @@ Return output file name."
        (clojure . t)
        (python . t)
        ;; (R . t)
-       (ein . t)
+       ;; (ein . t)
        ;; (ipython . t)
-       (scala . t)
-       (rust . t)
+       ;; (scala . t)
+       ;; (rust . t)
        (haskell . t)
        (jupyter . t)
        ;; (csharp. t)
@@ -882,7 +885,7 @@ Return output file name."
              :components ("org-notes" "org-notes-assets" "org-static"))
 
             ("org-papers"
-             ;; :base-directory "~/Dropbox/bibliography/notes/"
+             ;; :base-directory "/scratch/tef30/Dropbox/bibliography/notes/"
              :project-directory "~/org-blog/"
              :assets-directory "̃~/org-blog/assets/"
              :base-directory "~/org-blog/papers/"
@@ -916,17 +919,17 @@ Return output file name."
 (use-package org-ref
   :pin melpa
   :config (progn
-            (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
-                  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-pdf-directory "~/Dropbox/bibliography/pdfs/"
-                  biblio-download-directory "~/Dropbox/bibliography/pdfs/"
-                  bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
-                  ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
+            (setq reftex-default-bibliography '("/scratch/tef30/Dropbox/bibliography/references.bib")
+                  org-ref-bibliography-notes "/scratch/tef30/Dropbox/bibliography/notes.org"
+                  org-ref-default-bibliography '("/scratch/tef30/Dropbox/bibliography/references.bib")
+                  org-ref-pdf-directory "/scratch/tef30/Dropbox/bibliography/pdfs/"
+                  biblio-download-directory "/scratch/tef30/Dropbox/bibliography/pdfs/"
+                  bibtex-completion-bibliography '("/scratch/tef30/Dropbox/bibliography/references.bib")
+                  ;; bibtex-completion-notes-path "/scratch/tef30/Dropbox/bibliography/notes/"
                   bibtex-completion-notes-path "/home/tor/org-blog/papers/"
                   bibtex-completion-notes-template-multiple-files "#+SETUPFILE: ../setup-level-1.org\n#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n\n"
                   
-                  bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
+                  bibtex-completion-library-path '("/home/tor/Dropbox/bibliography/pdfs")
 
                   ;; ensures that the use of #+NAME: works properly when exporting
                   org-latex-prefer-user-labels t
@@ -1016,9 +1019,9 @@ Return output file name."
   (progn
 	(add-hook 'prog-mode-hook 'company-mode)
     (add-to-list 'company-backends '(company-jedi :with company-capf))
-    (add-to-list 'company-backends 'ein:company-backend)
-	(add-to-list 'company-backends '(company-irony-c-headers
-									 company-irony))))
+    ;; (add-to-list 'company-backends 'ein:company-backend)
+    (add-to-list 'company-backends '(company-irony-c-headers
+				     company-irony))))
 (use-package company-quickhelp)
 
 ;; yasnippet
@@ -1092,6 +1095,8 @@ Return output file name."
 (use-package forge
   :pin melpa)
 
+(use-package default-text-scale
+  :pin melpa)
 
 
 (message "Parsing programming setup")
@@ -1367,6 +1372,10 @@ Return output file name."
 (use-package ess
   :pin melpa-stable)
 
+;; General stuff but also julia
+(use-package jupyter
+  :pin melpa)
+
 ;; python
 (use-package jedi
   :pin melpa-stable
@@ -1401,11 +1410,11 @@ Return output file name."
 	      (setq electric-indent-chars (delq ?: electric-indent-chars)))))
     ))
 
-(use-package ein
-  :init (progn
-          ;; BUG: this does not currently work for some reason; also I think I need it
-          ;; (setq ein:use-smartrep t)
-          (add-hook 'ein:notebook-mode-hook 'company-mode)))
+;; (use-package ein
+;;   :init (progn
+;;           ;; BUG: this does not currently work for some reason; also I think I need it
+;;           ;; (setq ein:use-smartrep t)
+;;           (add-hook 'ein:notebook-mode-hook 'company-mode)))
 
 ;; haskell
 (use-package haskell-mode
@@ -1507,6 +1516,10 @@ Return output file name."
 (load "utilities")
 (require 'bookmark+)
 
+;;; Screen specific stuff ;;;
+;; (if (equal (x-display-pixel-height) 1440)
+;;     (setq doc-view-resolution 192))
+
 (message "Parsing custom-variables")
 
 (custom-set-variables
@@ -1525,7 +1538,6 @@ Return output file name."
      (output-html "xdg-open"))))
  '(ansi-color-names-vector
    ["#32302F" "#FB4934" "#B8BB26" "#FABD2F" "#83A598" "#D3869B" "#17CCD5" "#EBDBB2"])
- '(bibtex-completion-pdf-field "file")
  '(blink-cursor-mode nil)
  '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
  '(custom-enabled-themes (quote (atom-one-dark)))
@@ -1534,9 +1546,10 @@ Return output file name."
     ("ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(default-text-scale-mode t nil (default-text-scale))
  '(elpy-rpc-python-command "python")
+ '(helm-bibtex-pdf-field "file" t)
  '(org-agenda-files
    (quote
-    ("~/Projects/mine/dissertation/todo.org" "~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
+    ("/scratch/tef30/Dropbox/org/gtd.org" "/scratch/tef30/Dropbox/org/school.org" "/scratch/tef30/Dropbox/org/reading.org" "/scratch/tef30/Dropbox/org/implement.org")))
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
@@ -1597,7 +1610,7 @@ Return output file name."
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (forge dash default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+    (xclip forge dash default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain yaml-mode web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
  '(python-shell-interpreter "python")
  '(scroll-bar-mode nil)
  '(tool-bar-mode nil)
