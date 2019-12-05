@@ -2,4 +2,4 @@
 # name: latex-divergence
 # key: div
 # --
-\text{div} \ 
+\mathrm{div}

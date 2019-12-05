@@ -2,4 +2,4 @@
 # name: latex-argmin
 # key: argmin
 # --
-\underset{$1}{\text{argmin}}\ 
+\underset{$1}{\argmin}
