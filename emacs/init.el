@@ -1000,7 +1000,10 @@ Return output file name."
 (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
 ;; Update PDF buffers after successful LaTeX runs
 (add-hook 'TeX-after-compilation-finished-functions
-           #'TeX-revert-document-buffer)
+          #'TeX-revert-document-buffer)
+(add-hook 'LaTeX-mode-hook
+          (lambda()
+            (local-unset-key (kbd "C-c ]"))))
 
 (use-package company-auctex
   :init (progn
@@ -1283,6 +1286,8 @@ Return output file name."
 
 ;; Julia
 (use-package julia-mode
+  :config (progn
+            (add-hook 'julia-mode-hook 'my-prettiest-symbols))
   ;; :config
   ;; (progn
   ;;   ;; (load "ess-site")
