@@ -3,5 +3,5 @@
 # key: begin-src
 # --
 #+begin_src $1
-$2
+$0
 #+end_src

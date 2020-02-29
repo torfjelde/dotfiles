@@ -2,4 +2,4 @@
 # name: latex-argmax
 # key: argmax
 # --
-\underset{$1}{\text{argmax}}\ 
+\underset{$1}{\argmax}\ 

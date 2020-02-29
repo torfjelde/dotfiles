@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-mathrm-inline
+# key: $mrm
+# --
+$\mathrm{$1}

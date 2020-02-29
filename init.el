@@ -913,6 +913,9 @@ Return output file name."
           (org-open-link-from-string (format "[[file:%s]]" pdf))
         (ding)))))
 
+;; so that we don't use the old version of `helm-bibtex'
+(use-package helm-bibtex
+  :pin melpa)
 (use-package org-ref
   :pin melpa
   :config (progn

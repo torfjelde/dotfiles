@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: latex-rm
-# key: rm
+# name: latex-mathrm
+# key: mrm
 # --
-\rm{$1}
+\mathrm{$1}

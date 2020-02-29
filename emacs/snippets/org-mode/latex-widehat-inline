@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: latex-widehat-inline
+# key: $what
+# --
+$\widehat{$1}
