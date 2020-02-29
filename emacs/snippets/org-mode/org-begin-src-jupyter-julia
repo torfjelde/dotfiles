@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-begin-src-jupyter-julia
+# key: begin-src-jl
+# --
+#+begin_src julia
+$1
+#+end_src

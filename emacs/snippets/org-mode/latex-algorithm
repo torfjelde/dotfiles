@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: latex-algorithm
+# key: begin-alg
+# --
+\begin{algorithm}[H]\label{alg:${1:label}}
+  \KwData{${2:input}}
+  \KwResult{${3:output}}
+
+  $0
+
+  \caption{${4:caption}}
+\end{algorithm}

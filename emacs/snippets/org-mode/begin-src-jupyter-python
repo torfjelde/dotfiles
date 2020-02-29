@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: latex-begin-src-jupyter-python
+# key: begin-src-py
+# --
+#+begin_src jupyter-python
+$1
+#+end_src

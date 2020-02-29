@@ -617,6 +617,10 @@ Return output file name."
 ;;                             (kill-region (region-beginning) (region-end))
 ;;                             (goto-char start))))))
 (use-package ob-sql-mode)
+(use-package jupyter
+  :config (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                              (:session . "jl")
+                                                              (:kernel . "julia-1.3"))))
 (use-package org
   :pin org
   :bind (("C-c l" . org-store-link))
@@ -626,11 +630,13 @@ Return output file name."
     (require 'ox)
     (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
     (setq org-confirm-babel-evaluate nil
-		  org-export-headline-levels 5
-		  org-export-with-toc 2
-		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
+          org-export-headline-levels 5
+          org-export-with-toc 2
+          org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
 
           org-latex-listings 'minted ;; use `minted' instead of `listings' when exporting to latex
+
+          org-src-window-setup 'current-window ;; makes it so that the src block is opened in the current window
 
           ;; customization for latex-preview in org-mode
           org-format-latex-options '(:foreground default
@@ -727,6 +733,12 @@ Return output file name."
 
     (add-hook 'org-mode-hook 'visual-line-mode)
 
+    ;; HACK: makes it so that we can call `(org-babel-jupyter-override-src-block "julia")'
+    ;; when we have julia-mode. This is especially useful, say, when you're viewing an org-file
+    ;; with julia-blocks on Github; if these are `julia' blocks, then they're rendered correctly,
+    ;; while if they're `jupyter-julia' blocks they wont.
+    (defvar org-babel-default-header-args:julia '())
+
     ;; if you ever have issues with org-evaluate being disabled
     ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
     (org-babel-do-load-languages
@@ -747,6 +759,7 @@ Return output file name."
        (rust . t)
        (haskell . t)
        (jupyter . t)
+       (julia . t)
        ;; (csharp. t)
        (ditaa . t)))
 
@@ -1205,7 +1218,7 @@ Return output file name."
 
 ;; https://github.com/magnars/dash.el
 (use-package dash
-  :pin melpa-stable)
+  :pin melpa)
 
 (use-package helpful
   :pin melpa-stable)
@@ -1528,15 +1541,51 @@ Return output file name."
  '(bibtex-completion-pdf-field "file")
  '(blink-cursor-mode nil)
  '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
+ '(compilation-message-face (quote default))
+ '(cua-global-mark-cursor-color "#2aa198")
+ '(cua-normal-cursor-color "#657b83")
+ '(cua-overwrite-cursor-color "#b58900")
+ '(cua-read-only-cursor-color "#859900")
  '(custom-enabled-themes (quote (atom-one-dark)))
  '(custom-safe-themes
    (quote
-    ("ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+    ("a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(default-text-scale-mode t nil (default-text-scale))
- '(elpy-rpc-python-command "python")
+ '(elpy-rpc-python-command "python3")
+ '(fci-rule-color "#eee8d5")
+ '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
+ '(highlight-symbol-colors
+   (--map
+    (solarized-color-blend it "#fdf6e3" 0.25)
+    (quote
+     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
+ '(highlight-symbol-foreground-color "#586e75")
+ '(highlight-tail-colors
+   (quote
+    (("#eee8d5" . 0)
+     ("#B4C342" . 20)
+     ("#69CABF" . 30)
+     ("#69B7F0" . 50)
+     ("#DEB542" . 60)
+     ("#F2804F" . 70)
+     ("#F771AC" . 85)
+     ("#eee8d5" . 100))))
+ '(hl-bg-colors
+   (quote
+    ("#DEB542" "#F2804F" "#FF6E64" "#F771AC" "#9EA0E5" "#69B7F0" "#69CABF" "#B4C342")))
+ '(hl-fg-colors
+   (quote
+    ("#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3")))
+ '(hl-paren-colors (quote ("#2aa198" "#b58900" "#268bd2" "#6c71c4" "#859900")))
+ '(julia-max-block-lookback 100000)
+ '(magit-diff-use-overlays nil)
+ '(markdown-command "/usr/bin/pandoc")
+ '(nrepl-message-colors
+   (quote
+    ("#dc322f" "#cb4b16" "#b58900" "#546E00" "#B4C342" "#00629D" "#2aa198" "#d33682" "#6c71c4")))
  '(org-agenda-files
    (quote
-    ("~/Projects/mine/dissertation/todo.org" "~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
+    ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
@@ -1594,14 +1643,69 @@ Return output file name."
                   :image-converter
                   ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
  '(org-ref-bib-html "")
+ '(org-ref-formatted-citation-formats
+   (quote
+    (("text"
+      ("article" . "${author}, ${title}, ${journal}, ${archivePrefix}:${eprint} [${primaryClass}], ${volume}(${number}), ${pages} (${year}). ${doi}")
+      ("inproceedings" . "${author}, ${title}, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("book" . "${author}, ${title} (${year}), ${address}: ${publisher}.")
+      ("phdthesis" . "${author}, ${title} (Doctoral dissertation) (${year}). ${school}, ${address}.")
+      ("inbook" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("incollection" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("proceedings" . "${editor} (Eds.), ${booktitle} (${year}). ${address}: ${publisher}.")
+      ("unpublished" . "${author}, ${title} (${year}). Unpublished manuscript.")
+      (nil . "${author}, ${title} (${year})."))
+     ("org"
+      ("article" . "${author}, /${title}/, ${journal}, *${volume}(${number})*, ${pages} (${year}). ${doi}")
+      ("inproceedings" . "${author}, /${title}/, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("book" . "${author}, /${title}/ (${year}), ${address}: ${publisher}.")
+      ("phdthesis" . "${author}, /${title}/ (Doctoral dissertation) (${year}). ${school}, ${address}.")
+      ("inbook" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("incollection" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+      ("proceedings" . "${editor} (Eds.), _${booktitle}_ (${year}). ${address}: ${publisher}.")
+      ("unpublished" . "${author}, /${title}/ (${year}). Unpublished manuscript.")
+      (nil . "${author}, /${title}/ (${year}).")))))
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (forge dash default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
- '(python-shell-interpreter "python")
+    (gnu-elpa-keyring-update default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+ '(python-shell-interpreter "python3")
  '(scroll-bar-mode nil)
+ '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#eee8d5" 0.2))
+ '(term-default-bg-color "#fdf6e3")
+ '(term-default-fg-color "#657b83")
  '(tool-bar-mode nil)
+ '(vc-annotate-background nil)
+ '(vc-annotate-background-mode nil)
+ '(vc-annotate-color-map
+   (quote
+    ((20 . "#dc322f")
+     (40 . "#e52a72950000")
+     (60 . "#e52aabe00000")
+     (80 . "#b58900")
+     (100 . "#e52ae52a0000")
+     (120 . "#e52ae52a0000")
+     (140 . "#e52ae52a0000")
+     (160 . "#e52ae52a0000")
+     (180 . "#859900")
+     (200 . "#98c7e52a4c63")
+     (220 . "#7295e52a7295")
+     (240 . "#4c63e52a98c7")
+     (260 . "#2631e52abef8")
+     (280 . "#2aa198")
+     (300 . "#0000e52ae52a")
+     (320 . "#0000e52ae52a")
+     (340 . "#0000e52ae52a")
+     (360 . "#268bd2"))))
+ '(vc-annotate-very-old-color nil)
  '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))
+ '(weechat-color-list
+   (quote
+    (unspecified "#fdf6e3" "#eee8d5" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#657b83" "#839496")))
+ '(xterm-color-names
+   ["#eee8d5" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#073642"])
+ '(xterm-color-names-bright
+   ["#fdf6e3" "#cb4b16" "#93a1a1" "#839496" "#657b83" "#6c71c4" "#586e75" "#002b36"])
  '(yas-indent-line (quote fixed)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
