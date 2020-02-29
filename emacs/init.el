@@ -626,6 +626,12 @@ Return output file name."
   :bind (("C-c l" . org-store-link))
   :init
   (progn
+    ;; HACK: makes it so that we can call `(org-babel-jupyter-override-src-block "julia")'
+    ;; when we have julia-mode. This is especially useful, say, when you're viewing an org-file
+    ;; with julia-blocks on Github; if these are `julia' blocks, then they're rendered correctly,
+    ;; while if they're `jupyter-julia' blocks they wont.
+    (defvar org-babel-default-header-args:julia '())
+
     ;; `sqlite' not available using `minted', so we change those blocks to std `sql' blocks
     (require 'ox)
     (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
@@ -670,13 +676,13 @@ Return output file name."
     (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
     (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
 
-	;; Custom hooks
-	(add-hook 'org-mode-hook 'pretty-greek)
-	(add-hook 'org-mode-hook 'my-prettiest-symbols)
+    ;; Custom hooks
+    (add-hook 'org-mode-hook 'pretty-greek)
+    (add-hook 'org-mode-hook 'my-prettiest-symbols)
 
-	(font-lock-add-keywords 'org-mode
-							'(("^ +\\([-*]\\) "
-							   (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+    (font-lock-add-keywords 'org-mode
+                            '(("^ +\\([-*]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
 
     ;; org-agenda / org-capture
     (setq org-agenda-files '("~/Dropbox/org/gtd.org"
@@ -733,11 +739,21 @@ Return output file name."
 
     (add-hook 'org-mode-hook 'visual-line-mode)
 
-    ;; HACK: makes it so that we can call `(org-babel-jupyter-override-src-block "julia")'
-    ;; when we have julia-mode. This is especially useful, say, when you're viewing an org-file
-    ;; with julia-blocks on Github; if these are `julia' blocks, then they're rendered correctly,
-    ;; while if they're `jupyter-julia' blocks they wont.
-    (defvar org-babel-default-header-args:julia '())
+    ;; HACK: this will clone the ob-julia.el if it's not present in the privatedir
+    (let* ((targetdir "~/.emacs.d/private/ob-julia/")
+          (parentdir (file-name-directory (directory-file-name targetdir)))
+          (remoteurl "https://github.com/gjkerns/ob-julia.git"))
+      (when (not (file-directory-p targetdir))
+        (message "%s not present; cloning from %s..." targetdir remoteurl)
+        (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
+            (message "Cloning of %s successful!" remoteurl)
+          (message "Clong of %s FAILED!" remoteurl))))
+    
+
+    ;; HACK: I generally don't use
+    (let ((targetdir "~/.emacs.d/private/ob-julia/"))
+      (when (file-directory-p targetdir)
+        (add-to-list 'load-path targetdir)))
 
     ;; if you ever have issues with org-evaluate being disabled
     ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
@@ -762,6 +778,10 @@ Return output file name."
        (julia . t)
        ;; (csharp. t)
        (ditaa . t)))
+
+    (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                        (:session . "jl")
+                                                        (:kernel . "julia-1.3")))
 
     ;; ensure that we use Py3 to evaluate Python blocks
     (setq org-babel-python-command "python3")
