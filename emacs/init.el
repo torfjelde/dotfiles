@@ -295,726 +295,6 @@ Useful when called with a selection, so it can be modified in-place"
                      (unless (derived-mode-p mode)
                        (funcall mode)))))))
 
-;; org-mode
-(defmacro tor/with-local (var val &rest body)
-  "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
-  `(let ((prev ,var)
-         (res nil))
-     (setq ,var ,val)
-     (setq res (progn ,@body))
-     (setq ,var prev)
-     res))
-
-(defvar tor/latex-publish-directory "./.latex/")
-
-(defun tor/blog-dir-as-relative (dir filename)
-  (file-relative-name dir (file-name-directory filename)))
-
-(defun tor/blog-get-latex-directory (plist filename pub-dir)
-  (cond
-   ((plist-member plist :latex-directory) (file-relative-name (plist-get plist :latex-directory) (file-name-directory filename)))
-   ;; ((plist-member plist :assets-directory) (file-relative-name (concat (plist-get plist :assets-directory) "latex/") (file-name-directory filename)))
-   ((plist-member plist :project-directory) (file-relative-name (concat (plist-get plist :project-directory) "assets/latex/") (file-name-directory filename)))))
-
-;; TODO: create a customized publishing function
-(defun tor/org-html-publish-to-html (plist filename pub-dir)
-  "My customized HTML publishing function. Publish an org file to HTML.
-
-PLIST is the property list of the given object.
-FILENAME is the filename of the Org file to be published. 
-PUB-DIR is the publishing directory.
-
-Return output file name."
-  ;; TODO: need to update/republish "local" index if it exists
-  (tor/with-local org-preview-latex-image-directory
-                  (or (tor/blog-get-latex-directory plist filename pub-dir)
-                      tor/latex-publish-directory)
-                  (org-html-publish-to-html plist filename pub-dir)))
-
-(defun tor/publish-html (plist filename pub-dir)
-  (message "%s" plist)
-  (message "%s" filename)
-  (message "%s" pub-dir)
-  (copy-file filename (concat pub-dir (file-name-nondirectory filename)) t)
-  (concat pub-dir (file-name-nondirectory filename)))
-
-;; TODO: format paths properly to avoid recursion and so on.
-(defun tor/org-publish-attachment (plist filename pub-dir)
-  "Publish a file with no transformation of any kind.
-
-PLIST is the property list for the given project.
-FILENAME is the filename of the Org file to be published.  
-PUB-DIR is the publishing directory.
-
-Return output file name."
-  (org-publish-attachment plist filename pub-dir))
-
-(defun tor/org-publish-attachment-local (plist)
-  "Use PLIST to copy the entire base-directory to publishing-directory."
-  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
-
-(defun tor/filename-to-title (filename)
-  "Transform FILENAME into title by splitting on _ and concatenating."
-  (string-join
-   (mapcar #'capitalize
-           (split-string (string-remove-suffix ".org" filename) "\[-_ \]" t))
-   " "))
-
-(use-package mustache
-  :config (require 'ht))
-
-(defun tor/directory-p (d)
-  (string-match-p "\\." d))
-
-(defun tor/org-file-p (p)
-  (string-match-p "\\.org" p))
-
-(defun tor/not-org-file-p (p)
-  (not (tor/org-file-p p)))
-
-(defun tor/posts-render-front-page (files)
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (mustache-render "{{> posts }}"
-                     (ht ("posts"
-                          (-map
-                           (lambda (c) (ht ("title" (tor/filename-to-title c))
-                                      ("link" (concat base-dir c))))
-                           (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/"))))))))
-
-(defun tor/prepare-blog-post-publish (export-options)
-  (let ((files (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/")))
-        (mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (with-temp-buffer
-      (insert (mustache-render "{{> posts }}"
-                               (ht ("posts"
-                                    (-map
-                                     (lambda (c) (ht ("title" (tor/filename-to-title c))
-                                                ("link" (replace-regexp-in-string "\\.org" ".html" c))))
-                                     files)))))
-      (write-region nil nil "~/org-blog/posts/index.html"))))
-
-(defun tor/render-html-preamble (export-options)
-  "Renders the HTML preamble. EXPORT-OPTIONS refers to the export options passed by org."
-  ;; FIXME: figure out a better way to load this on demand
-  (require 'mustache)
-  (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :base-directory)))
-        (input-file (file-truename (plist-get export-options :input-file))))
-    (message base-dir)
-    (mustache-render "{{> base }}"
-                     (ht ("categories"
-                          (-map
-                           (lambda (c) (ht ("category" (tor/filename-to-title c))
-                                      ("link" (concat (file-relative-name
-                                                       (concat base-dir "/" c)
-                                                       (file-name-directory input-file))
-                                                      "/index.html"))))
-                           (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
-
-(defun tor/render-html-postamble (export-options)
-  "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
-  (require 'mustache)
-  ;; (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/")))
-    (mustache-render "{{> footer}}" (ht ("" nil)))))
-
-(defun tor/render-html-preamble--posts (export-options)
-  "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
-  ;; FIXME: figure out a better way to load this on demand
-  (require 'mustache)
-  (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (message base-dir)
-    (mustache-render "{{> base }}"
-                     (ht ("categories"
-                          `(,(ht ("category" "Posts") ("link" "index.html"))
-                            ,(ht ("category" "Wiki") ("link" "../notes/index.html"))
-                            ,(ht ("category" "Notes from papers") ("link" "../papers/index.html"))
-                            ,(ht ("category" "About me") ("link" "../about.html"))))))))
-
-(defun tor/element--sort-elements-by-raw-value (el1 el2)
-  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
-  (string-greaterp (org-element-property :raw-value el2)
-                   (org-element-property :raw-value el1)))
-
-(defun tor/element--get-begin (el)
-  "Get beginning of EL."
-  (org-element-property :begin el))
-
-(defun tor/element--get-end (el)
-  "Get end of EL."
-  (org-element-property :end el))
-
-(defun tor/reading-list-sort (&optional level)
-  "Sort reading list at LEVEL."
-  (interactive)
-  (let* ((i 0)
-         (headline-level (or level 1))
-         (parsed (org-element-parse-buffer))
-         (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
-                            (org-element-map parsed 'headline 'identity)))
-         (start (-min (-map 'tor/element--get-begin headlines)))
-         (end (-max (-map 'tor/element--get-end headlines))))
-    (delete-region start end)
-    (goto-char start)
-    (insert (string-join
-             ;; TODO: update indices
-             (-map
-              (lambda (el)
-                (progn
-                  (setq i (+ i 1))
-                  (replace-regexp-in-string "* TODO [0-9]+\\."
-                                            (format "* TODO %03d." i)
-                                             el)))
-              (-map 'org-element-interpret-data
-                         (sort headlines 'tor/element--sort-elements-by-raw-value)))
-             ""))))
-
-(defun tor/reading-list--get-next-idx (&optional level category)
-  "Get index for reading list at LEVEL and ."
-  (let* ((headline-level (or level 1))
-         (parsed (org-element-parse-buffer))
-         (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
-                                          ;; FIXME: BROKEN. Grab this from the property-drawer
-                                          (if category
-                                              (org-element-property :category el)
-                                            t)))
-                             (org-element-map parsed 'headline 'identity))))
-    (+ 1 (-max
-          (or (-filter
-               (lambda (x) (not (= x 0)))
-               (-map (lambda (el)
-                       (string-to-number
-                        (car (split-string
-                              (org-element-property :raw-value el) "\\."))))
-                     headlines))
-              '(0))))))
-
-(defun tor/list-done-hook (filename)
-  "Remove number of completed todo and re-sort reading list."
-  (when (and (boundp 'org-state) (string-equal org-state "DONE"))
-    (save-excursion
-      (with-current-buffer (find-file-noselect filename)
-        (goto-char (point-min))
-        ;; ONLY match one instead of going on a spree here
-        (if (re-search-forward "* DONE \\([0-9]+\\)\\." nil t)
-            ;; replace the completed heading            
-            (let ((n (string-to-number (buffer-substring (match-beginning 1) (match-end 1)))))
-              (message (buffer-substring (match-beginning 0) (match-end 0)))
-              (replace-match "* DONE" nil nil nil 0)
-              ;; search for next headings which need to be updated; +1 to their number
-              (message (number-to-string (point)))
-              (message (buffer-name))
-              (goto-char (match-end 0))
-              (while (re-search-forward "* TODO [0-9]+\\." nil t)
-                (message (number-to-string n))
-                (replace-match (format "* TODO %03d." n))
-                (setf n (+ n 1)))))
-        ;; sort reading-list
-        (tor/reading-list-sort)
-        ))))
-
-(defun tor/reading-list-next-idx ()
-  (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
-      (format "%03d" (tor/reading-list--get-next-idx)))))
-
-;; used to have this `-*- org-after-todo-state-change-hook: tor/reading-list-done-hook; -*-'
-;; at the top of `reading.org', but it doesn't quite work for some reason
-;; ACTUALLY this is not what's causing the issue I believe, so I reactivated it.
-(defun tor/reading-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/reading.org"))
-
-(defun tor/impl-list-next-idx ()
-  (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/implement.org")
-      (format "%03d" (tor/reading-list--get-next-idx)))))
-
-(defun tor/impl-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/implement.org"))
-
-;; TODO: setup this to properly work
-;; currently having issues with inactive timestamps used in the appointments
-(defun tor/clocks-to-clocked-string (start end)
-  (format "%s--%s"
-          (format-time-string "[%Y-%m-%d %H:%M]" start)
-          (format-time-string "[%Y-%m-%d %H:%M]" end)))
-
-(defun tor/appt-fake-clock-hook ()
-  "Create 'fake' clock-in and clock-out entry for appointment with time-range."
-  (org-back-to-heading)
-  (let* ((hl (org-element-headline-parser 1000))
-         (sch (org-element-property :scheduled hl))
-         (closed (org-element-property :closed hl)))
-    (message "%s" hl)
-    (when (and sch (or (string-equal (org-element-property :type sch) "active-range")
-                       (and (string-equal (org-element-property :type closed) "inactive")
-                            (org-element-property :year-end closed))))
-      ;; instead of creating the entire entry, we create a small one and replace the values
-      (message "clocking in and out")
-      (org-clock-in)
-      (org-clock-out)
-
-      (if (re-search-forward "CLOCK: \\[.+\\]--\\[.+\\]" nil t 1)
-          (format-time-string "[%Y-%m-%d]" (current-time))
-        (replace-match (concat
-                        "CLOCK: "
-                        (tor/clocks-to-clocked-string
-                         (date-to-time (format "%s %02d:%02d"
-                                               (current-time)
-                                               ;; (org-element-property :year-start sch)
-                                               ;; (org-element-property :month-start sch)
-                                               ;; (org-element-property :day-start sch)
-                                               (org-element-property :hour-start sch)
-                                               (org-element-property :minute-start sch)))
-                         (date-to-time (format "%s %02d:%02d"
-                                               (current-time)
-                                               ;; (org-element-property :year-end sch)
-                                               ;; (org-element-property :month-end sch)
-                                               ;; (org-element-property :day-end sch)
-                                               (org-element-property :hour-end sch)
-                                               (org-element-property :minute-end sch)))))))
-      (org-clock-update-time-maybe)
-      (message "%s" sch))))
-
-(defun tor/latex-export-sqlite-blocks (text backend info)
-  "Replaces `sqlite' src blocks by `sql' src blocks, as these are handled by minted."
-  (when (org-export-derived-backend-p backend 'latex)
-    (with-temp-buffer
-      (insert text)
-      ;; replace verbatim env by listings
-      (goto-char (point-min))
-      (replace-string "\\begin{minted}[]{sqlite}" "\\begin{minted}[]{sql}")
-      (buffer-substring-no-properties (point-min) (point-max)))))
-
-(use-package ob-http)
-;; (use-package ob-ipython
-;;   :config (progn
-;;             (setq ob-ipython-resources-dir "/tmp/obipy-resources/")
-
-;;             ;; HACK: the one below is an improvement
-;;             ;; (advice-add 'ob-ipython--collect-json :before
-;;             ;; (lambda (&rest args)
-;;             ;;   (when (re-search-forward "{" nil t)
-;;             ;;     (backward-char))))
-;;             (advice-add 'ob-ipython--collect-json :before
-;;                         (lambda (&rest args)
-;;                           (let ((start (point)))
-;;                             (set-mark (point))
-;;                             (while (re-search-forward "{" nil t)
-;;                               (backward-char)
-;;                               (kill-region (region-beginning) (region-end))
-;;                               (re-search-forward "}\n" nil t)
-;;                               (set-mark (point)))
-;;                             (end-of-buffer)
-;;                             (kill-region (region-beginning) (region-end))
-;;                             (goto-char start))))))
-(use-package ob-sql-mode)
-(use-package jupyter
-  :config (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
-                                                              (:session . "jl")
-                                                              (:kernel . "julia-1.3"))))
-(use-package org
-  :pin org
-  :bind (("C-c l" . org-store-link))
-  :init
-  (progn
-    ;; HACK: makes it so that we can call `(org-babel-jupyter-override-src-block "julia")'
-    ;; when we have julia-mode. This is especially useful, say, when you're viewing an org-file
-    ;; with julia-blocks on Github; if these are `julia' blocks, then they're rendered correctly,
-    ;; while if they're `jupyter-julia' blocks they wont.
-    (defvar org-babel-default-header-args:julia '())
-
-    ;; `sqlite' not available using `minted', so we change those blocks to std `sql' blocks
-    (require 'ox)
-    (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
-    (setq org-confirm-babel-evaluate nil
-          org-export-headline-levels 5
-          org-export-with-toc 2
-          org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
-
-          org-latex-listings 'minted ;; use `minted' instead of `listings' when exporting to latex
-
-          org-src-window-setup 'current-window ;; makes it so that the src block is opened in the current window
-
-          ;; customization for latex-preview in org-mode
-          org-format-latex-options '(:foreground default
-                                                 :background default
-                                                 :scale 1.5
-                                                 :html-foreground "steelblue"
-                                                 :html-background "Transparent"
-                                                 :html-scale 1.0
-                                                 :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
-          )
-    ;; disable execution on export UNLESS otherwise specified
-    (add-to-list 'org-babel-default-header-args '(:eval . "never-export")))
-  :config
-  (progn
-    (setq org-confirm-babel-evaluate nil
-		  org-export-headline-levels 5
-		  org-export-with-toc 2
-		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
-          )
-    ;; disable execution on export UNLESS otherwise specified
-    (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
-
-    (global-set-key (kbd "C-c å") 'org-agenda)
-    (global-set-key (kbd "C-c ¤") 'org-mark-ring-goto)
-
-    ;; https://emacs.stackexchange.com/a/18146
-    (require 'bind-key)
-    (unbind-key "C-c [" org-mode-map)
-    
-    (setcar org-emphasis-regexp-components " \t('\"{[:alpha:]")
-    (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
-    (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
-
-    ;; Custom hooks
-    (add-hook 'org-mode-hook 'pretty-greek)
-    (add-hook 'org-mode-hook 'my-prettiest-symbols)
-
-    (font-lock-add-keywords 'org-mode
-                            '(("^ +\\([-*]\\) "
-                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-
-    ;; org-agenda / org-capture
-    (setq org-agenda-files '("~/Dropbox/org/gtd.org"
-                             "~/Dropbox/org/school.org"
-                             "~/Dropbox/org/reading.org"
-                             "~/Dropbox/org/implement.org"))
-    (setq org-default-notes-file "~/Dropbox/org/gtd.org")
-    (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
-			       ("~/Dropbox/org/someday.org" :level . 2)))
-    (setq org-capture-templates
-          '(("t"        ;; shortcut
-             "Todo"     ;; title
-             entry      ;; type of template
-             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
-             "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
-             :empty-lines 1 ;; property
-             )
-            
-            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
-             "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
-            
-            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
-
-            ("s" "School" entry
-             (file "~/Dropbox/org/school.org")
-             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
-
-            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
-             "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
-
-            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
-             "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
-            ))
-    (setq org-agenda-custom-commands
-          '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
-            ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
-            ("i" alltodo "" ((org-agenda-files '("~/Dropbox/org/implement.org"))))
-            ("p" . "PROJECT+Name tags searches")
-            ("pI" tags "+PROJECT+My")
-            ("po" tags "+PROJECT+Octochain")
-            ("pm" tags "+PROJECT+Masterloop")
-            ("pe" tags "+PROJECT+Easee")
-            ("pp" tags "+PROJECT+Public")))
-
-    ;; babel
-    (setq org-babel-clojure-backend 'cider)
-    (add-hook 'org-babel-after-execute-hook 'org-babel-python-strip-session-chars)
-
-    ;; Latex
-    (require 'ox-latex)
-    (add-to-list 'org-latex-packages-alist '("" "listingsutf8"))
-    (add-to-list 'org-latex-packages-alist '("" "color"))
-    (add-to-list 'org-latex-packages-alist '("" "minted"))
-
-    (add-hook 'org-mode-hook 'visual-line-mode)
-
-    ;; HACK: this will clone the ob-julia.el if it's not present in the privatedir
-    (let* ((targetdir "~/.emacs.d/private/ob-julia/")
-          (parentdir (file-name-directory (directory-file-name targetdir)))
-          (remoteurl "https://github.com/gjkerns/ob-julia.git"))
-      (when (not (file-directory-p targetdir))
-        (message "%s not present; cloning from %s..." targetdir remoteurl)
-        (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
-            (message "Cloning of %s successful!" remoteurl)
-          (message "Clong of %s FAILED!" remoteurl))))
-    
-
-    ;; HACK: I generally don't use
-    (let ((targetdir "~/.emacs.d/private/ob-julia/"))
-      (when (file-directory-p targetdir)
-        (add-to-list 'load-path targetdir)))
-
-    ;; if you ever have issues with org-evaluate being disabled
-    ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp t)
-       (shell . t)
-       (C . t)
-       (dot . t)
-       (latex . t)
-       (sql . t)
-       (sqlite . t)
-       (clojure . t)
-       (python . t)
-       ;; (R . t)
-       (ein . t)
-       ;; (ipython . t)
-       (scala . t)
-       (rust . t)
-       (haskell . t)
-       (jupyter . t)
-       (julia . t)
-       ;; (csharp. t)
-       (ditaa . t)))
-
-    (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
-                                                        (:session . "jl")
-                                                        (:kernel . "julia-1.3")))
-
-    ;; ensure that we use Py3 to evaluate Python blocks
-    (setq org-babel-python-command "python3")
-
-    ;; customization for HTML export using MathJax
-    (setq org-html-mathjax-template "<script type=\"text/x-mathjax-config\">
- MathJax.Hub.Config({
-   displayAlign: \"%ALIGN\",
-   displayIndent: \"%INDENT\",
-
-   \"HTML-CSS\": { scale: %SCALE,
-                 linebreaks: { automatic: \"%LINEBREAKS\" },
-                 webFont: \"%FONT\"
-   },
-   SVG: {scale: %SCALE,
-         linebreaks: { automatic: \"%LINEBREAKS\" },
-         font: \"%FONT\"},
-   NativeMML: {scale: %SCALE},
-   TeX: { equationNumbers: {autoNumber: \"%AUTONUMBER\"},
-          MultLineWidth: \"%MULTLINEWIDTH\",
-          TagSide: \"%TAGSIDE\",
-          TagIndent: \"%TAGINDENT\",
-          extensions: [\"color.js\", \"cancel.js\"]
-   },
-   extensions: [\"[Contrib]/physics/physics.js\"]
- });
-</script>
-<script type=\"text/javascript\"
-        src=\"%PATH\"></script>
-
-")
-
-    ;; show agenda on startup
-    (setq initial-buffer-choice (lambda ()
-                                  (org-agenda-list)
-                                  (get-buffer "*Org Agenda*")))
-    
-    ;; ox-publish
-    (require 'ox-publish)
-    (setq org-publish-project-alist
-          '(
-            ;; ... add all the components here (see below)...
-            ("blog-latex"
-             :base-directory "~/org-blog/assets/latex"
-             :publishing-directory "~/org-blog/public_html/assets/latex"
-             :recursive t
-             :publishing-function tor/org-publish-attachment
-             :base-extension "png\\|jpg\\|gif\\\\|ogg\\|swf")
-
-            ;; ;; TODO: somehow allow us to simply copy the files in one go instead of going through
-            ;; ;; all files to check if modified
-            ("blog-latex-local"
-             :base-directory "~/org-blog/assets/latex"
-             :publishing-directory "~/org-blog/public_html/assets/latex"
-             :recursive nil
-             :preparation-function tor/org-publish-attachment-local
-             :publishing-function identity
-             :base-extension "")
-            
-            ("org-posts"
-             :project-directory "~/org-blog/"
-             :assets-directory "~/org-blog/assets/"
-             :base-directory "~/org-blog/posts/"
-             :base-extension "org"
-             :exclude ".*\\.org_archive|.*\\.org_old"  ;; HACK: this allows us to filter out posts
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :recursive nil
-             :publishing-function tor/org-html-publish-to-html
-             ;; :preparation-function tor/prepare-blog-post-publish
-             :headline-levels 4
-             :auto-preamble t
-             :html-preamble tor/render-html-preamble--posts
-             :html-postamble nil
-             :html-html5-fancy t
-             :html-metadata-timestamp-format "%Y-%m-%d %a")
-
-            ("org-posts-index"
-             :base-directory "~/org-blog/posts"
-             :base-extension "html"
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :publishing-function tor/publish-html
-             :preparation-function tor/prepare-blog-post-publish
-             :recursive nil
-             :auto-preamble nil
-             :html-postamble nil
-             :html-preamble nil)
-
-            ("org-posts-assets"
-             :base-directory "~/org-blog/posts/"
-             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org-blog" :components ("org-posts" "org-posts-index" "org-posts-assets"))
-            
-            ("org-notes"
-             :project-directory "~/org-blog/"
-             :assets-directory "̃~/org-blog/assets/"
-             :base-directory "~/org-blog/notes/"
-             :base-extension "org"
-             :publishing-directory "~/org-blog/public_html/notes/"
-             :recursive t
-             :publishing-function tor/org-html-publish-to-html
-             :headline-levels 4             ; Just the default for this project.
-             :auto-preamble t
-             :html-preamble tor/render-html-preamble
-             :html-postamble nil
-             ;; :html-postamble tor/render-html-postamble
-             ;; :html-html5-fancy t
-             :html-metadata-timestamp-format "%Y-%m-%d %a"
-             )
-
-            ("org-notes-assets"
-             :base-directory "~/org-blog/notes/"
-             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/notes/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org-static"
-             :project-directory "~/org-blog/"
-             :base-directory "~/org-blog/assets/"
-             ;; :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
-             :base-extension "css\\|js\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/assets/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org"
-             :components ("org-notes" "org-notes-assets" "org-static"))
-
-            ("org-papers"
-             ;; :base-directory "~/Dropbox/bibliography/notes/"
-             :project-directory "~/org-blog/"
-             :assets-directory "̃~/org-blog/assets/"
-             :base-directory "~/org-blog/papers/"
-             :base-extension "org"
-             :publishing-directory "~/org-blog/public_html/papers/"
-             :recursive nil
-             :publishing-function tor/org-html-publish-to-html
-             :headline-levels 4
-             :auto-premable t
-             :html-postamble nil)
-            ))
-    ))
-
-(use-package org-bullets
-  :init (add-hook 'org-mode-hook 'org-bullets-mode))
-
-(defun tor/org-ref-open-bibtex-pdf ()
-  "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
-  (interactive)
-  (save-excursion
-    (bibtex-beginning-of-entry)
-    (let* ((bibtex-expand-strings t)
-           (entry (bibtex-parse-entry t))
-           (key (reftex-get-bib-field "=key=" entry))
-           (pdf (org-ref-get-mendeley-filename key)))
-      (message "%s" pdf)
-      (if (file-exists-p pdf)
-          (org-open-link-from-string (format "[[file:%s]]" pdf))
-        (ding)))))
-
-(use-package org-ref
-  :pin melpa
-  :config (progn
-            (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
-                  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-pdf-directory "~/Dropbox/bibliography/pdfs/"
-                  biblio-download-directory "~/Dropbox/bibliography/pdfs/"
-                  bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
-                  ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
-                  bibtex-completion-notes-path "/home/tor/org-blog/papers/"
-                  bibtex-completion-notes-template-multiple-files "#+SETUPFILE: ../setup-level-1.org\n#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n\n"
-                  
-                  bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
-
-                  ;; ensures that the use of #+NAME: works properly when exporting
-                  org-latex-prefer-user-labels t
-
-                  ;; with this activated it's horrendously SLOW for large files
-                  org-ref-show-broken-links nil
-
-                  org-latex-pdf-process '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                          "bibtex %b"
-                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")
-                  ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
-                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
-
-                  ;; adds more entry-types, e.g. @misc and @online
-                  ;; bibtex-dialect 'biblatex
-                  )
-
-            ;; overwrites the 'inbook' BibTeX type defined by doi-utils
-            ;; +FIXME+: getting an issue with "mandatory field is missing: chapter"
-            ;; the above was due to the choice of dialect
-            (doi-utils-def-bibtex-type book ("book")
-                                       author title booktitle series publisher year pages doi url)
-            (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
-                                       author title booktitle series publisher year pages doi url)
-            ;;
-
-            ;; FIXME: for now we make `misc' a placeholder for `online'
-            ;; since the dialect `BibTeX' does not support `online'
-            ;; which causes issues when exporting Org-files
-
-            ;; (doi-utils-def-bibtex-type online ("online")
-            ;;                            author title url year)
-            ;; (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
-            ;; and misc
-            
-            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t, <a href=\"%U\">link</a>.. %N"))
-
-            ;; NOT WORKING
-            ;; (defun my-pdf-proxy (orig-fun &rest args)
-            ;;   (let* ((pdf-url (apply orig-fun args))
-            ;;          (url-struct (url-generic-parse-url pdf-url)))
-            ;;     (setf (url-host url-struct)
-            ;;           (concat (url-host url-struct) ".ezproxy.is.ed.ac.uk"))
-            ;;     (url-recreate-url url-struct)))
-
-            ;; remove it like this.
-            ;; (advice-remove 'doi-utils-get-pdf-url #'my-pdf-proxy)
-            ;; (advice-add 'doi-utils-get-pdf-url :around #'my-pdf-proxy)
-            )
-  :init (progn
-          (require 'org-ref-pdf)
-          (bind-key "C-c [" 'org-ref-insert-ref-link)
-          (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
-
 ;; AucTeX
 ;; (require 'auctex)
 (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
@@ -1479,6 +759,732 @@ Return output file name."
 (add-hook 'lisp-mode-hook 'pretty-greek)
 (add-hook 'emacs-lisp-mode-hook 'pretty-greek)
 
+;; END programming
+
+;; org-mode
+(defmacro tor/with-local (var val &rest body)
+  "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
+  `(let ((prev ,var)
+         (res nil))
+     (setq ,var ,val)
+     (setq res (progn ,@body))
+     (setq ,var prev)
+     res))
+
+(defvar tor/latex-publish-directory "./.latex/")
+
+(defun tor/blog-dir-as-relative (dir filename)
+  (file-relative-name dir (file-name-directory filename)))
+
+(defun tor/blog-get-latex-directory (plist filename pub-dir)
+  (cond
+   ((plist-member plist :latex-directory) (file-relative-name (plist-get plist :latex-directory) (file-name-directory filename)))
+   ;; ((plist-member plist :assets-directory) (file-relative-name (concat (plist-get plist :assets-directory) "latex/") (file-name-directory filename)))
+   ((plist-member plist :project-directory) (file-relative-name (concat (plist-get plist :project-directory) "assets/latex/") (file-name-directory filename)))))
+
+;; TODO: create a customized publishing function
+(defun tor/org-html-publish-to-html (plist filename pub-dir)
+  "My customized HTML publishing function. Publish an org file to HTML.
+
+PLIST is the property list of the given object.
+FILENAME is the filename of the Org file to be published. 
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  ;; TODO: need to update/republish "local" index if it exists
+  (tor/with-local org-preview-latex-image-directory
+                  (or (tor/blog-get-latex-directory plist filename pub-dir)
+                      tor/latex-publish-directory)
+                  (org-html-publish-to-html plist filename pub-dir)))
+
+(defun tor/publish-html (plist filename pub-dir)
+  (message "%s" plist)
+  (message "%s" filename)
+  (message "%s" pub-dir)
+  (copy-file filename (concat pub-dir (file-name-nondirectory filename)) t)
+  (concat pub-dir (file-name-nondirectory filename)))
+
+;; TODO: format paths properly to avoid recursion and so on.
+(defun tor/org-publish-attachment (plist filename pub-dir)
+  "Publish a file with no transformation of any kind.
+
+PLIST is the property list for the given project.
+FILENAME is the filename of the Org file to be published.  
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  (org-publish-attachment plist filename pub-dir))
+
+(defun tor/org-publish-attachment-local (plist)
+  "Use PLIST to copy the entire base-directory to publishing-directory."
+  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
+
+(defun tor/filename-to-title (filename)
+  "Transform FILENAME into title by splitting on _ and concatenating."
+  (string-join
+   (mapcar #'capitalize
+           (split-string (string-remove-suffix ".org" filename) "\[-_ \]" t))
+   " "))
+
+(use-package mustache
+  :config (require 'ht))
+
+(defun tor/directory-p (d)
+  (string-match-p "\\." d))
+
+(defun tor/org-file-p (p)
+  (string-match-p "\\.org" p))
+
+(defun tor/not-org-file-p (p)
+  (not (tor/org-file-p p)))
+
+(defun tor/posts-render-front-page (files)
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (mustache-render "{{> posts }}"
+                     (ht ("posts"
+                          (-map
+                           (lambda (c) (ht ("title" (tor/filename-to-title c))
+                                      ("link" (concat base-dir c))))
+                           (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/"))))))))
+
+(defun tor/prepare-blog-post-publish (export-options)
+  (let ((files (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/")))
+        (mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (with-temp-buffer
+      (insert (mustache-render "{{> posts }}"
+                               (ht ("posts"
+                                    (-map
+                                     (lambda (c) (ht ("title" (tor/filename-to-title c))
+                                                ("link" (replace-regexp-in-string "\\.org" ".html" c))))
+                                     files)))))
+      (write-region nil nil "~/org-blog/posts/index.html"))))
+
+(defun tor/render-html-preamble (export-options)
+  "Renders the HTML preamble. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :base-directory)))
+        (input-file (file-truename (plist-get export-options :input-file))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+                     (ht ("categories"
+                          (-map
+                           (lambda (c) (ht ("category" (tor/filename-to-title c))
+                                      ("link" (concat (file-relative-name
+                                                       (concat base-dir "/" c)
+                                                       (file-name-directory input-file))
+                                                      "/index.html"))))
+                           (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
+
+(defun tor/render-html-postamble (export-options)
+  "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
+  (require 'mustache)
+  ;; (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/")))
+    (mustache-render "{{> footer}}" (ht ("" nil)))))
+
+(defun tor/render-html-preamble--posts (export-options)
+  "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+        (base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+                     (ht ("categories"
+                          `(,(ht ("category" "Posts") ("link" "index.html"))
+                            ,(ht ("category" "Wiki") ("link" "../notes/index.html"))
+                            ,(ht ("category" "Notes from papers") ("link" "../papers/index.html"))
+                            ,(ht ("category" "About me") ("link" "../about.html"))))))))
+
+(defun tor/element--sort-elements-by-raw-value (el1 el2)
+  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
+  (string-greaterp (org-element-property :raw-value el2)
+                   (org-element-property :raw-value el1)))
+
+(defun tor/element--get-begin (el)
+  "Get beginning of EL."
+  (org-element-property :begin el))
+
+(defun tor/element--get-end (el)
+  "Get end of EL."
+  (org-element-property :end el))
+
+(defun tor/reading-list-sort (&optional level)
+  "Sort reading list at LEVEL."
+  (interactive)
+  (let* ((i 0)
+         (headline-level (or level 1))
+         (parsed (org-element-parse-buffer))
+         (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
+                            (org-element-map parsed 'headline 'identity)))
+         (start (-min (-map 'tor/element--get-begin headlines)))
+         (end (-max (-map 'tor/element--get-end headlines))))
+    (delete-region start end)
+    (goto-char start)
+    (insert (string-join
+             ;; TODO: update indices
+             (-map
+              (lambda (el)
+                (progn
+                  (setq i (+ i 1))
+                  (replace-regexp-in-string "* TODO [0-9]+\\."
+                                            (format "* TODO %03d." i)
+                                             el)))
+              (-map 'org-element-interpret-data
+                         (sort headlines 'tor/element--sort-elements-by-raw-value)))
+             ""))))
+
+(defun tor/reading-list--get-next-idx (&optional level category)
+  "Get index for reading list at LEVEL and ."
+  (let* ((headline-level (or level 1))
+         (parsed (org-element-parse-buffer))
+         (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
+                                          ;; FIXME: BROKEN. Grab this from the property-drawer
+                                          (if category
+                                              (org-element-property :category el)
+                                            t)))
+                             (org-element-map parsed 'headline 'identity))))
+    (+ 1 (-max
+          (or (-filter
+               (lambda (x) (not (= x 0)))
+               (-map (lambda (el)
+                       (string-to-number
+                        (car (split-string
+                              (org-element-property :raw-value el) "\\."))))
+                     headlines))
+              '(0))))))
+
+(defun tor/list-done-hook (filename)
+  "Remove number of completed todo and re-sort reading list."
+  (when (and (boundp 'org-state) (string-equal org-state "DONE"))
+    (save-excursion
+      (with-current-buffer (find-file-noselect filename)
+        (goto-char (point-min))
+        ;; ONLY match one instead of going on a spree here
+        (if (re-search-forward "* DONE \\([0-9]+\\)\\." nil t)
+            ;; replace the completed heading            
+            (let ((n (string-to-number (buffer-substring (match-beginning 1) (match-end 1)))))
+              (message (buffer-substring (match-beginning 0) (match-end 0)))
+              (replace-match "* DONE" nil nil nil 0)
+              ;; search for next headings which need to be updated; +1 to their number
+              (message (number-to-string (point)))
+              (message (buffer-name))
+              (goto-char (match-end 0))
+              (while (re-search-forward "* TODO [0-9]+\\." nil t)
+                (message (number-to-string n))
+                (replace-match (format "* TODO %03d." n))
+                (setf n (+ n 1)))))
+        ;; sort reading-list
+        (tor/reading-list-sort)
+        ))))
+
+(defun tor/reading-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
+
+;; used to have this `-*- org-after-todo-state-change-hook: tor/reading-list-done-hook; -*-'
+;; at the top of `reading.org', but it doesn't quite work for some reason
+;; ACTUALLY this is not what's causing the issue I believe, so I reactivated it.
+(defun tor/reading-list-done-hook ()
+  (tor/list-done-hook "~/Dropbox/org/reading.org"))
+
+(defun tor/impl-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/implement.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
+
+(defun tor/impl-list-done-hook ()
+  (tor/list-done-hook "~/Dropbox/org/implement.org"))
+
+;; TODO: setup this to properly work
+;; currently having issues with inactive timestamps used in the appointments
+(defun tor/clocks-to-clocked-string (start end)
+  (format "%s--%s"
+          (format-time-string "[%Y-%m-%d %H:%M]" start)
+          (format-time-string "[%Y-%m-%d %H:%M]" end)))
+
+(defun tor/appt-fake-clock-hook ()
+  "Create 'fake' clock-in and clock-out entry for appointment with time-range."
+  (org-back-to-heading)
+  (let* ((hl (org-element-headline-parser 1000))
+         (sch (org-element-property :scheduled hl))
+         (closed (org-element-property :closed hl)))
+    (message "%s" hl)
+    (when (and sch (or (string-equal (org-element-property :type sch) "active-range")
+                       (and (string-equal (org-element-property :type closed) "inactive")
+                            (org-element-property :year-end closed))))
+      ;; instead of creating the entire entry, we create a small one and replace the values
+      (message "clocking in and out")
+      (org-clock-in)
+      (org-clock-out)
+
+      (if (re-search-forward "CLOCK: \\[.+\\]--\\[.+\\]" nil t 1)
+          (format-time-string "[%Y-%m-%d]" (current-time))
+        (replace-match (concat
+                        "CLOCK: "
+                        (tor/clocks-to-clocked-string
+                         (date-to-time (format "%s %02d:%02d"
+                                               (current-time)
+                                               ;; (org-element-property :year-start sch)
+                                               ;; (org-element-property :month-start sch)
+                                               ;; (org-element-property :day-start sch)
+                                               (org-element-property :hour-start sch)
+                                               (org-element-property :minute-start sch)))
+                         (date-to-time (format "%s %02d:%02d"
+                                               (current-time)
+                                               ;; (org-element-property :year-end sch)
+                                               ;; (org-element-property :month-end sch)
+                                               ;; (org-element-property :day-end sch)
+                                               (org-element-property :hour-end sch)
+                                               (org-element-property :minute-end sch)))))))
+      (org-clock-update-time-maybe)
+      (message "%s" sch))))
+
+(defun tor/latex-export-sqlite-blocks (text backend info)
+  "Replaces `sqlite' src blocks by `sql' src blocks, as these are handled by minted."
+  (when (org-export-derived-backend-p backend 'latex)
+    (with-temp-buffer
+      (insert text)
+      ;; replace verbatim env by listings
+      (goto-char (point-min))
+      (replace-string "\\begin{minted}[]{sqlite}" "\\begin{minted}[]{sql}")
+      (buffer-substring-no-properties (point-min) (point-max)))))
+
+(use-package ob-http)
+;; (use-package ob-ipython
+;;   :config (progn
+;;             (setq ob-ipython-resources-dir "/tmp/obipy-resources/")
+
+;;             ;; HACK: the one below is an improvement
+;;             ;; (advice-add 'ob-ipython--collect-json :before
+;;             ;; (lambda (&rest args)
+;;             ;;   (when (re-search-forward "{" nil t)
+;;             ;;     (backward-char))))
+;;             (advice-add 'ob-ipython--collect-json :before
+;;                         (lambda (&rest args)
+;;                           (let ((start (point)))
+;;                             (set-mark (point))
+;;                             (while (re-search-forward "{" nil t)
+;;                               (backward-char)
+;;                               (kill-region (region-beginning) (region-end))
+;;                               (re-search-forward "}\n" nil t)
+;;                               (set-mark (point)))
+;;                             (end-of-buffer)
+;;                             (kill-region (region-beginning) (region-end))
+;;                             (goto-char start))))))
+(use-package ob-sql-mode)
+(use-package jupyter
+  :config (progn
+            (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                                (:session . "jl")
+                                                                (:kernel . "julia-1.3")))
+            (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+                                                                 (:session . "py")
+                                                                 (:kernel . "python3")))))
+
+(use-package org
+  :pin org
+  :bind (("C-c l" . org-store-link))
+  :init
+  (progn
+    ;; `sqlite' not available using `minted', so we change those blocks to std `sql' blocks
+    (require 'ox)
+    (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
+    (setq org-confirm-babel-evaluate nil
+          org-export-headline-levels 5
+          org-export-with-toc 2
+          org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
+
+          org-latex-listings 'minted ;; use `minted' instead of `listings' when exporting to latex
+
+          org-src-window-setup 'current-window ;; makes it so that the src block is opened in the current window
+
+          ;; customization for latex-preview in org-mode
+          org-format-latex-options '(:foreground default
+                                                 :background default
+                                                 :scale 1.5
+                                                 :html-foreground "steelblue"
+                                                 :html-background "Transparent"
+                                                 :html-scale 1.0
+                                                 :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
+          )
+    ;; disable execution on export UNLESS otherwise specified
+    (add-to-list 'org-babel-default-header-args '(:eval . "never-export")))
+  :config
+  (progn
+    (setq org-confirm-babel-evaluate nil
+		  org-export-headline-levels 5
+		  org-export-with-toc 2
+		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
+          )
+    ;; disable execution on export UNLESS otherwise specified
+    (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+
+    (global-set-key (kbd "C-c å") 'org-agenda)
+    (global-set-key (kbd "C-c ¤") 'org-mark-ring-goto)
+
+    ;; https://emacs.stackexchange.com/a/18146
+    (require 'bind-key)
+    (unbind-key "C-c [" org-mode-map)
+    
+    (setcar org-emphasis-regexp-components " \t('\"{[:alpha:]")
+    (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
+    (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
+
+    ;; Custom hooks
+    (add-hook 'org-mode-hook 'pretty-greek)
+    (add-hook 'org-mode-hook 'my-prettiest-symbols)
+
+    (font-lock-add-keywords 'org-mode
+                            '(("^ +\\([-*]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+    ;; org-agenda / org-capture
+    (setq org-agenda-files '("~/Dropbox/org/gtd.org"
+                             "~/Dropbox/org/school.org"
+                             "~/Dropbox/org/reading.org"
+                             "~/Dropbox/org/implement.org"))
+    (setq org-default-notes-file "~/Dropbox/org/gtd.org")
+    (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
+			       ("~/Dropbox/org/someday.org" :level . 2)))
+    (setq org-capture-templates
+          '(("t"        ;; shortcut
+             "Todo"     ;; title
+             entry      ;; type of template
+             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+             "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
+             :empty-lines 1 ;; property
+             )
+            
+            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+             "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
+            
+            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+            ("s" "School" entry
+             (file "~/Dropbox/org/school.org")
+             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
+
+            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+             "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+             "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+            ))
+    (setq org-agenda-custom-commands
+          '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
+            ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
+            ("i" alltodo "" ((org-agenda-files '("~/Dropbox/org/implement.org"))))
+            ("p" . "PROJECT+Name tags searches")
+            ("pI" tags "+PROJECT+My")
+            ("po" tags "+PROJECT+Octochain")
+            ("pm" tags "+PROJECT+Masterloop")
+            ("pe" tags "+PROJECT+Easee")
+            ("pp" tags "+PROJECT+Public")))
+
+    ;; babel
+    (setq org-babel-clojure-backend 'cider)
+    (add-hook 'org-babel-after-execute-hook 'org-babel-python-strip-session-chars)
+
+    ;; Latex
+    (require 'ox-latex)
+    (add-to-list 'org-latex-packages-alist '("" "listingsutf8"))
+    (add-to-list 'org-latex-packages-alist '("" "color"))
+    (add-to-list 'org-latex-packages-alist '("" "minted"))
+
+    (add-hook 'org-mode-hook 'visual-line-mode)
+
+    ;; HACK: this will clone the ob-julia.el if it's not present in the privatedir
+    (let* ((targetdir "~/.emacs.d/private/ob-julia/")
+          (parentdir (file-name-directory (directory-file-name targetdir)))
+          (remoteurl "https://github.com/gjkerns/ob-julia.git"))
+      (when (not (file-directory-p targetdir))
+        (message "%s not present; cloning from %s..." targetdir remoteurl)
+        (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
+            (message "Cloning of %s successful!" remoteurl)
+          (message "Clong of %s FAILED!" remoteurl))))
+    
+
+    ;; HACK: I generally don't use
+    (let ((targetdir "~/.emacs.d/private/ob-julia/"))
+      (when (file-directory-p targetdir)
+        (add-to-list 'load-path targetdir)))
+
+    ;; if you ever have issues with org-evaluate being disabled
+    ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp t)
+       (shell . t)
+       (C . t)
+       (dot . t)
+       (latex . t)
+       (sql . t)
+       (sqlite . t)
+       (clojure . t)
+       (python . t)
+       ;; (R . t)
+       (ein . t)
+       ;; (ipython . t)
+       (scala . t)
+       (rust . t)
+       (haskell . t)
+       (jupyter . t)
+       (julia . t)
+       ;; (csharp. t)
+       (ditaa . t)))
+
+    (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                        (:session . "jl")
+                                                        (:kernel . "julia-1.3")))
+
+    ;; ensure that we use Py3 to evaluate Python blocks
+    (setq org-babel-python-command "python3")
+
+    (org-babel-jupyter-override-src-block "julia")
+    (org-babel-jupyter-override-src-block "python")
+
+    ;; customization for HTML export using MathJax
+    (setq org-html-mathjax-template "<script type=\"text/x-mathjax-config\">
+ MathJax.Hub.Config({
+   displayAlign: \"%ALIGN\",
+   displayIndent: \"%INDENT\",
+
+   \"HTML-CSS\": { scale: %SCALE,
+                 linebreaks: { automatic: \"%LINEBREAKS\" },
+                 webFont: \"%FONT\"
+   },
+   SVG: {scale: %SCALE,
+         linebreaks: { automatic: \"%LINEBREAKS\" },
+         font: \"%FONT\"},
+   NativeMML: {scale: %SCALE},
+   TeX: { equationNumbers: {autoNumber: \"%AUTONUMBER\"},
+          MultLineWidth: \"%MULTLINEWIDTH\",
+          TagSide: \"%TAGSIDE\",
+          TagIndent: \"%TAGINDENT\",
+          extensions: [\"color.js\", \"cancel.js\"]
+   },
+   extensions: [\"[Contrib]/physics/physics.js\"]
+ });
+</script>
+<script type=\"text/javascript\"
+        src=\"%PATH\"></script>
+
+")
+
+    ;; show agenda on startup
+    (setq initial-buffer-choice (lambda ()
+                                  (org-agenda-list)
+                                  (get-buffer "*Org Agenda*")))
+    
+    ;; ox-publish
+    (require 'ox-publish)
+    (setq org-publish-project-alist
+          '(
+            ;; ... add all the components here (see below)...
+            ("blog-latex"
+             :base-directory "~/org-blog/assets/latex"
+             :publishing-directory "~/org-blog/public_html/assets/latex"
+             :recursive t
+             :publishing-function tor/org-publish-attachment
+             :base-extension "png\\|jpg\\|gif\\\\|ogg\\|swf")
+
+            ;; ;; TODO: somehow allow us to simply copy the files in one go instead of going through
+            ;; ;; all files to check if modified
+            ("blog-latex-local"
+             :base-directory "~/org-blog/assets/latex"
+             :publishing-directory "~/org-blog/public_html/assets/latex"
+             :recursive nil
+             :preparation-function tor/org-publish-attachment-local
+             :publishing-function identity
+             :base-extension "")
+            
+            ("org-posts"
+             :project-directory "~/org-blog/"
+             :assets-directory "~/org-blog/assets/"
+             :base-directory "~/org-blog/posts/"
+             :base-extension "org"
+             :exclude ".*\\.org_archive|.*\\.org_old"  ;; HACK: this allows us to filter out posts
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :recursive nil
+             :publishing-function tor/org-html-publish-to-html
+             ;; :preparation-function tor/prepare-blog-post-publish
+             :headline-levels 4
+             :auto-preamble t
+             :html-preamble tor/render-html-preamble--posts
+             :html-postamble nil
+             :html-html5-fancy t
+             :html-metadata-timestamp-format "%Y-%m-%d %a")
+
+            ("org-posts-index"
+             :base-directory "~/org-blog/posts"
+             :base-extension "html"
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :publishing-function tor/publish-html
+             :preparation-function tor/prepare-blog-post-publish
+             :recursive nil
+             :auto-preamble nil
+             :html-postamble nil
+             :html-preamble nil)
+
+            ("org-posts-assets"
+             :base-directory "~/org-blog/posts/"
+             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/posts/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org-blog" :components ("org-posts" "org-posts-index" "org-posts-assets"))
+            
+            ("org-notes"
+             :project-directory "~/org-blog/"
+             :assets-directory "̃~/org-blog/assets/"
+             :base-directory "~/org-blog/notes/"
+             :base-extension "org"
+             :publishing-directory "~/org-blog/public_html/notes/"
+             :recursive t
+             :publishing-function tor/org-html-publish-to-html
+             :headline-levels 4             ; Just the default for this project.
+             :auto-preamble t
+             :html-preamble tor/render-html-preamble
+             :html-postamble nil
+             ;; :html-postamble tor/render-html-postamble
+             ;; :html-html5-fancy t
+             :html-metadata-timestamp-format "%Y-%m-%d %a"
+             )
+
+            ("org-notes-assets"
+             :base-directory "~/org-blog/notes/"
+             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/notes/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org-static"
+             :project-directory "~/org-blog/"
+             :base-directory "~/org-blog/assets/"
+             ;; :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
+             :base-extension "css\\|js\\|gif\\|mp3\\|ogg\\|swf"
+             :publishing-directory "~/org-blog/public_html/assets/"
+             :recursive t
+             :publishing-function tor/org-publish-attachment)
+
+            ("org"
+             :components ("org-notes" "org-notes-assets" "org-static"))
+
+            ("org-papers"
+             ;; :base-directory "~/Dropbox/bibliography/notes/"
+             :project-directory "~/org-blog/"
+             :assets-directory "̃~/org-blog/assets/"
+             :base-directory "~/org-blog/papers/"
+             :base-extension "org"
+             :publishing-directory "~/org-blog/public_html/papers/"
+             :recursive nil
+             :publishing-function tor/org-html-publish-to-html
+             :headline-levels 4
+             :auto-premable t
+             :html-postamble nil)
+            ))
+    ))
+
+(use-package org-bullets
+  :init (add-hook 'org-mode-hook 'org-bullets-mode))
+
+(defun tor/org-ref-open-bibtex-pdf ()
+  "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
+  (interactive)
+  (save-excursion
+    (bibtex-beginning-of-entry)
+    (let* ((bibtex-expand-strings t)
+           (entry (bibtex-parse-entry t))
+           (key (reftex-get-bib-field "=key=" entry))
+           (pdf (org-ref-get-mendeley-filename key)))
+      (message "%s" pdf)
+      (if (file-exists-p pdf)
+          (org-open-link-from-string (format "[[file:%s]]" pdf))
+        (ding)))))
+
+(use-package org-ref
+  :pin melpa
+  :config (progn
+            (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib")
+                  org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
+                  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
+                  org-ref-pdf-directory "~/Dropbox/bibliography/pdfs/"
+                  biblio-download-directory "~/Dropbox/bibliography/pdfs/"
+                  bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
+                  ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
+                  bibtex-completion-notes-path "/home/tor/org-blog/papers/"
+                  bibtex-completion-notes-template-multiple-files "#+SETUPFILE: ../setup-level-1.org\n#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n\n"
+                  
+                  bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
+
+                  ;; ensures that the use of #+NAME: works properly when exporting
+                  org-latex-prefer-user-labels t
+
+                  ;; with this activated it's horrendously SLOW for large files
+                  org-ref-show-broken-links nil
+
+                  org-latex-pdf-process '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+                                          "bibtex %b"
+                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")
+                  ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
+                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
+
+                  ;; adds more entry-types, e.g. @misc and @online
+                  ;; bibtex-dialect 'biblatex
+                  )
+
+            ;; overwrites the 'inbook' BibTeX type defined by doi-utils
+            ;; +FIXME+: getting an issue with "mandatory field is missing: chapter"
+            ;; the above was due to the choice of dialect
+            (doi-utils-def-bibtex-type book ("book")
+                                       author title booktitle series publisher year pages doi url)
+            (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
+                                       author title booktitle series publisher year pages doi url)
+            ;;
+
+            ;; FIXME: for now we make `misc' a placeholder for `online'
+            ;; since the dialect `BibTeX' does not support `online'
+            ;; which causes issues when exporting Org-files
+
+            ;; (doi-utils-def-bibtex-type online ("online")
+            ;;                            author title url year)
+            ;; (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
+            ;; and misc
+            
+            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t, <a href=\"%U\">link</a>.. %N"))
+
+            ;; NOT WORKING
+            ;; (defun my-pdf-proxy (orig-fun &rest args)
+            ;;   (let* ((pdf-url (apply orig-fun args))
+            ;;          (url-struct (url-generic-parse-url pdf-url)))
+            ;;     (setf (url-host url-struct)
+            ;;           (concat (url-host url-struct) ".ezproxy.is.ed.ac.uk"))
+            ;;     (url-recreate-url url-struct)))
+
+            ;; remove it like this.
+            ;; (advice-remove 'doi-utils-get-pdf-url #'my-pdf-proxy)
+            ;; (advice-add 'doi-utils-get-pdf-url :around #'my-pdf-proxy)
+            )
+  :init (progn
+          (require 'org-ref-pdf)
+          (bind-key "C-c [" 'org-ref-insert-ref-link)
+          (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
+
+;; END org-mode
+
 ;;; themes ;;;
 (message "Parsing themes")
 (use-package solarized-theme)
@@ -1545,6 +1551,17 @@ Return output file name."
 (load "utilities")
 (require 'bookmark+)
 
+;; TODO: make this automatically download and set it up
+;; Requires downloading and loading https://github.com/emacsmirror/emacswiki.org/blob/master/header2.el
+;; and then the following can be used to automatically insert headers!
+;; (defsubst header-org-mode-latex-default ()
+;;   (when (eq major-mode 'org-mode)
+;;     (insert "#+SETUPFILE: ~/org-blog/setup.org\n")))
+
+;; (setq make-header-hook '(header-org-mode-latex-default))
+
+;; (add-hook 'org-mode-hook 'auto-make-header)
+
 (message "Parsing custom-variables")
 
 (custom-set-variables
@@ -1574,7 +1591,7 @@ Return output file name."
  '(custom-enabled-themes (quote (atom-one-dark)))
  '(custom-safe-themes
    (quote
-    ("a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+    ("669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(default-text-scale-mode t nil (default-text-scale))
  '(elpy-rpc-python-command "python3")
  '(fci-rule-color "#eee8d5")
@@ -1621,10 +1638,30 @@ Return output file name."
      ("~" org-code verbatim)
      ("+"
       (:strike-through t)))))
+ '(org-format-latex-header
+   "\\documentclass{article}
+\\usepackage[usenames]{color}
+[PACKAGES]
+[DEFAULT-PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}")
  '(org-format-latex-options
    (quote
     (:foreground default :background default :scale 1.5 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
                  ("begin" "$1" "$" "$$" "\\(" "\\["))))
+ '(org-html-htmlize-output-type (quote inline-css))
  '(org-html-mathjax-options
    (quote
     ((path "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML")
@@ -1693,7 +1730,7 @@ Return output file name."
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (gnu-elpa-keyring-update default-text-scale annotate helm-bibtex jupyter lv sudo-edit ox-gfm auctex graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain ein yaml-mode xclip web-mode use-package undo-tree tide string-inflection spotify spaceline solarized-theme smartparens smart-mode-line rainbow-delimiters racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode markdown-mode lua-mode jedi irony-eldoc iedit helpful helm-spotify-plus helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds haskell-mode groovy-mode fic-mode exec-path-from-shell ess ensime elpy edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex cider centered-cursor-mode atom-one-dark-theme arduino-mode anki-editor ace-window ace-jump-mode)))
+    (org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess ensime edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
  '(python-shell-interpreter "python3")
  '(scroll-bar-mode nil)
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#eee8d5" 0.2))
