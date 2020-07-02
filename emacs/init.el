@@ -14,6 +14,8 @@
  tool-bar-mode nil
  blink-cursor-mode nil
 
+system-time-locale "C" ;; ensures that week-days follows English convention, e.g. Thu and Wed
+
  org-adapt-indentation nil  ;; don't indent text in a section to align with section-level
  org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
  org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
@@ -41,6 +43,18 @@
                               (org-after-todo-state-change-hook . tor/reading-list-done-hook)
                               (org-after-todo-state-change-hook . tor/impl-list-done-hook))
  )
+
+(defun clone-if-not-exists (remoteurl targetdir)
+  (let* ((parentdir (file-name-directory (directory-file-name targetdir))))
+    (when (not (file-directory-p targetdir))
+      (message "%s not present; cloning from %s..." targetdir remoteurl)
+      (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
+          (progn
+            (message "Cloning of %s successful!" remoteurl)
+            t)
+        (progn
+          (warn "Clong of %s FAILED!" remoteurl)
+          nil)))))
 
 
 (defun eval-and-replace ()
@@ -282,6 +296,7 @@ Useful when called with a selection, so it can be modified in-place"
 ;; pdf-tools - much improved way to view pdfs
 ;; IMPORTANT: need to run `(pdf-tools-install)' to install dependencies
 (use-package pdf-tools
+  :pin melpa
   :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
   :init (progn
           (if (string-equal system-type "gnu/linux") (pdf-tools-install))
@@ -558,8 +573,9 @@ Useful when called with a selection, so it can be modified in-place"
 (use-package scala-mode
   :pin melpa-stable
   :mode "\\.scala\\.?$")
-(use-package ensime
-  :pin melpa-stable)
+;; FIXME: apparently `ensime' is done for, and it's replaced by something called `metals'. Probably never going to do Scala again though, so whatever
+;; (use-package ensime
+;;   :pin melpa-stable)
 
 ;; groovy
 (use-package groovy-mode
@@ -1084,6 +1100,7 @@ Return output file name."
 ;;                             (goto-char start))))))
 (use-package ob-sql-mode)
 (use-package jupyter
+  :pin melpa
   :config (progn
             (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
                                                                 (:session . "jl")
@@ -1204,18 +1221,15 @@ Return output file name."
 
     (add-hook 'org-mode-hook 'visual-line-mode)
 
-    ;; HACK: this will clone the ob-julia.el if it's not present in the privatedir
-    (let* ((targetdir "~/.emacs.d/private/ob-julia/")
-          (parentdir (file-name-directory (directory-file-name targetdir)))
-          (remoteurl "https://github.com/gjkerns/ob-julia.git"))
-      (when (not (file-directory-p targetdir))
-        (message "%s not present; cloning from %s..." targetdir remoteurl)
-        (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
-            (message "Cloning of %s successful!" remoteurl)
-          (message "Clong of %s FAILED!" remoteurl))))
-    
+    (let ((targetdir "~/.emacs.d/private/ox-jekyll-lite/"))
+      (clone-if-not-exists "https://github.com/torfjelde/ox-jekyll-lite.git"
+                           targetdir)
+      (when (file-directory-p targetdir)
+        (add-to-list 'load-path targetdir)))
 
     ;; HACK: I generally don't use
+    (clone-if-not-exists "https://github.com/gjkerns/ob-julia.git"
+                         "~/.emacs.d/private/ob-julia/")
     (let ((targetdir "~/.emacs.d/private/ob-julia/"))
       (when (file-directory-p targetdir)
         (add-to-list 'load-path targetdir)))
@@ -1234,11 +1248,11 @@ Return output file name."
        (clojure . t)
        (python . t)
        ;; (R . t)
-       (ein . t)
+       ;; (ein . t)
        ;; (ipython . t)
-       (scala . t)
-       (rust . t)
-       (haskell . t)
+       ;; (scala . t)
+       ;; (rust . t)
+       ;; (haskell . t)
        (jupyter . t)
        (julia . t)
        ;; (csharp. t)
@@ -1246,7 +1260,7 @@ Return output file name."
 
     (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
                                                         (:session . "jl")
-                                                        (:kernel . "julia-1.3")))
+                                                        (:kernel . "julia-1.4")))
 
     ;; ensure that we use Py3 to evaluate Python blocks
     (setq org-babel-python-command "python3")
@@ -1489,8 +1503,8 @@ Return output file name."
 ;;; themes ;;;
 (message "Parsing themes")
 (use-package solarized-theme)
-(use-package darktooth-theme)
-(use-package atom-one-dark-theme)
+;; (use-package darktooth-theme)
+;; (use-package atom-one-dark-theme)
   ;; :init
   ;; (add-hook 'after-make-frame-functions
   ;;         '(lambda (frame)
@@ -1512,7 +1526,11 @@ Return output file name."
   :init
   (progn
 	(require 'spaceline-config)
-	(spaceline-emacs-theme)))
+	(spaceline-emacs-theme)
+        ))
+
+(use-package default-text-scale
+  :pin melpa)
 
 ;; (let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
 ;;                              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
@@ -1589,10 +1607,10 @@ Return output file name."
  '(cua-normal-cursor-color "#657b83")
  '(cua-overwrite-cursor-color "#b58900")
  '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes (quote (atom-one-dark)))
+ '(custom-enabled-themes (quote (solarized-dark)))
  '(custom-safe-themes
    (quote
-    ("669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+    ("a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "2809bcb77ad21312897b541134981282dc455ccd7c14d74cc333b6e549b824f3" "13a8eaddb003fd0d561096e11e1a91b029d3c9d64554f8e897b2513dbf14b277" "830877f4aab227556548dc0a28bf395d0abe0e3a0ab95455731c9ea5ab5fe4e1" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(default-text-scale-mode t nil (default-text-scale))
  '(elpy-rpc-python-command "python3")
  '(fci-rule-color "#eee8d5")
@@ -1629,6 +1647,7 @@ Return output file name."
  '(org-agenda-files
    (quote
     ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
+ '(org-babel-inline-result-wrap "%s")
  '(org-edit-src-content-indentation 0)
  '(org-emphasis-alist
    (quote
@@ -1675,10 +1694,29 @@ Return output file name."
      (multlinewidth "85%")
      (tagindent ".8em")
      (tagside "right"))))
+ '(org-latex-default-packages-alist
+   (quote
+    (("AUTO" "inputenc" t
+      ("pdflatex"))
+     ("T1" "fontenc" t
+      ("pdflatex"))
+     ("" "graphicx" t nil)
+     ("" "grffile" t nil)
+     ("" "longtable" nil nil)
+     ("" "wrapfig" nil nil)
+     ("" "rotating" nil nil)
+     ("normalem" "ulem" t nil)
+     ("" "amsmath" t nil)
+     ("" "textcomp" t nil)
+     ("" "amssymb" t nil)
+     ("" "capt-of" nil nil))))
+ '(org-latex-hyperref-template "
+")
  '(org-latex-pdf-process
    (quote
     ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
  '(org-link-file-path-type (quote relative))
+ '(org-preview-latex-image-directory "/home/tor/.ltximg/")
  '(org-preview-latex-process-alist
    (quote
     ((dvipng :programs
@@ -1731,10 +1769,9 @@ Return output file name."
  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
  '(package-selected-packages
    (quote
-    (gnuplot org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess ensime edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
+    (solarized-theme ox-jekyll-md stan-mode pdf-tools helm-bibtex gnuplot org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
  '(python-shell-interpreter "python3")
  '(scroll-bar-mode nil)
- '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#eee8d5" 0.2))
  '(term-default-bg-color "#fdf6e3")
  '(term-default-fg-color "#657b83")
  '(tool-bar-mode nil)
@@ -1775,11 +1812,12 @@ Return output file name."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 113 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "#002b36" :foreground "#839496" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 90 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
  '(fic-author-face ((t (:foreground "dark violet" :underline t))))
  '(fic-face ((t (:foreground "magenta" :weight bold))))
- '(org-block ((t (:inherit shadow :background "gray20"))))
- '(org-block-begin-line ((t (:inherit org-meta-line :background "grey15" :height 0.9))))
+ '(org-block ((t (:background "#002d39"))))
+ '(org-block-begin-line ((t (:inherit org-meta-line :underline nil))))
+ '(org-block-end-line ((t (:inherit org-meta-line :overline nil :slant normal :weight bold))))
  '(org-document-title ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5 :underline nil))))
  '(org-level-1 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.75))))
  '(org-level-2 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5))))
@@ -1789,6 +1827,5 @@ Return output file name."
  '(org-level-6 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
  '(org-level-7 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
  '(org-level-8 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(spaceline-evil-visual ((t (:background "gray" :foreground "#3E3D31" :inherit (quote mode-line)))))
- '(spaceline-unmodified ((t (:background "DarkGoldenrod2" :foreground "#3E3D31" :inherit (quote mode-line))))))
+ '(org-meta-line ((t (:foreground "#586e75" :slant normal :weight bold)))))
 (put 'narrow-to-region 'disabled nil)
