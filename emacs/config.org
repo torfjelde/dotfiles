@@ -1583,7 +1583,13 @@ Return output file name."
 #+begin_src emacs-lisp 
 ;;; themes ;;;
 (message "Parsing themes")
-(use-package solarized-theme)
+(use-package solarized-theme
+  :init (progn
+          ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
+          ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
+          (when nil
+              (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3")))))
+
 ;; (use-package darktooth-theme)
 ;; (use-package atom-one-dark-theme)
   ;; :init
