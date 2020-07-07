@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: begin-src-emacs-lisp
+# key: begin-src-el
+# --
+#+begin_src emacs-lisp $1
+$0
+#+end_src

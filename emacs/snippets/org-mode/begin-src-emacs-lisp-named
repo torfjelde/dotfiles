@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: begin-src-emacs-lisp-named
+# key: begin-src-el-n
+# --
+#+name: $1
+#+begin_src emacs-lisp $2
+$0
+#+end_src
