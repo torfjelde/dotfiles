@@ -1588,17 +1588,20 @@ Return output file name."
           ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
           ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
           (when nil
-              (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3")))))
+            ;; (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3"))
+            ;; (setq pdf-view-midnight-colors '("#3f4446" . "#fdf6e3")) ;; slightly blacker font
+            (setq pdf-view-midnight-colors '("#556065" . "#fff8e5")) ;; slightly brighter background
+            )))
 
 ;; (use-package darktooth-theme)
 ;; (use-package atom-one-dark-theme)
-  ;; :init
-  ;; (add-hook 'after-make-frame-functions
-  ;;         '(lambda (frame)
-  ;;           (select-frame frame)
-  ;;           (if window-system
-  ;;               nil
-  ;; 	      (set-frame-parameter nil 'background-color "#2B2B2B")
+;; :init
+;; (add-hook 'after-make-frame-functions
+;;         '(lambda (frame)
+;;           (select-frame frame)
+;;           (if window-system
+;;               nil
+;; 	      (set-frame-parameter nil 'background-color "#2B2B2B")
 ;; 	      ))))
 
 ;; Essentially removing the background color in terminal since I often use transparent terminals
