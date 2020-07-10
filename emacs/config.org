@@ -363,12 +363,6 @@ Useful when called with a selection, so it can be modified in-place"
     (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
     (add-hook 'prog-mode-hook 'show-paren-mode t)))
 #+end_src
-*** =edit-server=
-#+name: el-pkg-edit-server
-#+begin_src emacs-lisp
-(use-package edit-server
-  :init (edit-server-start))
-#+end_src
 *** =helm=
 #+name: el-pkg-helm
 #+begin_src emacs-lisp
@@ -449,6 +443,26 @@ Useful when called with a selection, so it can be modified in-place"
 	(set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)
     (add-to-list 'fic-highlighted-words "HACK")))
 #+end_src
+*** =edit-server=
+This package is used together with the chrome-extension: https://chrome.google.com/webstore/detail/edit-with-emacs/ljobjlafonikaiipfkggjbhkghgicgoh/related?hl=en.
+
+This means that if you have an Emacs daemon running on your computer you can simply click the Emacs-edit button on any text-box or whatever in Chrome and an Emacs window will pop up, allowing you to write in Emacs and then hit =C-c C-c= to insert into the browser!
+
+#+name: el-pkg-edit-server
+#+begin_src emacs-lisp 
+(use-package edit-server
+  :pin melpa
+  :init (progn
+          ;; Starts the edit server
+          (edit-server-start)
+
+          ;; We can set major-modes for different domains!!!
+          (setq edit-server-url-major-mode-alist
+                '(("github\\.com" . markdown-mode)))
+          )
+  )
+#+end_src
+
 *** Programming languages
 **** C/C++
 #+name: el-prog-c-and-cplusplus
