@@ -1223,6 +1223,9 @@ Return output file name."
     (setq org-default-notes-file "~/Dropbox/org/gtd.org")
     (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
 			       ("~/Dropbox/org/someday.org" :level . 2)))
+
+    (setq org-my-anki-file "~/Dropbox/org/anki.org")
+
     (setq org-capture-templates
 	  '(("t"        ;; shortcut
 	     "Todo"     ;; title
