@@ -60,6 +60,13 @@
  )
 #+end_src
 
+#+name: el-global-variables-final
+#+begin_src emacs-lisp 
+(setq
+ system-time-locale "C" ;; ensures that week-days follows English convention, e.g. Thu and Wed
+ )
+#+end_src
+
 ** Util
 #+name: el-util
 #+begin_src emacs-lisp
@@ -1237,9 +1244,25 @@ Return output file name."
 	    ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
 	     "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
 
+            ("R" "Research" entry (file "~/org-blog/notes/research.org")
+	     "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
+
 	    ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
 	     "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
-	    ))
+
+            ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
+            ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
+            ;; we also get autocomplete for the tags.
+            ("a" "Anki basic"
+             entry
+             (file+headline org-my-anki-file "Dispatch Shelf")
+             "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
+
+            ("A" "Anki cloze"
+             entry
+             (file+headline org-my-anki-file "Dispatch Shelf")
+             "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
+            ))
     (setq org-agenda-custom-commands
 	  '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
 	    ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
@@ -1455,6 +1478,11 @@ Return output file name."
 
 (use-package org-bullets
   :init (add-hook 'org-mode-hook 'org-bullets-mode))
+
+;; This adds some autocomplete stuff specific for Org-mode, e.g. allowing you to
+;; add multiple tags to a headline using autocompletion.
+(use-package helm-org
+  :pin melpa)
 
 (defun tor/org-ref-open-bibtex-pdf ()
   "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
@@ -1906,6 +1934,8 @@ Return output file name."
 ;; (add-hook 'org-mode-hook 'auto-make-header)
 
 <<el-final-setup>>
+
+<<el-global-variables-final>>
 
 (message "Parsing custom-variables")
 
