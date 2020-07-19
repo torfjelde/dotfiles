@@ -1485,7 +1485,11 @@ Return output file name."
 ;; This adds some autocomplete stuff specific for Org-mode, e.g. allowing you to
 ;; add multiple tags to a headline using autocompletion.
 (use-package helm-org
-  :pin melpa)
+  :pin melpa
+  :init (progn
+          ;; ensures that it works correctly with org-capture
+          (add-to-list 'helm-completing-read-handlers-alist '(org-capture . helm-org-completing-read-tags))
+          (add-to-list 'helm-completing-read-handlers-alist '(org-set-tags . helm-org-completing-read-tags))))
 
 (defun tor/org-ref-open-bibtex-pdf ()
   "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
