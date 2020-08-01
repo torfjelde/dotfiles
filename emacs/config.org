@@ -823,6 +823,15 @@ This means that if you have an Emacs daemon running on your computer you can sim
   :pin melpa
   :mode "\\.lua?$")
 #+end_src
+
+*** =visual-fill-column=
+#+name: el-pkg-visual-fill-column
+#+begin_src emacs-lisp 
+(use-package visual-fill-column
+  :config (progn
+            (setq visual-fill-column-center-text t)
+            (add-hook 'visual-line-mode-hook #'visual-fill-column-mode)))
+#+end_src
 *** Org-mode
 #+name: el-org-mode
 #+begin_src emacs-lisp 
@@ -1801,6 +1810,8 @@ This allows you to reference specific text and stuch in a PDF-document!
 <<el-pkg-smartparens>>
 
 <<el-pkg-edit-server>>
+
+<<el-pkg-visual-fill-column>>
 
 ;; helm
 <<el-pkg-helm>>
