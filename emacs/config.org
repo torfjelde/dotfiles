@@ -1220,6 +1220,12 @@ Return output file name."
     (add-hook 'org-mode-hook 'pretty-greek)
     (add-hook 'org-mode-hook 'my-prettiest-symbols)
 
+    ;; Disables flycheck when opening src blocks!
+    (defun disable-flycheck-in-org-src-block ()
+      (flycheck-mode -1))
+
+    (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block)
+
     (font-lock-add-keywords 'org-mode
 			    '(("^ +\\([-*]\\) "
 			       (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
