@@ -1709,6 +1709,14 @@ This allows you to reference specific text and stuch in a PDF-document!
     ))
 #+end_src
 
+**** =libnotify= might not be available
+=libnotify= is used to make a desktop notification rather than /just/ a "message" in Emacs. This is super-dope! But, depending on which distribution you're on (only works for Linux), =libnotify= might not be available. If so you possible have to run
+
+#+begin_src sh :eval no
+sudo apt-get install libnotify-bin
+#+end_src
+
+
 ** Theming
 #+name: el-theme
 #+begin_src emacs-lisp 
