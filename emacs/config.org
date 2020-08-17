@@ -67,6 +67,41 @@
  )
 #+end_src
 
+** Additional customization
+
+*** Fixing time-format across devices and locales
+#+name: el-time-format-advice
+#+begin_src emacs-lisp 
+;; Ensures that we're always going to format the string according to EN locale.
+;; Setting `system-time-locale' to `"C"' or something doesn't work for daemon-mode.
+;; This is copy-paste from https://kisaragi-hiu.com/blog/2019-10-09-format-time-string-today.html.
+(defun kisaragi/english-dow (&optional time zone abbreviated)
+  "Return ABBREVIATED name of the day of week at TIME and ZONE.
+
+If TIME or ZONE is nil, use `current-time' or `current-time-zone'."
+  (unless time (setq time (current-time)))
+  (unless zone (setq zone (current-time-zone)))
+  (calendar-day-name
+   (pcase-let ((`(,_ ,_ ,_ ,d ,m ,y . ,_)
+                (decode-time time zone)))
+     (list m d y))
+   abbreviated))
+
+(defun kisaragi/advice-format-time-string (func format &optional time zone)
+  "Pass FORMAT, TIME, and ZONE to FUNC.
+
+Replace \"%A\" in FORMAT with English day of week of today,
+\"%a\" with the abbreviated version."
+  (let* ((format (replace-regexp-in-string "%a" (kisaragi/english-dow time zone t)
+                                           format))
+         (format (replace-regexp-in-string "%A" (kisaragi/english-dow time zone nil)
+                                           format)))
+    (funcall func format time zone)))
+
+	
+(advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
+#+end_src
+
 ** Util
 #+name: el-util
 #+begin_src emacs-lisp
@@ -1660,6 +1695,20 @@ This allows you to reference specific text and stuch in a PDF-document!
 ;;     (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
 #+end_src
 
+*** =org-pomodoro=
+#+name: el-pkg-org-pomodoro
+#+begin_src emacs-lisp 
+(use-package org-pomodoro
+  :pin melpa
+  :ensure t
+  :commands (org-pomodoro)
+  :config
+  (progn
+    (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
+    (setq org-pomodoro-length 60) ;; make one session 1hr
+    ))
+#+end_src
+
 ** Theming
 #+name: el-theme
 #+begin_src emacs-lisp 
@@ -1724,6 +1773,8 @@ This allows you to reference specific text and stuch in a PDF-document!
 <<el-sympy>>
 
 <<el-util>>
+
+<<el-time-format-advice>>
 
 ;; PEP-8 tells me not to use tabs..so by defalt we disable this
 (setq-default indent-tabs-mode nil)
@@ -1930,6 +1981,8 @@ This allows you to reference specific text and stuch in a PDF-document!
 <<el-pkg-org-download>>
 
 <<el-pkg-org-pdftools>>
+
+<<el-pkg-org-pomodoro>>
 
 ;; END org-mode
 
