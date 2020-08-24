@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: org-begin-quote
+# key: begin-quote
+# --
+#+begin_quote
+$0
+#+end_quote

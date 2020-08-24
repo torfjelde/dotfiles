@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: begin-tikz-src-block
+# key: begin-tikz
+# --
+
+#+begin_src latex :file ./.`(insert (string-remove-suffix ".org" (file-relative-name (buffer-file-name))))`/figures/$1.png :imagemagick yes :fit yes :results none :exports none
+\begin{tikzpicture}
+  $2
+\end{tikzpicture}
+#+end_src
+
+[[./.`(insert (string-remove-suffix ".org" (file-relative-name (buffer-file-name))))`/figures/$1.png]]
