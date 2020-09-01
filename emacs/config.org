@@ -1716,6 +1716,12 @@ This allows you to reference specific text and stuch in a PDF-document!
 sudo apt-get install libnotify-bin
 #+end_src
 
+*** =which-key=
+#+name: el-pkg-which-key
+#+begin_src emacs-lisp 
+(use-package which-key
+  :pin melpa)
+#+end_src
 
 ** Theming
 #+name: el-theme
@@ -1877,6 +1883,8 @@ sudo apt-get install libnotify-bin
 <<el-pkg-edit-server>>
 
 <<el-pkg-visual-fill-column>>
+
+<<el-pkg-which-key>>
 
 ;; helm
 <<el-pkg-helm>>
