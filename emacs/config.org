@@ -1720,7 +1720,8 @@ sudo apt-get install libnotify-bin
 #+name: el-pkg-which-key
 #+begin_src emacs-lisp 
 (use-package which-key
-  :pin melpa)
+  :pin melpa
+  :config (which-key-mode))
 #+end_src
 
 ** Theming
