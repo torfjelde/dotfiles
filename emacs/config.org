@@ -453,7 +453,7 @@ Useful when called with a selection, so it can be modified in-place"
 #+name: el-pkg-ace-window
 #+begin_src emacs-lisp
 (use-package ace-window
-  :config (global-set-key (kbd "M-å") 'ace-window))
+  :config (global-set-key (kbd "M-[") 'ace-window))
 #+end_src
 *** =magit=
 #+name: el-pkg-magit
@@ -1664,7 +1664,7 @@ Return output file name."
           (bind-key "C-c [" 'org-ref-insert-ref-link)
           (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
 #+end_src
-*** =org-download=
+*** COMMENT =org-download=
 =org-download= allows you to do neat stuff like drag-and-drop images into an org-buffer to insert the image there!
 
 #+name: el-pkg-org-download
@@ -1677,7 +1677,7 @@ Return output file name."
           
           ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
           (defun org-download--dir-1 ()
-            (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base))))))
+            (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments")))))
 #+end_src
 
 *** =org-pdftools=
