@@ -1669,7 +1669,11 @@ Return output file name."
 
 #+name: el-pkg-org-download
 #+begin_src emacs-lisp 
-(use-package org-download)
+(use-package org-download
+  :init (progn
+          ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
+          (defun org-download--dir-1 ()
+            (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base))))))
 #+end_src
 
 *** =org-pdftools=
