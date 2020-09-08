@@ -1671,6 +1671,10 @@ Return output file name."
 #+begin_src emacs-lisp 
 (use-package org-download
   :init (progn
+          ;; don't want to use the sub-headings for the folder name
+          ;; TODO: check if this actually work! Might be buffer-local, hence not do anything.
+          (setq org-download-heading-lvl nil)
+          
           ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
           (defun org-download--dir-1 ()
             (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base))))))
