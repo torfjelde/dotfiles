@@ -44,8 +44,6 @@
 
  ;; omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe"
 
- yas-triggers-in-field t; Enable nested triggering of snippets
-
  ;; slime
  inferior-lisp-program "/usr/local/bin/sbcl"
  slime-lisp-implementations '((sbcl ("sbcl")))
@@ -386,7 +384,11 @@ Useful when called with a selection, so it can be modified in-place"
 ;; yasnippet
 (use-package yasnippet
   :pin melpa-stable
-  :init (yas-global-mode))
+  :init (progn
+          (setq yas-triggers-in-field t ;; Enable nested triggering of snippets
+                yas-indent-line 'fixed ;; Ensures that the indentation is done after my choosing
+                )
+          (yas-global-mode)))
 #+end_src
 *** =undo-tree=
 #+name: el-pkg-undo-tree
