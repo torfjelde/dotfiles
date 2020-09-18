@@ -56,6 +56,10 @@
 			      (org-after-todo-state-change-hook . tor/reading-list-done-hook)
 			      (org-after-todo-state-change-hook . tor/impl-list-done-hook))
  )
+
+(setq-default fill-column 100)
+;; change the font-size a bit
+(set-face-attribute 'default nil :height 77)
 #+end_src
 
 #+name: el-global-variables-final
