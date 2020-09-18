@@ -2098,188 +2098,205 @@ sudo apt-get install libnotify-bin
 ;;     ("a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "2809bcb77ad21312897b541134981282dc455ccd7c14d74cc333b6e549b824f3" "13a8eaddb003fd0d561096e11e1a91b029d3c9d64554f8e897b2513dbf14b277" "830877f4aab227556548dc0a28bf395d0abe0e3a0ab95455731c9ea5ab5fe4e1" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
 ;;  '(default-text-scale-mode t nil (default-text-scale))
 ;;  )
+'
+;; (custom-set-variables
+;;  ;; custom-set-variables was added by Custom.
+;;  ;; If you edit it by hand, you could mess it up, so be careful.
+;;  ;; Your init file should contain only one such instance.
+;;  ;; If there is more than one, they won't work right.
+;;  '(TeX-view-program-selection
+;;    (quote
+;;     (((output-dvi has-no-display-manager)
+;;       "dvi2tty")
+;;      ((output-dvi style-pstricks)
+;;       "dvips and gv")
+;;      (output-dvi "xdvi")
+;;      (output-pdf "PDF Tools")
+;;      (output-html "xdg-open"))))
+;;  '(bibtex-completion-pdf-field "file")
+;;  '(blink-cursor-mode nil)
+;;  '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
+;;  '(compilation-message-face (quote default))
+;;  '(custom-enabled-themes (quote (solarized-dark)))
+;;  '(custom-safe-themes
+;;    (quote
+;;     ("a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "2809bcb77ad21312897b541134981282dc455ccd7c14d74cc333b6e549b824f3" "13a8eaddb003fd0d561096e11e1a91b029d3c9d64554f8e897b2513dbf14b277" "830877f4aab227556548dc0a28bf395d0abe0e3a0ab95455731c9ea5ab5fe4e1" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+;;  '(default-text-scale-mode t nil (default-text-scale))
+;;  '(elpy-rpc-python-command "python3")
+;;  '(julia-max-block-lookback 100000)
+;;  '(magit-diff-use-overlays nil)
+;;  '(markdown-command "/usr/bin/pandoc")
+;;  '(org-agenda-files
+;;    (quote
+;;     ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
+;;  '(org-babel-inline-result-wrap "%s")
+;;  '(org-edit-src-content-indentation 0)
+;;  '(org-emphasis-alist
+;;    (quote
+;;     (("*" bold)
+;;      ("/" italic)
+;;      ("_" default)
+;;      ("=" org-verbatim verbatim)
+;;      ("~" org-code verbatim)
+;;      ("+"
+;;       (:strike-through t)))))
+;;  '(org-format-latex-header
+;;    "\\documentclass{article}
+;; \\usepackage[usenames]{color}
+;; [PACKAGES]
+;; [DEFAULT-PACKAGES]
+;; \\pagestyle{empty}             % do not remove
+;; % The settings below are copied from fullpage.sty
+;; \\setlength{\\textwidth}{\\paperwidth}
+;; \\addtolength{\\textwidth}{-3cm}
+;; \\setlength{\\oddsidemargin}{1.5cm}
+;; \\addtolength{\\oddsidemargin}{-2.54cm}
+;; \\setlength{\\evensidemargin}{\\oddsidemargin}
+;; \\setlength{\\textheight}{\\paperheight}
+;; \\addtolength{\\textheight}{-\\headheight}
+;; \\addtolength{\\textheight}{-\\headsep}
+;; \\addtolength{\\textheight}{-\\footskip}
+;; \\addtolength{\\textheight}{-3cm}
+;; \\setlength{\\topmargin}{1.5cm}
+;; \\addtolength{\\topmargin}{-2.54cm}")
+;;  '(org-format-latex-options
+;;    (quote
+;;     (:foreground default :background default :scale 1.5 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
+;;                  ("begin" "$1" "$" "$$" "\\(" "\\["))))
+;;  '(org-html-htmlize-output-type (quote inline-css))
+;;  '(org-html-mathjax-options
+;;    (quote
+;;     ((path "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML")
+;;      (scale "100")
+;;      (align "center")
+;;      (font "Neo-Euler")
+;;      (linebreaks "false")
+;;      (autonumber "AMS")
+;;      (indent "0em")
+;;      (multlinewidth "85%")
+;;      (tagindent ".8em")
+;;      (tagside "right"))))
+;;  '(org-latex-default-packages-alist
+;;    (quote
+;;     (("AUTO" "inputenc" t
+;;       ("pdflatex"))
+;;      ("T1" "fontenc" t
+;;       ("pdflatex"))
+;;      ("" "graphicx" t nil)
+;;      ("" "grffile" t nil)
+;;      ("" "longtable" nil nil)
+;;      ("" "wrapfig" nil nil)
+;;      ("" "rotating" nil nil)
+;;      ("normalem" "ulem" t nil)
+;;      ("" "amsmath" t nil)
+;;      ("" "textcomp" t nil)
+;;      ("" "amssymb" t nil)
+;;      ("" "capt-of" nil nil))))
+;;  '(org-latex-hyperref-template "
+;; ")
+;;  '(org-latex-pdf-process
+;;    (quote
+;;     ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
+;;  '(org-link-file-path-type (quote relative))
+;;  '(org-preview-latex-image-directory "/home/tor/.ltximg/")
+;;  '(org-preview-latex-process-alist
+;;    (quote
+;;     ((dvipng :programs
+;;              ("latex" "dvipng")
+;;              :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+;;              (1.0 . 1.0)
+;;              :latex-compiler
+;;              ("latex -interaction nonstopmode -output-directory %o %f")
+;;              :image-converter
+;;              ("dvipng -D %D -T tight -o %O %f"))
+;;      (dvisvgm :programs
+;;               ("latex" "dvisvgm")
+;;               :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :use-xcolor t :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+;;               (1.7 . 1.5)
+;;               :latex-compiler
+;;               ("latex -interaction nonstopmode -output-directory %o %f")
+;;               :image-converter
+;;               ("dvisvgm %f -n -b min -c %S -o %O"))
+;;      (imagemagick :programs
+;;                   ("latex" "convert")
+;;                   :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :use-xcolor t :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+;;                   (1.0 . 1.0)
+;;                   :latex-compiler
+;;                   ("pdflatex -interaction nonstopmode -output-directory %o %f")
+;;                   :image-converter
+;;                   ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
+;;  '(org-ref-bib-html "")
+;;  '(org-ref-formatted-citation-formats
+;;    (quote
+;;     (("text"
+;;       ("article" . "${author}, ${title}, ${journal}, ${archivePrefix}:${eprint} [${primaryClass}], ${volume}(${number}), ${pages} (${year}). ${doi}")
+;;       ("inproceedings" . "${author}, ${title}, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("book" . "${author}, ${title} (${year}), ${address}: ${publisher}.")
+;;       ("phdthesis" . "${author}, ${title} (Doctoral dissertation) (${year}). ${school}, ${address}.")
+;;       ("inbook" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("incollection" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("proceedings" . "${editor} (Eds.), ${booktitle} (${year}). ${address}: ${publisher}.")
+;;       ("unpublished" . "${author}, ${title} (${year}). Unpublished manuscript.")
+;;       (nil . "${author}, ${title} (${year})."))
+;;      ("org"
+;;       ("article" . "${author}, /${title}/, ${journal}, *${volume}(${number})*, ${pages} (${year}). ${doi}")
+;;       ("inproceedings" . "${author}, /${title}/, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("book" . "${author}, /${title}/ (${year}), ${address}: ${publisher}.")
+;;       ("phdthesis" . "${author}, /${title}/ (Doctoral dissertation) (${year}). ${school}, ${address}.")
+;;       ("inbook" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("incollection" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
+;;       ("proceedings" . "${editor} (Eds.), _${booktitle}_ (${year}). ${address}: ${publisher}.")
+;;       ("unpublished" . "${author}, /${title}/ (${year}). Unpublished manuscript.")
+;;       (nil . "${author}, /${title}/ (${year}).")))))
+;;  '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
+;;  '(package-selected-packages
+;;    (quote
+;;     (solarized-theme ox-jekyll-md stan-mode pdf-tools helm-bibtex gnuplot org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
+;;  '(python-shell-interpreter "python3")
+;;  '(vc-annotate-background nil)
+;;  '(vc-annotate-background-mode nil)
+;;  '(vc-annotate-very-old-color nil)
+;;  '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))
+;;  '(yas-indent-line (quote fixed)))
+;; (custom-set-faces
+;;  ;; custom-set-faces was added by Custom.
+;;  ;; If you edit it by hand, you could mess it up, so be careful.
+;;  ;; Your init file should contain only one such instance.
+;;  ;; If there is more than one, they won't work right.
+;;  '(default ((t (:inherit nil :stipple nil :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 90 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
+;;  '(fic-author-face ((t (:foreground "dark violet" :underline t))))
+;;  '(fic-face ((t (:foreground "magenta" :weight bold))))
+;;  ;; '(org-block ((t (:background "#002d39")))) ;; HACK: this is in case we want to change the background-color; though should probably make a custom-theme instead
+;;  '(org-block-begin-line ((t (:inherit org-meta-line :underline nil))))
+;;  '(org-block-end-line ((t (:inherit org-meta-line :overline nil :slant normal :weight bold))))
+;;  '(org-document-title ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5 :underline nil))))
+;;  '(org-level-1 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.75))))
+;;  '(org-level-2 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5))))
+;;  '(org-level-3 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.25))))
+;;  '(org-level-4 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.1))))
+;;  '(org-level-5 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
+;;  '(org-level-6 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
+;;  '(org-level-7 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
+;;  '(org-level-8 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
+;;  '(org-meta-line ((t (:foreground "#586e75" :slant normal :weight bold)))))
+;; (put 'narrow-to-region 'disabled nil)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(TeX-view-program-selection
-   (quote
-    (((output-dvi has-no-display-manager)
-      "dvi2tty")
-     ((output-dvi style-pstricks)
-      "dvips and gv")
-     (output-dvi "xdvi")
-     (output-pdf "PDF Tools")
-     (output-html "xdg-open"))))
- '(bibtex-completion-pdf-field "file")
- '(blink-cursor-mode nil)
  '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
- '(compilation-message-face (quote default))
- '(custom-enabled-themes (quote (solarized-dark)))
+ '(custom-enabled-themes '(solarized-dark))
  '(custom-safe-themes
-   (quote
-    ("a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "2809bcb77ad21312897b541134981282dc455ccd7c14d74cc333b6e549b824f3" "13a8eaddb003fd0d561096e11e1a91b029d3c9d64554f8e897b2513dbf14b277" "830877f4aab227556548dc0a28bf395d0abe0e3a0ab95455731c9ea5ab5fe4e1" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
- '(default-text-scale-mode t nil (default-text-scale))
- '(elpy-rpc-python-command "python3")
- '(julia-max-block-lookback 100000)
- '(magit-diff-use-overlays nil)
- '(markdown-command "/usr/bin/pandoc")
- '(org-agenda-files
-   (quote
-    ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
- '(org-babel-inline-result-wrap "%s")
- '(org-edit-src-content-indentation 0)
- '(org-emphasis-alist
-   (quote
-    (("*" bold)
-     ("/" italic)
-     ("_" default)
-     ("=" org-verbatim verbatim)
-     ("~" org-code verbatim)
-     ("+"
-      (:strike-through t)))))
- '(org-format-latex-header
-   "\\documentclass{article}
-\\usepackage[usenames]{color}
-[PACKAGES]
-[DEFAULT-PACKAGES]
-\\pagestyle{empty}             % do not remove
-% The settings below are copied from fullpage.sty
-\\setlength{\\textwidth}{\\paperwidth}
-\\addtolength{\\textwidth}{-3cm}
-\\setlength{\\oddsidemargin}{1.5cm}
-\\addtolength{\\oddsidemargin}{-2.54cm}
-\\setlength{\\evensidemargin}{\\oddsidemargin}
-\\setlength{\\textheight}{\\paperheight}
-\\addtolength{\\textheight}{-\\headheight}
-\\addtolength{\\textheight}{-\\headsep}
-\\addtolength{\\textheight}{-\\footskip}
-\\addtolength{\\textheight}{-3cm}
-\\setlength{\\topmargin}{1.5cm}
-\\addtolength{\\topmargin}{-2.54cm}")
- '(org-format-latex-options
-   (quote
-    (:foreground default :background default :scale 1.5 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
-                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
- '(org-html-htmlize-output-type (quote inline-css))
- '(org-html-mathjax-options
-   (quote
-    ((path "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML")
-     (scale "100")
-     (align "center")
-     (font "Neo-Euler")
-     (linebreaks "false")
-     (autonumber "AMS")
-     (indent "0em")
-     (multlinewidth "85%")
-     (tagindent ".8em")
-     (tagside "right"))))
- '(org-latex-default-packages-alist
-   (quote
-    (("AUTO" "inputenc" t
-      ("pdflatex"))
-     ("T1" "fontenc" t
-      ("pdflatex"))
-     ("" "graphicx" t nil)
-     ("" "grffile" t nil)
-     ("" "longtable" nil nil)
-     ("" "wrapfig" nil nil)
-     ("" "rotating" nil nil)
-     ("normalem" "ulem" t nil)
-     ("" "amsmath" t nil)
-     ("" "textcomp" t nil)
-     ("" "amssymb" t nil)
-     ("" "capt-of" nil nil))))
- '(org-latex-hyperref-template "
-")
- '(org-latex-pdf-process
-   (quote
-    ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
- '(org-link-file-path-type (quote relative))
- '(org-preview-latex-image-directory "/home/tor/.ltximg/")
- '(org-preview-latex-process-alist
-   (quote
-    ((dvipng :programs
-             ("latex" "dvipng")
-             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
-             (1.0 . 1.0)
-             :latex-compiler
-             ("latex -interaction nonstopmode -output-directory %o %f")
-             :image-converter
-             ("dvipng -D %D -T tight -o %O %f"))
-     (dvisvgm :programs
-              ("latex" "dvisvgm")
-              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :use-xcolor t :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
-              (1.7 . 1.5)
-              :latex-compiler
-              ("latex -interaction nonstopmode -output-directory %o %f")
-              :image-converter
-              ("dvisvgm %f -n -b min -c %S -o %O"))
-     (imagemagick :programs
-                  ("latex" "convert")
-                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :use-xcolor t :image-input-type "pdf" :image-output-type "png" :image-size-adjust
-                  (1.0 . 1.0)
-                  :latex-compiler
-                  ("pdflatex -interaction nonstopmode -output-directory %o %f")
-                  :image-converter
-                  ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
- '(org-ref-bib-html "")
- '(org-ref-formatted-citation-formats
-   (quote
-    (("text"
-      ("article" . "${author}, ${title}, ${journal}, ${archivePrefix}:${eprint} [${primaryClass}], ${volume}(${number}), ${pages} (${year}). ${doi}")
-      ("inproceedings" . "${author}, ${title}, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("book" . "${author}, ${title} (${year}), ${address}: ${publisher}.")
-      ("phdthesis" . "${author}, ${title} (Doctoral dissertation) (${year}). ${school}, ${address}.")
-      ("inbook" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("incollection" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("proceedings" . "${editor} (Eds.), ${booktitle} (${year}). ${address}: ${publisher}.")
-      ("unpublished" . "${author}, ${title} (${year}). Unpublished manuscript.")
-      (nil . "${author}, ${title} (${year})."))
-     ("org"
-      ("article" . "${author}, /${title}/, ${journal}, *${volume}(${number})*, ${pages} (${year}). ${doi}")
-      ("inproceedings" . "${author}, /${title}/, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("book" . "${author}, /${title}/ (${year}), ${address}: ${publisher}.")
-      ("phdthesis" . "${author}, /${title}/ (Doctoral dissertation) (${year}). ${school}, ${address}.")
-      ("inbook" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("incollection" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("proceedings" . "${editor} (Eds.), _${booktitle}_ (${year}). ${address}: ${publisher}.")
-      ("unpublished" . "${author}, /${title}/ (${year}). Unpublished manuscript.")
-      (nil . "${author}, /${title}/ (${year}).")))))
- '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
- '(package-selected-packages
-   (quote
-    (solarized-theme ox-jekyll-md stan-mode pdf-tools helm-bibtex gnuplot org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
- '(python-shell-interpreter "python3")
- '(vc-annotate-background nil)
- '(vc-annotate-background-mode nil)
- '(vc-annotate-very-old-color nil)
- '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))
- '(yas-indent-line (quote fixed)))
+   '("0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" default)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 90 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
- '(fic-author-face ((t (:foreground "dark violet" :underline t))))
- '(fic-face ((t (:foreground "magenta" :weight bold))))
- ;; '(org-block ((t (:background "#002d39")))) ;; HACK: this is in case we want to change the background-color; though should probably make a custom-theme instead
- '(org-block-begin-line ((t (:inherit org-meta-line :underline nil))))
- '(org-block-end-line ((t (:inherit org-meta-line :overline nil :slant normal :weight bold))))
- '(org-document-title ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5 :underline nil))))
- '(org-level-1 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.75))))
- '(org-level-2 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5))))
- '(org-level-3 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.25))))
- '(org-level-4 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.1))))
- '(org-level-5 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-6 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-7 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-8 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-meta-line ((t (:foreground "#586e75" :slant normal :weight bold)))))
-(put 'narrow-to-region 'disabled nil)
+ )
+
 #+end_src
 
 #+RESULTS:
