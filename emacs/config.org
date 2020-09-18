@@ -514,6 +514,16 @@ This means that if you have an Emacs daemon running on your computer you can sim
 #+begin_src emacs-lisp 
 (add-hook 'prog-mode-hook #'my-prettiest-symbols)
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+
+(add-hook
+ 'prog-mode-hook
+ (lambda ()
+   ;; Fixes the width of the line-numbers; if I end up having to edit a file with more than 99 999 lines of code, I'll throw my computer through the wall anyways.
+   (setq display-line-numbers-width 5)
+   ;; Don't use word-wrap in programming mode; I want to see if it wraps
+   (setq word-wrap nil)
+   ;; Default to 100 linewidth in programming languages, because I like it.
+   (set-fill-column 100)))
 #+end_src
 **** C/C++
 #+name: el-prog-c-and-cplusplus
@@ -698,8 +708,13 @@ This means that if you have an Emacs daemon running on your computer you can sim
 #+begin_src emacs-lisp 
 ;; Julia
 (use-package julia-mode
-  :config (progn
-            (add-hook 'julia-mode-hook 'my-prettiest-symbols))
+  :config
+  (progn
+    (add-hook
+     'julia-mode-hook
+     (lambda ()
+       ;; shift such that it wraps only if it goes beyond 91
+       (set-fill-column (+ 91 display-line-numbers-width 2)))))
   ;; :config
   ;; (progn
   ;;   ;; (load "ess-site")
@@ -875,7 +890,7 @@ This means that if you have an Emacs daemon running on your computer you can sim
   :init (progn
           (setq-default visual-fill-column-center-text t)
           (add-hook 'visual-line-mode-hook #'visual-fill-column-mode)
-          (add-hook 'prog-mode-hook #'visual-line-mode)))
+          (add-hook 'prog-mode-hook #'visual-fill-column-mode)))
 #+end_src
 *** Org-mode
 #+name: el-org-mode
