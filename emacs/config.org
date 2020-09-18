@@ -482,10 +482,11 @@ Useful when called with a selection, so it can be modified in-place"
 (use-package fic-mode
   :config
   (progn
-	(add-hook 'prog-mode-hook 'fic-mode)
-	(set-face-attribute 'fic-author-face nil :foreground "dark violet" :underline t)
-	(set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)
-    (add-to-list 'fic-highlighted-words "HACK")))
+    (add-hook 'prog-mode-hook #'fic-mode)
+    (set-face-attribute 'fic-author-face nil :foreground "dark violet" :underline t)
+    (set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)
+    (add-to-list 'fic-highlighted-words "HACK")
+    (add-to-list 'fic-highlighted-words "NOTE")))
 #+end_src
 *** =edit-server=
 This package is used together with the chrome-extension: https://chrome.google.com/webstore/detail/edit-with-emacs/ljobjlafonikaiipfkggjbhkghgicgoh/related?hl=en.
@@ -508,6 +509,12 @@ This means that if you have an Emacs daemon running on your computer you can sim
 #+end_src
 
 *** Programming languages
+**** General
+#+name: el-prog-general
+#+begin_src emacs-lisp 
+(add-hook 'prog-mode-hook #'my-prettiest-symbols)
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+#+end_src
 **** C/C++
 #+name: el-prog-c-and-cplusplus
 #+begin_src emacs-lisp 
@@ -1940,10 +1947,9 @@ sudo apt-get install libnotify-bin
 
 
 ;;; programming languages ;;;
-(add-hook 'prog-mode-hook 'my-prettiest-symbols)
-
-
 <<el-pkg-fic-mode>>
+
+<<el-prog-general>>
 
 <<el-prog-c-and-cplusplus>>
 
