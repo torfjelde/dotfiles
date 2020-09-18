@@ -865,9 +865,10 @@ This means that if you have an Emacs daemon running on your computer you can sim
 #+name: el-pkg-visual-fill-column
 #+begin_src emacs-lisp 
 (use-package visual-fill-column
-  :config (progn
-            (setq visual-fill-column-center-text t)
-            (add-hook 'visual-line-mode-hook #'visual-fill-column-mode)))
+  :init (progn
+          (setq-default visual-fill-column-center-text t)
+          (add-hook 'visual-line-mode-hook #'visual-fill-column-mode)
+          (add-hook 'prog-mode-hook #'visual-line-mode)))
 #+end_src
 *** Org-mode
 #+name: el-org-mode
