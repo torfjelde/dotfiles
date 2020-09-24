@@ -1830,6 +1830,10 @@ sudo apt-get install libnotify-bin
   1. a /sum/ of related functionality in host and inner chunks
   2. configuration /objects/ derived from =pm-chunkmode= class (i.e. =pm-host-hostmode=, =pm-inner-innermode=, =pm-inner-auto-chunkmode=)
 
+
+#+DOWNLOADED: file:///home/tor/Pictures/Selection_064.png @ 2020-09-24 21:52:51
+[[file:.config/attachments/=init.el=/Selection_064_2020-09-24_21-52-51.png]]
+
 ** Theming
 #+name: el-theme
 #+begin_src emacs-lisp 
