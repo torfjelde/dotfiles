@@ -453,7 +453,7 @@ Useful when called with a selection, so it can be modified in-place"
 #+name: el-pkg-avy
 #+begin_src emacs-lisp
 (use-package avy
-  :bind ("M-æ" . avy-goto-word-or-subword-1))
+  :bind ("M-j" . avy-goto-word-or-subword-1))
 #+end_src
 *** =ace-window=
 #+name: el-pkg-ace-window
