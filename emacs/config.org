@@ -1728,6 +1728,12 @@ Return output file name."
           (bind-key "C-c [" 'org-ref-insert-ref-link)
           (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
 #+end_src
+
+**** Additional stuff
+- To make it so what we open PDFs using =pdftools= rather than the default viewer on the system, one needs to change =org-file-apps= , in particular the =\\.pdf\\= field.
+- When generating PDF from Org-files (though LaTeX), the process might fail due to =hyerref= messing up. If so, check the generated =.tex= file to see if you have two inclusions of =hyperref=, and if you do, change =org-latex-default-packages-alist=.
+  - This is because you have an additional configuration for =hyperref= somewhere in the config file.
+
 *** =org-download=
 =org-download= allows you to do neat stuff like drag-and-drop images into an org-buffer to insert the image there!
 
