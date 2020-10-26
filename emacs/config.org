@@ -176,6 +176,25 @@ Useful when called with a selection, so it can be modified in-place"
   (let (deactivate-mark (point (point)))
     (insert (buffer-substring begin end))
     (push-mark point)))
+
+;; https://stackoverflow.com/a/25212377/4956107
+(defun rename-current-buffer-file ()
+  "Renames current buffer and file it is visiting."
+  (interactive)
+  (let* ((name (buffer-name))
+        (filename (buffer-file-name))
+        (basename (file-name-nondirectory filename)))
+    (if (not (and filename (file-exists-p filename)))
+        (error "Buffer '%s' is not visiting a file!" name)
+      (let ((new-name (read-file-name "New name: " (file-name-directory filename) basename nil basename)))
+        (if (get-buffer new-name)
+            (error "A buffer named '%s' already exists!" new-name)
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil)
+          (message "File '%s' successfully renamed to '%s'"
+                   name (file-name-nondirectory new-name)))))))
 #+end_src
 
 ** =sympy= integration
@@ -340,11 +359,47 @@ Useful when called with a selection, so it can be modified in-place"
           (lambda()
             (local-unset-key (kbd "C-c ]"))))
 
+;; Adds label-completion
+(use-package company-reftex
+  :init (setq company-reftex-labels-regexp (rx "\\"
+                                               ;; List taken from `reftex-ref-style-alist'
+                                               (or "autoref"
+                                                   "autopageref"
+                                                   "Cpageref"
+                                                   "cpageref"
+                                                   "Cref"
+                                                   "cref"
+                                                   "eqref"
+                                                   "Fref"
+                                                   "fref"
+                                                   "pageref"
+                                                   "Ref"
+                                                   "ref"
+                                                   "vpageref"
+                                                   "Vref"
+                                                   "vref"
+                                                   ;; custom stuff:
+                                                   "propref"
+                                                   "thmref"
+                                                   "lemref"
+                                                   "lemmaref"
+                                                   "appref"
+                                                   "assumptref"
+                                                   "secref")
+                                               "{"
+                                               (group (* (not (any "}"))))
+                                               (regexp "\\="))))
 (use-package company-auctex
   :init (progn
           (company-auctex-init)
           (add-hook 'LaTeX-mode-hook 'company-mode)
-          (add-hook 'latex-mode-hook 'company-mode)))
+          (add-hook 'latex-mode-hook 'company-mode)
+          (add-hook 'LaTeX-mode-hook 'reftex-mode)
+
+          ;; Means that we get
+          (add-to-list 'company-backends 'company-reftex-labels)
+          (add-to-list 'company-backends 'company-reftex-citations)
+          ))
 #+end_src
 *** =anki-editor=
 #+name: el-pkg-anki-editor
