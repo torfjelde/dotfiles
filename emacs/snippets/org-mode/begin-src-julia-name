@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: begin-src-julia-with-name
+# key: begin-src-jl-n
+# --
+#+name: jl-$1
+#+begin_src julia $2
+$0
+#+end_src
