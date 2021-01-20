@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: latex-begin-figure
+# key: begin-fig
+# --
+#+begin_LATEX
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\linewidth]{${1:path}}
+  \caption{\label{fig:${2:label}} $0}
+\end{figure}
+#+end_LATEX

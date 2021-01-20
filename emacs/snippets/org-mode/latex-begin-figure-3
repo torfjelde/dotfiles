@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# name: latex-begin-figure-3
+# key: begin-fig-3
+# --
+#+begin_LATEX
+\begin{figure}[!htb]
+  \centering
+  \begin{subfigure}[b]{0.3\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{${1:basepath}/${3:name}}
+    \caption{\label{fig:$2-${4:sub-label}} }
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{$1/${4:filepath}}
+    \caption{\label{fig:$2-${5:sub-label}} }
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{$1/${6:filepath}}
+    \caption{\label{fig:$2-${6:sub-label}} }
+  \end{subfigure}
+  \caption{\label{fig:${2:main-label}} $0}
+\end{figure}
+#+end_LATEX
