@@ -1785,7 +1785,7 @@ Return output file name."
 #+end_src
 
 **** Additional stuff
-- To make it so what we open PDFs using =pdftools= rather than the default viewer on the system, one needs to change =org-file-apps= , in particular the =\\.pdf\\= field.
+- To make it so what we open PDFs using =pdftools= rather than the default viewer on the system, one needs to change =org-file-apps= , in particular the =\\.pdf\\= field. E.g. =(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))=
 - When generating PDF from Org-files (though LaTeX), the process might fail due to =hyerref= messing up. If so, check the generated =.tex= file to see if you have two inclusions of =hyperref=, and if you do, change =org-latex-default-packages-alist=.
   - This is because you have an additional configuration for =hyperref= somewhere in the config file.
 
