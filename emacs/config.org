@@ -569,6 +569,46 @@ This means that if you have an Emacs daemon running on your computer you can sim
 
 *** Programming languages
 **** General
+#+name: el-pkg-lsp
+#+begin_src emacs-lisp
+(use-package lsp
+  :pin melpa)
+(use-package lsp-ui
+  :pin melpa
+  :config (progn
+            ;; Don't show the code actions as it's a bit annoying
+            (setq lsp-ui-sideline-show-code-actions nil)
+            ;; Display documentation at-point
+            (setq lsp-ui-doc-position 'at-point)
+
+            ;; Sometimes we might want to disable `lsp-ui-doc-mode' so we
+            ;; only get the docstring when we ask for it rather than by hover.
+            (define-key lsp-ui-mode-map (kbd "C-c h") #'lsp-ui-doc-glance)
+            (define-key lsp-ui-mode-map (kbd "C-c f") #'lsp-ui-doc-focus-frame)
+
+            ;; Nicer to show doc at the top of the window rather than at the cursor.
+            (setq lsp-ui-doc-position 'top)
+            (setq lsp-ui-doc-alignment 'window)
+
+            ;; Redefine some bindings for `xref' since `lsp-ui' provides similar
+            ;; functionality.
+            (define-key lsp-ui-mode-map
+              [remap xref-find-definitions]
+              #'lsp-ui-peek-find-definitions)
+            (define-key lsp-ui-mode-map
+              [remap xref-find-references]
+              #'lsp-ui-peek-find-references)
+            (define-key lsp-ui-mode-map
+              [remap xref-find-apropos]
+              #'lsp-ui-peek-find-workspace-symbol)
+            )
+  )
+
+;; Make it work nicely with `treemacs`
+(use-package lsp-treemacs
+  :pin melpa)
+#+end_src
+
 #+name: el-prog-general
 #+begin_src emacs-lisp 
 (add-hook 'prog-mode-hook #'my-prettiest-symbols)
@@ -583,7 +623,10 @@ This means that if you have an Emacs daemon running on your computer you can sim
    (setq word-wrap nil)
    ;; Default to 100 linewidth in programming languages, because I like it.
    (set-fill-column 100)))
+
+<<el-pkg-lsp>>
 #+end_src
+
 **** Markdown
 #+name: el-prog-markdown
 #+begin_src emacs-lisp 
@@ -823,6 +866,15 @@ This means that if you have an Emacs daemon running on your computer you can sim
   )
 
 (use-package julia-repl)
+
+;; The `lsp' setup for Julia
+;; You might need to dev both `LanguageServer.jl' and `StaticLint.jl'
+;; for everything to work (at least I had to on 02/03/2021).
+(use-package lsp-julia
+  :pin melpa
+  :config (progn
+            (setq lsp-julia-package-dir nil)
+            (setq lsp-julia-default-environment "~/.julia/environments/v1.5")))
 #+end_src
 **** Web
 #+name: el-prog-web
@@ -984,14 +1036,18 @@ This means that if you have an Emacs daemon running on your computer you can sim
   :mode "\\.lua?$")
 #+end_src
 
-*** =visual-fill-column=
+*** COMMENT =visual-fill-column=
 #+name: el-pkg-visual-fill-column
 #+begin_src emacs-lisp 
 (use-package visual-fill-column
   :init (progn
           (setq-default visual-fill-column-center-text t)
           (add-hook 'visual-line-mode-hook #'visual-fill-column-mode)
-          (add-hook 'prog-mode-hook #'visual-fill-column-mode)))
+
+          ;; This will mess up a lot of the stuff from `lsp-ui', so
+          ;; we deactivate by default.
+          ;; (add-hook 'prog-mode-hook #'visual-fill-column-mode)
+          ))
 #+end_src
 *** Org-mode
 #+name: el-org-mode
@@ -1895,6 +1951,13 @@ sudo apt-get install libnotify-bin
 #+DOWNLOADED: file:///home/tor/Pictures/Selection_064.png @ 2020-09-24 21:52:51
 [[file:.config/attachments/=init.el=/Selection_064_2020-09-24_21-52-51.png]]
 
+*** =treemacs=
+#+name: el-pkg-treemacs
+#+begin_src emacs-lisp 
+(use-package treemacs
+  :pin melpa)
+#+end_src
+
 ** Theming
 #+name: el-theme
 #+begin_src emacs-lisp 
@@ -2057,6 +2120,8 @@ sudo apt-get install libnotify-bin
 <<el-pkg-visual-fill-column>>
 
 <<el-pkg-which-key>>
+
+<<el-pkg-polymode>>
 
 ;; helm
 <<el-pkg-helm>>
