@@ -1956,6 +1956,9 @@ sudo apt-get install libnotify-bin
 #+begin_src emacs-lisp 
 (use-package treemacs
   :pin melpa)
+
+(use-package treemacs-projectile
+  :pin melpa)
 #+end_src
 
 ** Theming
