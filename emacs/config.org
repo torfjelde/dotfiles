@@ -1123,6 +1123,11 @@ Return output file name."
 (defun tor/directory-p (d)
   (string-match-p "\\." d))
 
+(defun tor/dir-has-index-file-p (d)
+  (let* ((subdirs (directory-files (concat "~/org-blog/notes/" d)))
+        (result (-find (lambda (x) (string-equal x "index.org")) subdirs)))
+    (not (equal result nil))))
+
 (defun tor/org-file-p (p)
   (string-match-p "\\.org" p))
 
@@ -1170,7 +1175,8 @@ Return output file name."
 						       (concat base-dir "/" c)
 						       (file-name-directory input-file))
 						      "/index.html"))))
-			   (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
+			   (-filter #'tor/dir-has-index-file-p
+                                    (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/")))))))))
 
 (defun tor/render-html-postamble (export-options)
   "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
@@ -2161,7 +2167,10 @@ sudo apt-get install libnotify-bin
 (use-package htmlize)
 
 (use-package default-text-scale
-  :pin melpa)
+  :pin melpa
+  :bind (("C-M-=" . default-text-scale-increase)
+         ("C-M--" . default-text-scale-decrease))
+  )
 
 
 (message "Parsing programming setup")
