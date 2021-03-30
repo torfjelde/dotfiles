@@ -1967,6 +1967,23 @@ sudo apt-get install libnotify-bin
   :pin melpa)
 #+end_src
 
+*** =default-text-scale=
+#+name: el-pkg-default-text-scale
+#+begin_src emacs-lisp 
+(define-minor-mode big-font-mode
+  "A global mode that resizes the font, for streams, screen-sharing and
+presentations.
+This uses `default-text-scale-increment' under the hood, and enlargens the font by 100."
+  :init-value nil
+  :lighter " BIG"
+  :global t
+  (progn
+    (require 'default-text-scale)
+    (if big-font-mode
+        (default-text-scale-reset)
+        (default-text-scale-increment 100))))
+#+end_src
+
 ** Theming
 #+name: el-theme
 #+begin_src emacs-lisp 
@@ -2171,6 +2188,8 @@ sudo apt-get install libnotify-bin
   :bind (("C-M-=" . default-text-scale-increase)
          ("C-M--" . default-text-scale-decrease))
   )
+
+<<el-pkg-default-text-scale>>
 
 
 (message "Parsing programming setup")
