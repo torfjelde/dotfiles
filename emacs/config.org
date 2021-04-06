@@ -1961,7 +1961,10 @@ sudo apt-get install libnotify-bin
 #+name: el-pkg-treemacs
 #+begin_src emacs-lisp 
 (use-package treemacs
-  :pin melpa)
+  :pin melpa
+  :config (progn
+            ;; Makes it so that I can use `ace-window' to go to the treemacs buffer
+            (setq aw-ignored-buffers (delq 'treemacs-mode aw-ignored-buffers))))
 
 (use-package treemacs-projectile
   :pin melpa)
