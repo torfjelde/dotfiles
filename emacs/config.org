@@ -520,7 +520,22 @@ Useful when called with a selection, so it can be modified in-place"
 #+name: el-pkg-magit
 #+begin_src emacs-lisp
 (use-package magit
-  :pin melpa)
+  :pin melpa
+  :config (progn
+            ;; Makes it so that the initial `magit' buffer will open in the current
+            ;; window rather than opening in a different window.
+            (setq magit-display-buffer-function
+                  (lambda (buffer)
+                    (display-buffer
+                     buffer (if (and (derived-mode-p 'magit-mode)
+                                     (memq (with-current-buffer buffer major-mode)
+                                           '(magit-process-mode
+                                             magit-revision-mode
+                                             magit-diff-mode
+                                             magit-stash-mode
+                                             magit-status-mode)))
+                                nil
+                              '(display-buffer-same-window)))))))
 #+end_src
 *** =forge=
 #+name: el-pkg-forge
