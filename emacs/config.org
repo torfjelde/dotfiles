@@ -581,7 +581,12 @@ This means that if you have an Emacs daemon running on your computer you can sim
           )
   )
 #+end_src
-
+*** =vterm=
+#+name: el-pkg-vterm
+#+begin_src emacs-lisp 
+(use-package vterm
+  :config (setq vterm-buffer-name-string "*vterm [%s]*"))
+#+end_src
 *** Programming languages
 **** General
 #+name: el-pkg-lsp
@@ -1051,7 +1056,7 @@ This means that if you have an Emacs daemon running on your computer you can sim
   :mode "\\.lua?$")
 #+end_src
 
-*** COMMENT =visual-fill-column=
+*** =visual-fill-column=
 #+name: el-pkg-visual-fill-column
 #+begin_src emacs-lisp 
 (use-package visual-fill-column
@@ -2176,6 +2181,8 @@ This uses `default-text-scale-increment' under the hood, and enlargens the font 
 ;;; xclip
 
 <<el-pkg-pdf-tools>>
+
+<<el-pkg-vterm>>
 
 ;; PACKAGES
 <<el-pkg-auctex>>
