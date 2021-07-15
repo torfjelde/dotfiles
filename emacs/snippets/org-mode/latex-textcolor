@@ -2,4 +2,4 @@
 # name: latex-textcolor
 # key: color
 # --
-\textcolor{$1}{$2}
+{\color{$1} $2}
