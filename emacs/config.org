@@ -2015,9 +2015,7 @@ sudo apt-get install libnotify-bin
 #+begin_src emacs-lisp 
 (use-package treemacs
   :pin melpa
-  :config (progn
-            ;; Makes it so that I can use `ace-window' to go to the treemacs buffer
-            (setq aw-ignored-buffers (delq 'treemacs-mode aw-ignored-buffers))))
+  :bind (("M-0" . treemacs-select-window)))
 
 (use-package treemacs-projectile
   :pin melpa)
@@ -2038,6 +2036,37 @@ This uses `default-text-scale-increment' under the hood, and enlargens the font 
     (if big-font-mode
         (default-text-scale-reset)
         (default-text-scale-increment 100))))
+#+end_src
+
+*** Emacs anywhere
+#+name: el-pkg-emacs-anywhere
+#+begin_src emacs-lisp 
+(defun github-conversation-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   (or (string-match-p "Pull Request" window-title)
+       (string-match-p "Issue" window-title))))
+
+(defun plutojl-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   ;; Last part of the window name should be `Pluto.jl'
+   (string-match-p "Pluto\\.jl$" window-title)))
+
+(defun popup-handler (app-name window-title x y w h)
+  ;; Resize
+  (set-frame-width (selected-frame) 250)
+  (set-frame-height (selected-frame) 50)
+  ;; set major mode
+  (cond
+   ((github-conversation-p app-name window-title) (poly-markdown-mode))
+   ((plutojl-p app-name window-title) (julia-mode))
+   ;; ...
+   (t (poly-markdown-mode)) ; default major mode
+   ))
+
+;; Hook your function
+(add-hook 'ea-popup-hook 'popup-handler)
 #+end_src
 
 ** Theming
