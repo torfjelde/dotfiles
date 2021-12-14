@@ -104,6 +104,22 @@ Replace \"%A\" in FORMAT with English day of week of today,
 (advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
 #+end_src
 
+*** Changing name of windows
+#+name: el-window-name
+#+begin_src emacs-lisp
+;; Format the application/window name as "tor [project name]: file"
+(setq-default frame-title-format
+              '(:eval
+                (format "%s [%s]: %s"
+                        (or (file-remote-p default-directory 'user)
+                            user-real-login-name)
+                        ;; (or (file-remote-p default-directory 'host)
+                        ;;     system-name)
+                        (projectile-project-name)
+                        (buffer-name)
+                        )))
+#+end_src
+
 ** Util
 #+name: el-util
 #+begin_src emacs-lisp
