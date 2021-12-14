@@ -496,7 +496,22 @@ Useful when called with a selection, so it can be modified in-place"
     (setq projectile-enable-caching t)
     (setq projectile-indexing-method 'alien)
     (add-to-list 'projectile-globally-ignored-files "node-modules")
-	(projectile-global-mode)))
+    (projectile-global-mode)))
+
+;; From their docs.
+(use-package projectile
+  :ensure t
+  :init
+  (projectile-mode +1)
+  :config
+  (progn
+    (setq projectile-completion-system 'default)
+    (setq projectile-enable-caching t)
+    (setq projectile-indexing-method 'alien)
+    ;; Some folders should always be ignored.
+    (add-to-list 'projectile-globally-ignored-files "node-modules"))
+  :bind (:map projectile-mode-map
+              ("C-c p" . projectile-command-map)))
 #+end_src
 *** =multiple-cursors=
 #+name: el-pkg-multiple-cursors
