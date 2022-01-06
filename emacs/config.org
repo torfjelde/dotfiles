@@ -500,7 +500,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 *** Julia
 #+begin_src emacs-lisp
 ;; Julia
-(defvar julia-prettify-symbols-alist
+(defvar prettify-symbols-alist--julia
   '(
     ("lambda" . ?λ)
     ("->" . ?↦)
@@ -508,7 +508,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
     ))
 
 (defun my/set-julia-prettify-symbols-alist ()
-  (setq prettify-symbols-alist julia-prettify-symbols-alist)
+  (setq prettify-symbols-alist prettify-symbols-alist--julia)
   ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
   (prettify-symbols-mode 1))
 
@@ -572,9 +572,29 @@ A couple of notes before we start going through the config for all org-related:
 
 *** Org
 #+begin_src emacs-lisp
+(defvar prettify-symbols-alist--org
+  '(
+    ("#+name:" . ?✎)
+    ("#+begin_src" . ?↪)
+    ("#+end_src" . ?□)
+    ("#+begin_definition" . ?𝒟)
+    ("#+end_definition" . ?□)
+    ("#+begin_theorem" . ?𝒯)
+    ("#+end_theorem" . ?□)
+    ("#+begin_proof" . ?𝒫)
+    ("#+end_proof" . ?■)
+    ))
+
+(defun my/prettify-symbols-alist-set--org ()
+  (setq prettify-symbols-alist prettify-symbols-alist--org)
+  ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
+  (prettify-symbols-mode 1))
+
+
 (use-package org
   ;; Ensures that we're using the version of `org` which comes with Emacs.
   :straight (org :type built-in)
+  :hook (org-mode . my/prettify-symbols-alist-set--org)
   :config
   ;; customization for latex-preview in org-mode
   (setq org-format-latex-options '(:foreground default
