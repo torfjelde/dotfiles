@@ -824,6 +824,15 @@ A couple of notes before we start going through the config for all org-related:
         org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
 #+end_src
 
+*** helm-org-named
+#+begin_src emacs-lisp
+(use-package helm-org-named
+  :straight (:type git :host github :repo "torfjelde/helm-org-named")
+  :bind ("C-c ]" . helm-org-named)
+  :config
+  (setq helm-org-named-directories '("/home/tor/org-blog/notes")))
+#+end_src
+
 ** Emacs anywhere
 #+begin_src emacs-lisp
 ;; emacs-anywhere: https://github.com/zachcurry/emacs-anywhere
