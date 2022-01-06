@@ -604,6 +604,9 @@ A couple of notes before we start going through the config for all org-related:
 						                       :html-background "Transparent"
 						                       :html-scale 1.0
 						                       :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+  ;; During LaTeX export, try to preserve the labels defined by the user.
+  (setq org-latex-prefer-user-labels t)
   ;; Hide emphasis markup.
   (setq org-hide-emphasis-markers nil)
   ;; Use bullets for lists.
