@@ -1,3 +1,841 @@
+* =init.el= v2
+:PROPERTIES:
+:header-args: emacs-lisp: :tangle init-new-v2.el :comments link
+:END:
+
+** Basic
+#+begin_src emacs-lisp
+;; Customize user interface.
+(menu-bar-mode 0)
+(when (display-graphic-p)
+  (tool-bar-mode 0)
+  (scroll-bar-mode 0))
+(setq inhibit-startup-screen t)
+(column-number-mode)
+
+;; Show stray whitespace.
+(setq-default show-trailing-whitespace t)
+(setq-default indicate-empty-lines t)
+(setq-default indicate-buffer-boundaries 'left)
+
+;; Consider a period followed by a single space to be end of sentence.
+(setq sentence-end-double-space nil)
+
+;; Use spaces, not tabs, for indentation.
+(setq-default indent-tabs-mode nil)
+
+;; Display the distance between two tab stops as 4 characters wide.
+(setq-default tab-width 4)
+
+;; Indentation setting for various languages.
+(setq c-basic-offset 4)
+(setq js-indent-level 2)
+(setq css-indent-offset 2)
+
+;; Highlight matching pairs of parentheses.
+(setq show-paren-delay 0)
+(show-paren-mode)
+
+;; Move the point to bottom/top when using `C-v' and `M-v', respectively,
+;; rather than just trying to scroll.
+(setq scroll-error-top-bottom t)
+#+end_src
+
+** File backup
+#+begin_src emacs-lisp
+;; Write auto-saves and backups to separate directory.
+(make-directory "~/.tmp/emacs/auto-save/" t)
+(setq auto-save-file-name-transforms '((".*" "~/.tmp/emacs/auto-save/" t)))
+(setq backup-directory-alist '(("." . "~/.tmp/emacs/backup/")))
+
+;; Do not move the current file while creating backup.
+(setq backup-by-copying t)
+
+;; Disable lockfiles.
+(setq create-lockfiles nil)
+#+end_src
+
+** Custom settings in seperate file
+#+begin_src emacs-lisp
+;; Write customizations to a separate file instead of this file.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file t)
+#+end_src
+
+** Package management: =straight.el= and =use-package=
+#+begin_src emacs-lisp
+;; straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(defun my/straight-installed-p (package)
+  "Check if PACKAGE is installed (according to `straight.el')."
+  (straight--installed-and-buildable-p
+   ;; `format' allows us to handle both strings and symbols.
+   (gethash (format "%s" package) straight--recipe-cache)))
+
+;; use-package.el: Makes configuring the packages much easier.
+(straight-use-package 'use-package)
+
+;; Use `straight.el` by default when calling `use-package`.
+(setq straight-use-package-by-default t)
+#+end_src
+
+*** Customizing =use-package=
+#+begin_src emacs-lisp
+;; Allow us to "require" system packages to be present using `:ensure-system-package'
+;; in `use-package' blocks.
+(use-package use-package-ensure-system-package)
+#+end_src
+
+** OS specific setup
+#+begin_src emacs-lisp
+;; Linux
+(when (string-equal system-type "gnu/linux") ; linux
+  (message "Performing Linux-specific setup...")
+  (use-package exec-path-from-shell)
+  (exec-path-from-shell-initialize)
+
+  ;; use xclip to yank, allowing you to yank in terminal to the GLOBAL clipboard
+  (use-package xclip
+    :init (xclip-mode))
+  )
+#+end_src
+
+** User interface
+*** Themes & styling
+/Usually/, our main theme will either be =solarized-dark= or =solarized-light= (if we're outside).
+
+#+begin_src emacs-lisp
+(use-package solarized-theme
+  :defer t
+  ;; :init
+  ;; (progn
+  ;;   ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
+  ;;   ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
+  ;;   ;; TODO: Implement `my/loaded-theme-is-solarized-light-p' or something similar
+  ;;   (when (and (my/straight-installed-p 'pdf-tools) (my/loaded-theme-is-solarized-light-p))
+  ;;     ;; (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3"))
+  ;;     ;; (setq pdf-view-midnight-colors '("#3f4446" . "#fdf6e3")) ;; slightly blacker font
+  ;;     (setq pdf-view-midnight-colors '("#556065" . "#fff8e5")) ;; slightly brighter background
+  ;;     ))
+  )
+
+(use-package darktooth-theme)
+(use-package atom-one-dark-theme)
+
+;; Load `solarized-dark` by default.
+(if (display-graphic-p)
+    (load-theme 'solarized-dark t)
+  (load-theme 'darktooth t))
+#+end_src
+
+Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
+
+#+begin_src emacs-lisp
+(use-package doom-themes)
+;; (use-package spacegray-theme)
+
+;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
+(doom-themes-visual-bell-config)
+#+end_src
+
+#+begin_src emacs-lisp
+;; You must run (all-the-icons-install-fonts) one time after
+;; installing this package!
+(use-package all-the-icons
+  :if (display-graphic-p))
+#+end_src
+*** Modeline
+#+begin_src emacs-lisp
+;; diminish.el: Allows us to hide certain mini-modes, if we so desire.
+(use-package diminish)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package minions
+  :hook (doom-modeline-mode . minions-mode))
+
+(use-package doom-modeline
+  ;; :after eshell     ;; Make sure it gets hooked after eshell
+  :hook (after-init . doom-modeline-init)
+  :custom
+  (doom-modeline-height 15)
+  (doom-modeline-bar-width 6)
+  (doom-modeline-lsp t)
+  (doom-modeline-github nil)
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc t)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-persp-name nil)
+  (doom-modeline-buffer-file-name-style 'truncate-except-project)
+  (doom-modeline-major-mode-icon nil))
+#+end_src
+*** =M-x=
+Personally I like =helm= as I find its discovery to be quite good.
+
+#+begin_src emacs-lisp
+;; helm.el: Provides a much more pleasant `M-x` experience. Alternative to `ido`.
+(use-package helm
+  :diminish helm-mode  ;; removes the helm-mode from the mode-line
+  :init (progn
+          (require 'helm-config)
+          (helm-mode))
+  :bind (("M-x" . helm-M-x)))
+
+;; helm-descbinds.el: Adds mode
+(use-package helm-descbinds
+  :bind (("C-h b" . helm-descbinds)))
+#+end_src
+
+=which-key= improves discoverability of bindings further.
+
+#+begin_src emacs-lisp
+;; which-key.el: Provides suggestions/completions for keybindings upon use.
+(use-package which-key
+  :diminish which-key-mode ;; hide form mode-line
+  :config (which-key-mode))
+#+end_src
+*** Fonts & Text
+**** Scaling
+#+begin_src emacs-lisp
+;; default-text-scale.el: Allows decreasing/increasing text size globally
+;; rather than on a per-buffer basis.
+(use-package default-text-scale
+  :bind (("C-M-=" . default-text-scale-increase)
+         ("C-M--" . default-text-scale-decrease)))
+#+end_src
+**** Special
+#+begin_src emacs-lisp
+;; fic-mode.el: Provides highlighting for TODO, FIXME and BUG in comments.
+(use-package fic-mode
+  :hook (prog-mode . fic-mode)
+  :config
+  ;; Change the font
+  (set-face-attribute 'fic-face nil
+                      :foreground "magenta"
+                      :background "transparent"
+                      :weight 'bold
+                      :slant 'normal)
+    (add-to-list 'fic-highlighted-words "HACK")
+    (add-to-list 'fic-highlighted-words "NOTE"))
+#+end_src
+**** Pretty
+#+begin_src emacs-lisp
+(use-package prettify-symbols-mode
+  :straight nil
+  :ensure nil
+  :hook (prog-mode . prettify-symbols-mode)
+  :init
+  ;; Fontification is deactivated upon marker-enter.
+  (setq prettify-symbols-unprettify-at-point 'right-edge))
+#+end_src
+
+Languages should then set the local variable =prettify-symbols-alist= on their own, e.g. see [[*Julia][Julia]].
+
+*** File management & browsing
+#+begin_src emacs-lisp
+(use-package all-the-icons-dired
+  :after (all-the-icons))
+
+(use-package dired
+  :ensure nil
+  :straight nil
+  :defer t
+  :config
+  (add-hook 'dired-mode-hook
+            (lambda ()
+              (interactive)
+              ;; (dired-omit-mode 1) ;; TODO: Where is this from?
+              ;; (dired-hide-details-mode 1)
+              (when (display-graphic-p)
+                ;; Activate the `all-the-icons-mode` if present.
+                (all-the-icons-dired-mode 1))
+              (hl-line-mode 1)))
+  )
+#+end_src
+*** Navigation
+**** Window navigation
+#+begin_src emacs-lisp
+;; ace-window.el: Allows you to jump between windows. Super-useful when you're using more than 2 windows.
+;; HACK: Only load if we're using a GUI. For some reason `ace-window' making it so that
+;; switching between windows inserts 'I's and 'O's.
+(when (display-graphic-p)
+  (use-package ace-window
+    ;; We might have multiple Emacs frames open, all using the same server.
+    ;; In these cases it is usually undesired to have `ace-window' suggest
+    ;; opening Emacs windows we can't even see. In addition, we usually then
+    ;; end up with a huge number of candidates.
+    ;; This limits the candidates that we can jump to to the current frame.
+    :custom (aw-scope 'frame)
+    ;; Feel free to change the binding.
+    :bind ("M-[" . ace-window)))
+#+end_src
+
+**** Within-buffer navigation
+#+begin_src emacs-lisp
+;; avy.el: Allows you to jump to words by specifying the first character.
+(use-package avy
+  ;; Feel free to change the binding.
+  :bind ("M-j" . avy-goto-word-or-subword-1))
+#+end_src
+
+** Utility
+*** Snippets
+#+begin_src emacs-lisp
+;; yasnippet.el: Snippet engine.
+(use-package yasnippet
+  ;; Enable globally.
+  :init (yas-global-mode)
+  :config
+  ;; Enable nested triggering of snippets.
+  (setq yas-triggers-in-field t)
+  ;; Ensures that the indentation is done after my choosing.
+  (setq yas-indent-line 'fixed)
+  )
+
+;; yasnippet-snippets.el: A huge collection of useful snippets.
+(use-package yasnippet-snippets)
+#+end_src
+*** PDF viewing
+#+begin_src emacs-lisp
+;; pdf-tools.el: Best. PDF viewer. Ever.
+;; NOTE: might need to run `(pdf-tools-install)' to install dependencies.
+(use-package pdf-tools
+  :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
+  :config (pdf-tools-install))
+#+end_src
+** Project management
+#+begin_src emacs-lisp
+;; projectile.el: A _bunch_ of utility functionality for working with projects, e.g. rename everywhere
+;; in a projet.
+;; It'll automatically detect if something is a project using different heuristics, e.g.
+;; if you have a `.git` file in a parent directory.
+(use-package projectile
+  :diminish projectile-mode ;; hide from mode-line since it'll be activated everywhere
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :config
+  (progn
+    (setq projectile-completion-system 'default)
+    (setq projectile-enable-caching t)
+    (setq projectile-indexing-method 'alien)
+    (add-to-list 'projectile-globally-ignored-files "node-modules")
+    (projectile-global-mode)))
+
+;; helm-projectile.el: Improves interaction between `helm.el` and `projetile.el`.
+(use-package helm-projectile)
+(use-package helm-rg)
+#+end_src
+
+#+begin_src emacs-lisp
+;; magit.el: Objectively the best interface for working with Git-related stuff ever.
+(use-package magit)
+;; forge.el: Magit's interface to different repo hosts, e.g. Github, Gitlab.
+(use-package forge)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package treemacs)
+(use-package treemacs-projectile)
+(use-package treemacs-all-the-icons)
+#+end_src
+** Editing
+*** General
+#+begin_src emacs-lisp
+;; smartparens.el: Automatic insertion of pairs of characters.
+(use-package smartparens
+  :config (progn
+            (require 'smartparens-config)
+            (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
+            (add-hook 'prog-mode-hook 'show-paren-mode t)))
+#+end_src
+*** Undo & redo
+#+begin_src emacs-lisp
+;; undo-tree.el: Tree-based undo-mechanism.
+;; NOTE: To install, see https://github.com/zachcurry/emacs-anywhere.
+(use-package undo-tree
+  :diminish undo-tree-mode
+  :init (global-undo-tree-mode))
+#+end_src
+** Auto completion
+#+begin_src emacs-lisp
+;; company.el: Autocomplete backend. Other packages implement frontends for this,
+;; e.g. auto-completer for Python.
+(use-package company
+  :config
+  (add-hook 'prog-mode-hook 'company-mode)
+  )
+#+end_src
+** Terminal emulation
+#+begin_src emacs-lisp
+(use-package vterm
+  :config (setq vterm-buffer-name-string "*vterm [%s]*"))
+#+end_src
+** Programming & Markup
+*** Flycheck
+#+begin_src emacs-lisp 
+(use-package flycheck
+  :config
+  ;; Make `flycheck' recognize the packages available in Emacs' `load-path'.
+  ;; Otherwise we get complaints on every `(require ...)'.
+  ;; https://github.com/flycheck/flycheck/issues/1559#issuecomment-478569550
+  (setq flycheck-emacs-lisp-load-path 'inherit))
+#+end_src
+*** LaTeX
+#+begin_src emacs-lisp
+(use-package tex
+  ;; NOTE: You might have to build Auctex manually. Checkout the `INSTALL`
+  ;; file in the cloned repo.
+  :straight (auctex
+             :type git
+             :host nil
+             :repo "https://git.savannah.gnu.org/git/auctex.git")
+  :custom
+  (TeX-source-correlate-start-server t)
+  (TeX-macro-private nil "???")
+  (TeX-parse-self t "Ensures that completion, etc. works properly.")
+  (TeX-view-program-selection
+   '(((output-dvi has-no-display-manager)
+      "dvi2tty")
+     ((output-dvi style-pstricks)
+      "dvips and gv")
+     (output-dvi "xdvi")
+     (output-pdf "PDF Tools")
+     (output-html "xdg-open"))
+   "Specify the programs to use. In particular, use PDF tools for PDF viewing.")
+  :config
+  ;; Revert the document after compilation completes.
+  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+  )
+
+;; company-auctex.el: `company.el` frontend for `auctex.el`.
+(use-package company-auctex
+  :after (company)
+  :hook (LaTeX-mode . company-mode)
+  :init (company-auctex-init))
+
+;; helm-bibtex.el: Provides completion with `helm` for bibliographies.
+(use-package helm-bibtex)
+
+;; company-reftex.el: Completion of citations and labels within LaTeX commands, e.g. `\cite{}'.
+(use-package company-reftex
+  :after (company)
+  :config (setq
+           company-reftex-labels-regexp
+           (rx "\\"
+               ;; List taken from `reftex-ref-style-alist'
+               (or "autoref"
+                   "autopageref"
+                   "Cpageref"
+                   "cpageref"
+                   "Cref"
+                   "cref"
+                   "eqref"
+                   "Fref"
+                   "fref"
+                   "pageref"
+                   "Ref"
+                   "ref"
+                   "vpageref"
+                   "Vref"
+                   "vref"
+                   ;; custom stuff:
+                   "propref"
+                   "thmref"
+                   "lemref"
+                   "lemmaref"
+                   "appref"
+                   "assumptref"
+                   "secref")
+               "{"
+               (group (* (not (any "}"))))
+               (regexp "\\=")))
+  (add-to-list 'company-backends 'company-reftex-labels)
+  (add-to-list 'company-backends 'company-reftex-citations))
+#+end_src
+*** Markdown
+#+begin_src emacs-lisp
+;; markdown-mode.el: Standard mode for markdown.
+(use-package markdown-mode
+  :hook
+  (
+   ;; `visual-line-mode` adds word-wrap, etc.
+   (markdown-mode . visual-line-mode)
+   ;; Makes it so that we get automatic closing of **, etc.
+   (markdown-mode . turn-on-smartparens-mode)
+   )
+  )
+#+end_src
+*** Polymode
+#+begin_src emacs-lisp
+;; polymode: Allows you to use multiple modes within a single buffer, e.g.
+;; use `julia-mode` for highlighting, etc. in a code-block within a markdown file.
+(use-package polymode)
+
+;; poly-markdown.el: Implementation of `polymode` for markdown, allowing other modes
+;; to be used within buffers with `markdown-mode` enabled.
+(use-package poly-markdown
+  :mode ("\\.[jJ]md" . poly-markdown-mode) ;; Also enable for .jmd files.
+  :bind (:map poly-markdown-mode-map
+              ("C-c '" . markdown-edit-code-block)))
+
+;; edit-indirect.el: Allows one to parts/subsections of buffers in a separate editable buffer,
+;; whose changes are reflected in the main document. This is used by `poly-markdown` to allow
+;; opening code-blocks in a separate editable buffer (see the `markdown-edit-code-block` from
+;; the above `poly-markdown` block).
+(use-package edit-indirect
+  :config (progn
+            (define-key edit-indirect-mode-map (kbd "C-c C-c") nil)))
+#+end_src
+*** Julia
+#+begin_src emacs-lisp
+;; Julia
+(defvar julia-prettify-symbols-alist
+  '(
+    ("lambda" . ?λ)
+    ("->" . ?↦)
+    ("=>" . ?⟹)
+    ))
+
+(defun my/set-julia-prettify-symbols-alist ()
+  (setq prettify-symbols-alist julia-prettify-symbols-alist)
+  ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
+  (prettify-symbols-mode 1))
+
+(use-package julia-mode
+  :config
+  (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
+  )
+#+end_src
+*** Python
+#+begin_src emacs-lisp
+;; Python
+(use-package python
+  :hook
+  (
+   ;; Make it so that `elpy-mode` is also enabled whenever `python-mode` is.
+   (python-mode . elpy-mode)
+   )
+  )
+
+(use-package elpy
+  :defer t
+  ;; `advice-add` effecftively allows you insert code before/after the execution of
+  ;; some other functions. In this case we insert `(elpy-enable)` "before" `python-mode`,
+  ;; i.e. whenever `python-mode` is called, `elpy-enable` will be called just before it.
+  :init (advice-add 'python-mode :before 'elpy-enable))
+#+end_src
+*** Lisp
+**** Emacs-lisp
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :hook ((emacs-lisp-mode . rainbow-delimiters-mode)
+         (ielm-mode . rainbow-delimiters-mode)
+         (lisp-interaction-mode . rainbow-delimiters-mode)
+         (list-mode . rainbow-delimiters-mode))
+  ;; :config
+  ;; ;; Custom faces.
+  ;; (set-face-foreground 'rainbow-delimiters-depth-1-face "#c66")  ; red
+  ;; (set-face-foreground 'rainbow-delimiters-depth-2-face "#6c6")  ; green
+  ;; (set-face-foreground 'rainbow-delimiters-depth-3-face "#69f")  ; blue
+  ;; (set-face-foreground 'rainbow-delimiters-depth-4-face "#cc6")  ; yellow
+  ;; (set-face-foreground 'rainbow-delimiters-depth-5-face "#6cc")  ; cyan
+  ;; (set-face-foreground 'rainbow-delimiters-depth-6-face "#c6c")  ; magenta
+  ;; (set-face-foreground 'rainbow-delimiters-depth-7-face "#ccc")  ; light gray
+  ;; (set-face-foreground 'rainbow-delimiters-depth-8-face "#999")  ; medium gray
+  ;; (set-face-foreground 'rainbow-delimiters-depth-9-face "#666")  ; dark gray
+  )
+#+end_src
+*** Jupyter
+#+begin_src emacs-lisp
+;; Jupyter
+;; This is awesome _but_ requires an Emacs version built with dynamic modules.
+;; See https://github.com/nnicandro/emacs-zmq for more information on this.
+;; But if this has been done, then you cna uncomment the line below.
+(use-package jupyter)
+#+end_src
+
+** Org
+A couple of notes before we start going through the config for all org-related:
+1. =org= is a dependency of a bunch of packages, e.g. =org-ref=, /and/ we often want to have a custom recipe for =org=, e.g. =:straight (org :type buil-in)= to ensure that we're using the built-in version of =org=. In this case, to ensure that our custom recipe is respected, we need to load =org= /before/ any of its dependencies (otherwise we'll end up using the default recipe of =org= in the installation of the dependant).
+   - https://github.com/raxod502/straight.el#recipe-lookup for more about this.
+
+*** Org
+#+begin_src emacs-lisp
+(use-package org
+  ;; Ensures that we're using the version of `org` which comes with Emacs.
+  :straight (org :type built-in)
+  :config
+  ;; customization for latex-preview in org-mode
+  (setq org-format-latex-options '(:foreground default
+						                       :background default
+						                       :scale 1.5
+						                       :html-foreground "steelblue"
+						                       :html-background "Transparent"
+						                       :html-scale 1.0
+						                       :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+  ;; Hide emphasis markup.
+  (setq org-hide-emphasis-markers nil)
+  ;; Use bullets for lists.
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  ;; Don't query us every time we trying to evaluate code in buffers.
+  (setq org-confirm-babel-evaluate nil)
+  ;; Don't indent text in a section to align with section-level.
+  (setq org-adapt-indentation nil)
+  ;; Don't indent body of code-blocks at all.
+  (setq org-edit-src-content-indentation 0)
+  ;; Allow setting variables in setup-files.
+  (setq org-export-allow-bind-keywords t)
+  ;; Where to store the generated images from `org-latex-preivew'. This '/' at the end is VERY important.
+  (setq org-preview-latex-image-directory "~/.ltximg/")
+  ;; Make it so that the src block is opened in the current window when we open to edit.
+  (setq org-src-window-setup 'current-window)
+  ;; Necessary for header-arguments in src-blocks to take effect during export.
+  (setq org-export-use-babel t)
+  ;; Disable execution of code-blocks on export by default.
+  (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+
+  ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
+  ;; NOTE: This is maybe a bit "harsh". Could potentially just disable certain
+  ;; features of `flycheck`.
+  (when (my/straight-installed-p 'flycheck)
+    (require 'flycheck)
+    (defun disable-flycheck-in-org-src-block ()
+      (flycheck-mode -1))
+    (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
+
+  ;; Use smartparens.
+  (add-hook 'org-mode-hook 'turn-on-smartparens-mode)
+
+  ;;;; Org-Babel ;;;;
+  ;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
+  ;; to be a dependency of `ob-*' babel) using the wrong recipe.
+  (use-package ob-julia
+    :config (setq org-babel-julia-command "julia"))
+
+  ;; Specify which programming languages to support in code-blocks.
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp t)
+     (shell . t)
+     (C . t)
+     (latex . t)
+     (python . t)
+     (jupyter . t)
+     ;; (julia-vterm . t)
+     (julia . t)
+     ))
+
+  (require 'ob-jupyter)
+  (org-babel-jupyter-override-src-block "julia")
+  (org-babel-jupyter-override-src-block "python")
+
+  ;; TODO: Figure out what is causing errors when using the terminal.
+  ;; Faces.
+  ;; (custom-theme-set-faces
+  ;;  'user
+  ;;  '(variable-pitch ((t (:family "ETBembo" :height 1.0))))
+  ;;  '(fixed-pitch ((t ( :family "Source Sans Prop" :height 1.0))))
+  ;;  )
+
+  ;; (custom-theme-set-faces
+  ;;  'user
+  ;;  '(org-block ((t (:inherit fixed-pitch))))
+  ;;  '(org-code ((t (:inherit fixed-pitch))))
+  ;;  '(org-document-info ((t (:foreground "dark orange"))))
+  ;;  '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+  ;;  '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+  ;;  '(org-link ((t (:foreground "royal blue" :underline t))))
+  ;;  '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch) :weight normal))))
+  ;;  '(org-property-value ((t (:inherit fixed-pitch))) t)
+  ;;  '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+  ;;  '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+  ;;  '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+  ;;  '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+
+  ;; (let* ((variable-tuple
+  ;;         (cond
+  ;;          ;; ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+  ;;          ;; ((x-list-fonts "Lobster")         '(:font "Lobster")) ;; NOTE: This one is fun.
+  ;;          ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+  ;;          ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+  ;;          ((x-list-fonts "Verdana")         '(:font "Verdana"))
+  ;;          ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+  ;;          (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))
+  ;;          ))
+  ;;        (base-font-color     (face-foreground 'default nil 'default))
+  ;;        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+  ;;   (custom-theme-set-faces
+  ;;    'user
+  ;;    `(org-level-8 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-7 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-6 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-5 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
+  ;;    `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
+  ;;    `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
+  ;;    `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
+  ;;    `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+  :custom
+  (org-format-latex-header
+   "\\documentclass{article}
+\\usepackage[usenames]{color}
+[PACKAGES]
+[DEFAULT-PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}")
+
+  (org-latex-default-packages-alist
+   '(("AUTO" "inputenc" t
+      ("pdflatex"))
+     ("T1" "fontenc" t
+      ("pdflatex"))
+     ("" "graphicx" t nil)
+     ("" "grffile" t nil)
+     ("" "longtable" nil nil)
+     ("" "wrapfig" nil nil)
+     ("" "rotating" nil nil)
+     ("normalem" "ulem" t nil)
+     ("" "amsmath" t nil)
+     ("" "textcomp" t nil)
+     ("" "amssymb" t nil)
+     ("" "capt-of" nil nil)
+     ("" "hyperref" nil nil)
+     ("" "mathpazo" t nil)
+     ("" "eulervm" t nil)))
+
+  (org-preview-latex-process-alist
+   '((dvipng :programs
+             ("latex" "dvipng")
+             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+             (1.0 . 1.0)
+             :latex-compiler
+             ("latex -interaction nonstopmode -output-directory %o %f")
+             :image-converter
+             ("dvipng -D %D -T tight -bg 'Transparent' -o %O %f"))
+     (dvisvgm :programs
+              ("latex" "dvisvgm")
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+              (1.7 . 1.5)
+              :latex-compiler
+              ("latex -interaction nonstopmode -output-directory %o %f")
+              :image-converter
+              ("dvisvgm %f -n -b min -c %S -o %O"))
+     (imagemagick :programs
+                  ("latex" "convert")
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  (1.0 . 1.0)
+                  :latex-compiler
+                  ("pdflatex -interaction nonstopmode -output-directory %o %f")
+                  :image-converter
+                  ("convert -density %D -trim -antialias %f -quality 100 %O")))))
+
+(use-package org-bullets
+  :after org
+  :config
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+end_src
+
+#+begin_src emacs-lisp :tangle no
+(use-package org-ref)
+#+end_src
+
+*** Org Export
+
+*** Org-roam
+#+begin_src emacs-lisp
+(use-package org-roam
+  :straight (:type git :host github :repo "org-roam/org-roam-v1")
+  ;; :hook
+  ;; (after-init . org-roam-mode)
+  :custom
+  (org-roam-directory (file-truename "~/org-roam/"))
+  (org-roam-completion-everywhere t)
+  (org-roam-include-type-in-ref-path-completions t)
+  :bind (:map org-roam-mode-map
+         (("C-c n l" . org-roam)
+          ("C-c n f" . org-roam-find-file)
+          ("C-c n g" . org-roam-graph))
+         :map org-mode-map
+         (("C-c n i" . org-roam-insert))
+         (("C-c n I" . org-roam-insert-immediate)))
+  )
+#+end_src
+
+*** Org-ref
+#+begin_src emacs-lisp
+;; org-ref.el: Provides citation management and handling for Org-mode.
+(use-package org-ref
+  :config
+  (setq bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs"))
+  (setq bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib"))
+
+  ;; Use `helm-bibtex' for completion etc.
+  (require 'org-ref-helm)
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-helm
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
+#+end_src
+
+** Emacs anywhere
+#+begin_src emacs-lisp
+;; emacs-anywhere: https://github.com/zachcurry/emacs-anywhere
+(defun github-conversation-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   (or (string-match-p "Pull Request" window-title)
+       (string-match-p "Issue" window-title))))
+
+(defun plutojl-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   ;; Last part of the window name should be `Pluto.jl'
+   (string-match-p "Pluto\\.jl$" window-title)))
+
+(defun popup-handler (app-name window-title x y w h)
+  ;; Resize
+  (set-frame-width (selected-frame) 250)
+  (set-frame-height (selected-frame) 50)
+  ;; set major mode
+  (cond
+   ((github-conversation-p app-name window-title) (poly-markdown-mode))
+   ((plutojl-p app-name window-title) (julia-mode))
+   ;; ...
+   (t (poly-markdown-mode)) ; default major mode
+   ))
+
+;; NOTE: `ea-popup-hook' is used by `emacs-anywhere'.
+(add-hook 'ea-popup-hook 'popup-handler)
+#+end_src
+
+
 * =init.el=
 
 ** Global variables to set
@@ -17,7 +855,7 @@
  global-prettify-symbols-mode t
  default-tab-width 4
 
- system-time-locale "C" ;; ensures that week-days follows English convention, e.g. Thu and Wed
+ system-time-locale "C" ;; ensures that week-days follows English conbvention, e.g. Thu and Wed
 
  org-adapt-indentation nil  ;; don't indent text in a section to align with section-level
  org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
@@ -2158,7 +2996,7 @@ This uses `default-text-scale-increment' under the hood, and enlargens the font 
 (scroll-bar-mode -1)
 #+end_src
 ** Final
-#+begin_src emacs-lisp :noweb yes :tangle init.el
+#+begin_src emacs-lisp :noweb yes :tangle no
 <<el-global-variables>>
 
 <<el-sympy>>
