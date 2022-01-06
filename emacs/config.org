@@ -811,8 +811,9 @@ A couple of notes before we start going through the config for all org-related:
 #+begin_src emacs-lisp
 ;; org-ref.el: Provides citation management and handling for Org-mode.
 (use-package org-ref
+  :bind ("C-c [" . helm-bibtex)
   :config
-  (setq bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs"))
+  (setq bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs/"))
   (setq bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib"))
 
   ;; Use `helm-bibtex' for completion etc.
