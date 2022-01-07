@@ -595,7 +595,15 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 ;; This is awesome _but_ requires an Emacs version built with dynamic modules.
 ;; See https://github.com/nnicandro/emacs-zmq for more information on this.
 ;; But if this has been done, then you cna uncomment the line below.
-(use-package jupyter)
+(use-package jupyter
+  :config
+  (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+								                      (:session . "jl")
+								                      (:kernel . "julia-1.6")))
+  (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+								                       (:session . "py")
+								                       (:kernel . "python3"))))
+
 #+end_src
 
 ** Org
