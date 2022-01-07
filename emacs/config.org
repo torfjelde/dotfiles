@@ -678,6 +678,7 @@ A couple of notes before we start going through the config for all org-related:
   (unbind-key "C-c [" org-mode-map)
   (unbind-key "C-c ]" org-mode-map)
   (unbind-key "C-c ," org-mode-map)
+  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
 
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
   ;; NOTE: This is maybe a bit "harsh". Could potentially just disable certain
