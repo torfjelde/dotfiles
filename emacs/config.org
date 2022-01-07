@@ -969,8 +969,26 @@ A couple of notes before we start going through the config for all org-related:
 (add-hook 'ea-popup-hook 'popup-handler)
 #+end_src
 
+** General stuff at the end
+*** Frame name
+#+begin_src emacs-lisp
+;; Format the application/window name as "tor [project name]: file"
+(setq-default frame-title-format
+              '(:eval
+                (format "%s [%s]: %s"
+                        (or (file-remote-p default-directory 'user)
+                            user-real-login-name)
+                        ;; (or (file-remote-p default-directory 'host)
+                        ;;     system-name)
+                        (projectile-project-name)
+                        (buffer-name)
+                        )))
+#+end_src
 
 * =init.el=
+:PROPERTIES:
+:header-args: emacs-lisp: :comments link :tangle no
+:END:
 
 ** Global variables to set
 #+name: el-global-variables
