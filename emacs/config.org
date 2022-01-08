@@ -1137,7 +1137,7 @@ used to limit the exported source code blocks by language."
 ** General stuff at the end
 *** Frame name
 #+begin_src emacs-lisp
-;; Format the application/window name as "tor [project name]: file"
+;; Format the application/window name as "USER [PROJECT NAME]: FILE"
 (setq-default frame-title-format
               '(:eval
                 (format "%s [%s]: %s"
