@@ -12,8 +12,8 @@
 (setq inhibit-startup-screen t)
 (column-number-mode)
 
-;; Show stray whitespace.
-(setq-default show-trailing-whitespace t)
+;; Don't show trailing whitespace _always_. It's annoying.
+(setq-default show-trailing-whitespace nil)
 (setq-default indicate-empty-lines t)
 (setq-default indicate-buffer-boundaries 'left)
 
