@@ -699,7 +699,7 @@ A couple of notes before we start going through the config for all org-related:
     (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
 
   ;; Use smartparens.
-  (add-hook 'org-mode-hook 'turn-on-smartparens-mode)
+  ;; (add-hook 'org-mode-hook 'turn-on-smartparens-mode)
 
   ;;;; Org-Babel ;;;;
   ;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
