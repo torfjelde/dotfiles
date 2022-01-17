@@ -697,8 +697,20 @@ A couple of notes before we start going through the config for all org-related:
       (flycheck-mode -1))
     (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
 
-  ;; Use smartparens.
-  ;; (add-hook 'org-mode-hook 'turn-on-smartparens-mode)
+  ;; Use `visual-line-mode' as it gives word-wrapping, etc.
+  (add-hook 'org-mode-hook 'visual-line-mode)
+
+  ;; https://emacs.stackexchange.com/a/18146
+  ;; I want this bindings for references, etc. + don't add files to agenda
+  ;; often enough to warrant having a binding for it.
+  (require 'bind-key)
+  (unbind-key "C-c [" org-mode-map)
+  (unbind-key "C-c ]" org-mode-map)
+  (unbind-key "C-c ," org-mode-map)
+  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
+
+  ;; Make `org-capture' globally available.
+  (global-set-key (kbd "C-c c") 'org-capture)
 
   ;;;; Org-Babel ;;;;
   ;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
