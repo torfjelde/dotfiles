@@ -6,9 +6,9 @@
 #+begin_src emacs-lisp
 ;; Customize user interface.
 (menu-bar-mode 0)
-(when (display-graphic-p)
-  (tool-bar-mode 0)
-  (scroll-bar-mode 0))
+(tool-bar-mode 0)
+(scroll-bar-mode 0)
+
 (setq inhibit-startup-screen t)
 (column-number-mode)
 
@@ -38,9 +38,13 @@
 ;; Move the point to bottom/top when using `C-v' and `M-v', respectively,
 ;; rather than just trying to scroll.
 (setq scroll-error-top-bottom t)
+
+;; Disable blinking cursor.
+(setq-default visible-cursor nil)
+;; (blink-cursor-mode 0) ;; Should be unnecessary on Emacs >24?
 #+end_src
 *** Make =format-time-string= consistent across OS time settings
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results none
 ;; Ensures that we're always going to format the string according to EN locale.
 ;; Setting `system-time-locale' to `"C"' or something doesn't work for daemon-mode.
 ;; This is copy-paste from https://kisaragi-hiu.com/blog/2019-10-09-format-time-string-today.html.
@@ -68,7 +72,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
                                            format)))
     (funcall func format time zone)))
 
-	
+
 (advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
 #+end_src
 
@@ -167,9 +171,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 (use-package atom-one-dark-theme)
 
 ;; Load `solarized-dark` by default.
-(if (display-graphic-p)
-    (load-theme 'solarized-dark t)
-  (load-theme 'darktooth t))
+(load-theme 'solarized-dark t)
 #+end_src
 
 Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
