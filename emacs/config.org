@@ -943,16 +943,100 @@ A couple of notes before we start going through the config for all org-related:
 #+begin_src emacs-lisp
 (use-package helm-org-named
   :straight (:type git :host github :repo "torfjelde/helm-org-named")
-  :bind ("C-c ]" . helm-org-named)
+  :bind ("C-c [" . helm-org-named)
   :config
   (setq helm-org-named-directories '("/home/tor/org-blog/notes")))
+#+end_src
+
+*** Org-pomodoro
+#+begin_src emacs-lisp 
+(use-package org-pomodoro
+  :ensure-system-package mplayer
+  :config
+  ;; Add notification.
+  ;; NOTE: This might only work on linux.
+  (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
+  ;; Keep the time entered even if we killed the timer midway.
+  (setq org-pomodoro-keep-killed-pomodoro-time t)
+  ;; Use 45min sessions instead.
+  (setq org-pomodoro-length 45)
+  ;; Force us to enter break manually, thus we're just making `org-pomodoro` a "notifier" that
+  ;; we've spent so and so much time on a particular task, rather than religiously following "The Pomodoro Way".
+  (setq org-pomodoro-manual-break t)
+  ;; ;; Disable sound.
+  ;; (setq org-pomodoro-play-sounds nil)
+
+  ;; Use `mplayer' since this allows us specify the volume.
+  (setq org-pomodoro-audio-player "mplayer")
+  (setq org-pomodoro-finished-sound-args "-volume 50")
+  (setq org-pomodoro-long-break-sound-args "-volume 50")
+  (setq org-pomodoro-short-break-sound-args "-volume 50")
+
+  ;; Play a sound when we start. It's useful feedback.
+  (setq org-pomodoro-start-sound-p t)
+  (setq org-pomodoro-start-sound-args "-volume 50")
+
+  ;; Play a sound when we run into overtime too.
+  (setq org-pomodoro-overtime-sound-p t)
+  (setq org-pomodoro-overtime-sound-args "-volume")
+  )
+#+end_src
+
+*** Org-ql
+A query language for Org-files. In particular, the commands =org-ql-view= and =org-sq-search= are useful.
+#+begin_src emacs-lisp 
+(use-package org-ql)
+#+end_src
+
+*** Org-noter
+#+begin_src emacs-lisp 
+(use-package org-noter
+  :config
+  (setq org-noter-notes-search-path '("~/org-blog/papers/"))
+  (setq org-noter-default-notes-file-names '("notes.org"))
+  ;; (require 'org-noter-pdftools)
+  )
+
+(use-package org-noter-pdftools
+  :after org-noter
+  :config
+  ;; Add a function to ensure precise note is inserted
+  (defun org-noter-pdftools-insert-precise-note (&optional toggle-no-questions)
+    (interactive "P")
+    (org-noter--with-valid-session
+     (let ((org-noter-insert-note-no-questions (if toggle-no-questions
+                                                   (not org-noter-insert-note-no-questions)
+                                                 org-noter-insert-note-no-questions))
+           (org-pdftools-use-isearch-link t)
+           (org-pdftools-use-freestyle-annot t))
+       (org-noter-insert-note (org-noter--get-precise-info)))))
+
+;;   ;; fix https://github.com/weirdNox/org-noter/pull/93/commits/f8349ae7575e599f375de1be6be2d0d5de4e6cbf
+;;   (defun org-noter-set-start-location (&optional arg)
+;;     "When opening a session with this document, go to the current location.
+;; With a prefix ARG, remove start location."
+;;     (interactive "P")
+;;     (org-noter--with-valid-session
+;;      (let ((inhibit-read-only t)
+;;            (ast (org-noter--parse-root))
+;;            (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
+;;        (with-current-buffer (org-noter--session-notes-buffer session)
+;;          (org-with-wide-buffer
+;;           (goto-char (org-element-property :begin ast))
+;;           (if arg
+;;               (org-entry-delete nil org-noter-property-note-location)
+;;             (org-entry-put nil org-noter-property-note-location
+;;                            (org-noter--pretty-print-location location))))))))
+
+  (with-eval-after-load 'pdf-annot
+    (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
 #+end_src
 
 *** Hacks
 **** Diff before tangle
 This works but uncertain if I actually want it in the init-file or not.
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp :results none :tangle no
 ;; Copy-paste of implementation that is present in built-in `org'
 ;; from This is GNU Emacs 27.1 (build 2, x86_64-pc-linux-gnu, GTK+ Version 3.24.20) of 2021-03-03.
 ;; The change is marked with HACK.
@@ -1099,9 +1183,6 @@ used to limit the exported source code blocks by language."
 
 (add-hook 'org-babel-post-tangle-hook 'my/org-babel-tangle-backup-post-hook)
 #+end_src
-
-#+RESULTS:
-| my/org-babel-tangle-backup-post-hook |
 
 ** Emacs anywhere
 #+begin_src emacs-lisp
