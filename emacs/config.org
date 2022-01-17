@@ -678,15 +678,56 @@ A couple of notes before we start going through the config for all org-related:
   ;; Don't try to complete headings in steps.
   (setq org-outline-path-complete-in-steps nil)
 
-  ;; https://emacs.stackexchange.com/a/18146
-  ;; I want this bindings for references, etc. + don't add files to agenda
-  ;; often enough to warrant having a binding for it.
-  (require 'bind-key)
-  (unbind-key "C-c [" org-mode-map)
-  (unbind-key "C-c ]" org-mode-map)
-  (unbind-key "C-c ," org-mode-map)
-  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
+  ;; Org-agenda / Org-capture related
+  (setq org-agenda-files '("~/Dropbox/org/gtd.org"
+                           "~/Dropbox/org/school.org"
+                           "~/Dropbox/org/reading.org"
+                           "~/Dropbox/org/implement.org"))
+  (setq org-default-notes-file "~/Dropbox/org/gtd.org")
+  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)))
 
+  (setq org-capture-templates
+        '(("t"        ;; shortcut
+           "Todo"     ;; title
+           entry      ;; type of template
+           (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+           "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
+           :empty-lines 1 ;; property
+           )
+
+          ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+           "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
+
+          ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+          ("s" "School" entry
+           (file "~/Dropbox/org/school.org")
+           "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
+
+          ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+           "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+          ("R" "Research" entry (file "~/org-blog/notes/research.org")
+           "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
+
+          ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+           "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+          ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
+          ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
+          ;; we also get autocomplete for the tags.
+          ("a" "Anki basic"
+           entry
+           (file+headline org-my-anki-file "Dispatch Shelf")
+           "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
+
+          ("A" "Anki cloze"
+           entry
+           (file+headline org-my-anki-file "Dispatch Shelf")
+           "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
+          ))
+
+  ;; Hooks.
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
   ;; NOTE: This is maybe a bit "harsh". Could potentially just disable certain
   ;; features of `flycheck`.
