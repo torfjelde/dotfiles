@@ -43,6 +43,7 @@
 (setq-default visible-cursor nil)
 ;; (blink-cursor-mode 0) ;; Should be unnecessary on Emacs >24?
 #+end_src
+
 *** Make =format-time-string= consistent across OS time settings
 #+begin_src emacs-lisp :results none
 ;; Ensures that we're always going to format the string according to EN locale.
@@ -1060,6 +1061,11 @@ A query language for Org-files. In particular, the commands =org-ql-view= and =o
 #+begin_src emacs-lisp 
 (use-package org-noter
   :config
+  ;; Don't hide the other sections when we scroll to a new page.
+  (setq org-noter-hide-other nil)
+
+  (setq org-noter-doc-property-in-notes t)
+
   (setq org-noter-notes-search-path '("~/org-blog/papers/"))
   (setq org-noter-default-notes-file-names '("notes.org"))
   ;; (require 'org-noter-pdftools)
