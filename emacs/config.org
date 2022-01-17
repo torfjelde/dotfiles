@@ -597,12 +597,11 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 (use-package jupyter
   :config
   (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
-								                      (:session . "jl")
-								                      (:kernel . "julia-1.6")))
+                                                      (:session . "jl")
+                                                      (:kernel . "julia-1.6")))
   (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-								                       (:session . "py")
-								                       (:kernel . "python3"))))
-
+                                                       (:session . "py")
+                                                       (:kernel . "python3"))))
 #+end_src
 
 ** Org
@@ -638,12 +637,12 @@ A couple of notes before we start going through the config for all org-related:
   :config
   ;; customization for latex-preview in org-mode
   (setq org-format-latex-options '(:foreground default
-						                       :background default
-						                       :scale 1.5
-						                       :html-foreground "steelblue"
-						                       :html-background "Transparent"
-						                       :html-scale 1.0
-						                       :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+                                               :background default
+                                               :scale 1.5
+                                               :html-foreground "steelblue"
+                                               :html-background "Transparent"
+                                               :html-scale 1.0
+                                               :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
 
   ;; During LaTeX export, try to preserve the labels defined by the user.
   (setq org-latex-prefer-user-labels t)
