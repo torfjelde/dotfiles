@@ -373,6 +373,12 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 #+end_src
 
 #+begin_src emacs-lisp
+(use-package treemacs)
+(use-package treemacs-projectile)
+(use-package treemacs-all-the-icons)
+#+end_src
+*** Git
+#+begin_src emacs-lisp
 ;; magit.el: Objectively the best interface for working with Git-related stuff ever.
 (use-package magit)
 ;; forge.el: Magit's interface to different repo hosts, e.g. Github, Gitlab.
@@ -380,10 +386,22 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 #+end_src
 
 #+begin_src emacs-lisp
-(use-package treemacs)
-(use-package treemacs-projectile)
-(use-package treemacs-all-the-icons)
+(use-package blamer
+  :ensure t
+  :defer 20
+  :custom
+  (blamer-idle-time 0.3)
+  (blamer-min-offset 70)
+  (blamer-commit-formatter "• %s") ;; default symbol is too large
+  :custom-face
+  (blamer-face ((t :foreground "#7a88cf"
+                   :background nil
+                   :height 0.8 ;; make it slightly smaller than default font-size
+                   :italic t)))
+  :config
+  (global-blamer-mode 1))
 #+end_src
+
 ** Editing
 *** General
 #+begin_src emacs-lisp
