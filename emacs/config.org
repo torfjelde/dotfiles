@@ -3,6 +3,7 @@
 :header-args: emacs-lisp: :tangle init-new.el :comments link
 :END:
 ** Basic
+#+name: el-basic-variables-v2
 #+begin_src emacs-lisp
 ;; Customize user interface.
 (menu-bar-mode 0)
@@ -79,6 +80,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 
 #+RESULTS:
 ** File backup
+#+name: el-backup-v2
 #+begin_src emacs-lisp
 ;; Write auto-saves and backups to separate directory.
 (make-directory "~/.tmp/emacs/auto-save/" t)
@@ -93,6 +95,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 #+end_src
 
 ** Custom settings in seperate file
+#+name: el-load-custom-settings-v2
 #+begin_src emacs-lisp
 ;; Write customizations to a separate file instead of this file.
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
@@ -100,6 +103,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 #+end_src
 
 ** Package management: =straight.el= and =use-package=
+#+name: el-straight-setup-v2
 #+begin_src emacs-lisp
 ;; straight.el
 (defvar bootstrap-version)
@@ -219,6 +223,7 @@ Doom honestly has a bunch of nice features for their theme, so we might as well 
 *** =M-x=
 Personally I like =helm= as I find its discovery to be quite good.
 
+#+name: el-pkg-helm-v2
 #+begin_src emacs-lisp
 ;; helm.el: Provides a much more pleasant `M-x` experience. Alternative to `ido`.
 (use-package helm
@@ -235,6 +240,7 @@ Personally I like =helm= as I find its discovery to be quite good.
 
 =which-key= improves discoverability of bindings further.
 
+#+name: el-pkg-which-key-v2
 #+begin_src emacs-lisp
 ;; which-key.el: Provides suggestions/completions for keybindings upon use.
 (use-package which-key
@@ -318,6 +324,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 #+end_src
 
 **** Within-buffer navigation
+#+name: el-pkg-avy-v2
 #+begin_src emacs-lisp
 ;; avy.el: Allows you to jump to words by specifying the first character.
 (use-package avy
@@ -327,6 +334,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 
 ** Utility
 *** Snippets
+#+name: el-pkg-yasnippet-v2
 #+begin_src emacs-lisp
 ;; yasnippet.el: Snippet engine.
 (use-package yasnippet
@@ -351,6 +359,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   :config (pdf-tools-install))
 #+end_src
 ** Project management
+#+name: el-pkg-projectile-v2
 #+begin_src emacs-lisp
 ;; projectile.el: A _bunch_ of utility functionality for working with projects, e.g. rename everywhere
 ;; in a projet.
@@ -372,12 +381,14 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 (use-package helm-rg)
 #+end_src
 
+#+name: el-pkg-treemacs-v2
 #+begin_src emacs-lisp
 (use-package treemacs)
 (use-package treemacs-projectile)
 (use-package treemacs-all-the-icons)
 #+end_src
 *** Git
+#+name: el-git-v2
 #+begin_src emacs-lisp
 ;; magit.el: Objectively the best interface for working with Git-related stuff ever.
 (use-package magit)
@@ -404,6 +415,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 
 ** Editing
 *** General
+#+name: el-pkg-smartparens-v2
 #+begin_src emacs-lisp
 ;; smartparens.el: Automatic insertion of pairs of characters.
 (use-package smartparens
@@ -413,6 +425,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
             (add-hook 'prog-mode-hook 'show-paren-mode t)))
 #+end_src
 *** Undo & redo
+#+name: el-pkg-undo-tree-v2
 #+begin_src emacs-lisp
 ;; undo-tree.el: Tree-based undo-mechanism.
 ;; NOTE: To install, see https://github.com/zachcurry/emacs-anywhere.
@@ -421,6 +434,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   :init (global-undo-tree-mode))
 #+end_src
 ** Auto completion
+#+name: el-pkg-company-v2
 #+begin_src emacs-lisp
 ;; company.el: Autocomplete backend. Other packages implement frontends for this,
 ;; e.g. auto-completer for Python.
@@ -436,7 +450,13 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 #+end_src
 
 ** Programming & Markup
+*** isend
+#+name: el-pkg-isend-mode-v2
+#+begin_src emacs-lisp
+(use-package isend-mode)
+#+end_src
 *** Flycheck
+#+name: el-pkg-flycheck-v2
 #+begin_src emacs-lisp
 (use-package flycheck
   :config
@@ -515,6 +535,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   (add-to-list 'company-backends 'company-reftex-citations))
 #+end_src
 *** Markdown
+#+name: el-pkg-markdown-v2
 #+begin_src emacs-lisp
 ;; markdown-mode.el: Standard mode for markdown.
 (use-package markdown-mode
@@ -528,6 +549,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   )
 #+end_src
 *** Polymode
+#+name: el-pkg-polymode-v2
 #+begin_src emacs-lisp
 ;; polymode: Allows you to use multiple modes within a single buffer, e.g.
 ;; use `julia-mode` for highlighting, etc. in a code-block within a markdown file.
@@ -568,6 +590,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
   )
 #+end_src
+
 *** Python
 #+begin_src emacs-lisp
 ;; Python
@@ -608,6 +631,7 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   )
 #+end_src
 *** Jupyter
+#+name: el-pkg-jupyter-v2
 #+begin_src emacs-lisp
 ;; Jupyter
 ;; This is awesome _but_ requires an Emacs version built with dynamic modules.
@@ -3980,3 +4004,263 @@ This uses `default-text-scale-increment' under the hood, and enlargens the font 
 #+end_src
 
 #+RESULTS:
+
+* =init-terminal.el=
+** Extras
+#+name: el-pkg-julia-mode-v2--simple
+#+begin_src emacs-lisp :tangle no
+;; Julia
+(use-package julia-mode)
+#+end_src
+
+#+name: el-python-v2--simple
+#+begin_src emacs-lisp
+;; Python
+(use-package python)
+
+(use-package pyvenv
+  :straight (pyvenv
+             :type git
+             :host github
+             :repo "jorgenschaefer/pyvenv"))
+#+end_src
+
+#+name: el-pkg-lsp-v2--simple
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook
+  ((lsp-mode . lsp-enable-which-key-integration))
+  )
+
+(use-package lsp-ui :commands lsp-ui-mode)
+(use-package lsp-treemacs :commands lps-treemacs-errors-list)
+
+(use-package lsp-pyright
+  :ensure t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp))))  ; or lsp-deferred
+#+end_src
+
+#+name: el-pkg-org-v2--simple
+#+begin_src emacs-lisp :tangle no
+(use-package org
+  ;; Ensures that we're using the version of `org` which comes with Emacs.
+  :straight (org :type built-in)
+  :config
+  ;; customization for latex-preview in org-mode
+  (setq org-format-latex-options '(:foreground default
+                                               :background default
+                                               :scale 1.5
+                                               :html-foreground "steelblue"
+                                               :html-background "Transparent"
+                                               :html-scale 1.0
+                                               :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+  ;; During LaTeX export, try to preserve the labels defined by the user.
+  (setq org-latex-prefer-user-labels t)
+  ;; Hide emphasis markup.
+  (setq org-hide-emphasis-markers nil)
+  ;; Use bullets for lists.
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  ;; Don't query us every time we trying to evaluate code in buffers.
+  (setq org-confirm-babel-evaluate nil)
+  ;; Don't indent text in a section to align with section-level.
+  (setq org-adapt-indentation nil)
+  ;; Don't indent body of code-blocks at all.
+  (setq org-edit-src-content-indentation 0)
+  ;; Allow setting variables in setup-files.
+  (setq org-export-allow-bind-keywords t)
+  ;; Where to store the generated images from `org-latex-preivew'. This '/' at the end is VERY important.
+  (setq org-preview-latex-image-directory "~/.ltximg/")
+  ;; Make it so that the src block is opened in the current window when we open to edit.
+  (setq org-src-window-setup 'current-window)
+  ;; Necessary for header-arguments in src-blocks to take effect during export.
+  (setq org-export-use-babel t)
+  ;; Disable execution of code-blocks on export by default.
+  (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+
+  ;; Make `org-goto' nice to work with.
+  ;; Source: https://emacs.stackexchange.com/a/32625
+  ;; Complete on outlines/headings.
+  ;; This uses `completing-read' behind the scenes, hence if you have something like
+  ;; `helm' or `ivy' activated, this will be used for the completion.
+  (setq org-goto-interface 'outline-path-completion)
+  ;; Don't try to complete headings in steps.
+  (setq org-outline-path-complete-in-steps nil)
+
+  ;; Hooks.
+  ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
+  ;; NOTE: This is maybe a bit "harsh". Could potentially just disable certain
+  ;; features of `flycheck`.
+  (when (my/straight-installed-p 'flycheck)
+    (require 'flycheck)
+    (defun disable-flycheck-in-org-src-block ()
+      (flycheck-mode -1))
+    (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
+
+  ;; Use `visual-line-mode' as it gives word-wrapping, etc.
+  (add-hook 'org-mode-hook 'visual-line-mode)
+
+  ;; https://emacs.stackexchange.com/a/18146
+  ;; I want this bindings for references, etc. + don't add files to agenda
+  ;; often enough to warrant having a binding for it.
+  (require 'bind-key)
+  (unbind-key "C-c [" org-mode-map)
+  (unbind-key "C-c ]" org-mode-map)
+  (unbind-key "C-c ," org-mode-map)
+  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
+
+  ;; Make `org-capture' globally available.
+  (global-set-key (kbd "C-c c") 'org-capture)
+
+  ;;;; Org-Babel ;;;;
+  ;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
+  ;; to be a dependency of `ob-*' babel) using the wrong recipe.
+  (use-package ob-julia
+    :config (setq org-babel-julia-command "julia"))
+
+  ;; Specify which programming languages to support in code-blocks.
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp t)
+     (shell . t)
+     (C . t)
+     (latex . t)
+     (python . t)
+     (jupyter . t)
+     ;; (julia-vterm . t)
+     (julia . t)
+     ))
+
+  (require 'ob-jupyter)
+  (org-babel-jupyter-override-src-block "julia")
+  (org-babel-jupyter-override-src-block "python")
+
+  :custom
+  (org-format-latex-header
+   "\\documentclass{article}
+\\usepackage[usenames]{color}
+[PACKAGES]
+[DEFAULT-PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}")
+
+  (org-latex-default-packages-alist
+   '(("AUTO" "inputenc" t
+      ("pdflatex"))
+     ("T1" "fontenc" t
+      ("pdflatex"))
+     ("" "graphicx" t nil)
+     ("" "grffile" t nil)
+     ("" "longtable" nil nil)
+     ("" "wrapfig" nil nil)
+     ("" "rotating" nil nil)
+     ("normalem" "ulem" t nil)
+     ("" "amsmath" t nil)
+     ("" "textcomp" t nil)
+     ("" "amssymb" t nil)
+     ("" "capt-of" nil nil)
+     ("" "hyperref" nil nil)
+     ("" "mathpazo" t nil)
+     ("" "eulervm" t nil)))
+
+  (org-preview-latex-process-alist
+   '((dvipng :programs
+             ("latex" "dvipng")
+             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+             (1.0 . 1.0)
+             :latex-compiler
+             ("latex -interaction nonstopmode -output-directory %o %f")
+             :image-converter
+             ("dvipng -D %D -T tight -bg 'Transparent' -o %O %f"))
+     (dvisvgm :programs
+              ("latex" "dvisvgm")
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+              (1.7 . 1.5)
+              :latex-compiler
+              ("latex -interaction nonstopmode -output-directory %o %f")
+              :image-converter
+              ("dvisvgm %f -n -b min -c %S -o %O"))
+     (imagemagick :programs
+                  ("latex" "convert")
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  (1.0 . 1.0)
+                  :latex-compiler
+                  ("pdflatex -interaction nonstopmode -output-directory %o %f")
+                  :image-converter
+                  ("convert -density %D -trim -antialias %f -quality 100 %O")))))
+#+end_src
+
+l** Final
+
+#+begin_src emacs-lisp :noweb yes :tangle init-terminal.el
+<<el-basic-variables-v2>>
+
+<<el-backup-v2>>
+
+<<el-load-custom-settings-v2>>
+
+<<el-straight-setup-v2>>
+
+;; Style
+(use-package darktooth-theme)
+(load-theme 'darktooth t)
+
+<<el-pkg-helm-v2>>
+
+<<el-pkg-which-key-v2>>
+
+<<el-pkg-avy-v2>>
+
+<<el-pkg-yasnippet-v2>>
+
+<<el-pkg-projectile-v2>>
+
+<<el-pkg-treemacs-v2>>
+
+<<el-git-v2>>
+
+<<el-pkg-smartparens-v2>>
+
+<<el-pkg-undo-tree-v2>>
+
+<<el-pkg-company-v2>>
+
+<<el-pkg-isend-mode-v2>>
+
+<<el-pkg-flycheck-v2>>
+
+<<el-pkg-markdown-v2>>
+
+<<el-pkg-polymode-v2>>
+
+<<el-pkg-julia-mode-v2--simple>>
+
+<<el-python-v2--simple>>
+
+<<el-pkg-jupyter-v2>>
+
+<<el-pkg-lsp-v2--simple>>
+
+<<el-pkg-org-v2--simple>>
+#+end_src
+
+#+RESULTS:
+: t
