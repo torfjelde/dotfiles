@@ -2,6 +2,12 @@
 :PROPERTIES:
 :header-args: emacs-lisp: :tangle init-new.el :comments link
 :END:
+** Basic Utility functions
+#+begin_src emacs-lisp
+(defun not-nil (x)
+  "Return `t` if X is not nil."
+  (not (not x)))
+#+end_src
 ** Basic
 #+name: el-basic-variables-v2
 #+begin_src emacs-lisp
@@ -143,6 +149,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 #+begin_src emacs-lisp
 ;; Linux
 (when (string-equal system-type "gnu/linux") ; linux
+  ;; NOTE: this will also catch WSL
   (message "Performing Linux-specific setup...")
   (use-package exec-path-from-shell)
   (exec-path-from-shell-initialize)
@@ -151,6 +158,35 @@ Replace \"%A\" in FORMAT with English day of week of today,
   (use-package xclip
     :init (xclip-mode))
   )
+#+end_src
+
+*** Windows Linux Subsystem
+#+name: el-wsl-copy-paste
+#+begin_src emacs-lisp
+(defun tor/is-wsl-p ()
+  ;; WSL: WSL1 has "-Microsoft", WSL2 has "-microsoft-standard"
+  (not-nil (string-match "-[Mm]icrosoft" operating-system-release)))
+
+(when (tor/is-wsl-p)
+  ;; Source: https://www.emacswiki.org/emacs/Emacs_and_the_Windows_Subsystem_for_Linux
+  (defun wsl-copy-region-to-clipboard (start end)
+    "Copy region to Windows clipboard."
+    (interactive "r")
+    (call-process-region start end "clip.exe" nil 0))
+
+  (defun wsl-clipboard-to-string ()
+    "Return Windows clipboard as string."
+    (let ((coding-system-for-read 'dos))
+      (substring				; remove added trailing \n
+       (shell-command-to-string
+        "powershell.exe -Command Get-Clipboard") 0 -1)))
+
+  (defun wsl-paste-from-clipboard (arg)
+    "Insert Windows clipboard at point. With prefix ARG, also add to kill-ring"
+    (interactive "P")
+    (let ((clip (wsl-clipboard-to-string)))
+      (insert clip)
+      (if arg (kill-new clip)))))
 #+end_src
 
 ** User interface
@@ -1300,6 +1336,21 @@ used to limit the exported source code blocks by language."
 (add-hook 'org-babel-post-tangle-hook 'my/org-babel-tangle-backup-post-hook)
 #+end_src
 
+**** Handle ANSI color codes in org-babel results properly
+#+name: el-ansi-color-codes-handling
+#+begin_src emacs-lisp 
+;; Source: https://emacs.stackexchange.com/a/63562
+(defun ek/babel-ansi ()
+  "Properly handle ANSI color codes in the result for a SRC block."
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+(add-hook 'org-babel-after-execute-hook 'ek/babel-ansi)
+#+end_src
 ** Emacs anywhere
 #+begin_src emacs-lisp
 ;; emacs-anywhere: https://github.com/zachcurry/emacs-anywhere
