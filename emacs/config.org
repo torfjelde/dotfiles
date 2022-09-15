@@ -2,6 +2,12 @@
 :PROPERTIES:
 :header-args: emacs-lisp: :tangle init-new.el :comments link
 :END:
+** Basic Utility functions
+#+begin_src emacs-lisp
+(defun not-nil (x)
+  "Return `t` if X is not nil."
+  (not (not x)))
+#+end_src
 ** Basic
 #+begin_src emacs-lisp
 ;; Customize user interface.
@@ -139,6 +145,7 @@ Replace \"%A\" in FORMAT with English day of week of today,
 #+begin_src emacs-lisp
 ;; Linux
 (when (string-equal system-type "gnu/linux") ; linux
+  ;; NOTE: this will also catch WSL
   (message "Performing Linux-specific setup...")
   (use-package exec-path-from-shell)
   (exec-path-from-shell-initialize)
@@ -147,6 +154,35 @@ Replace \"%A\" in FORMAT with English day of week of today,
   (use-package xclip
     :init (xclip-mode))
   )
+#+end_src
+
+*** Windows Linux Subsystem
+#+name: el-wsl-copy-paste
+#+begin_src emacs-lisp
+(defun tor/is-wsl-p ()
+  ;; WSL: WSL1 has "-Microsoft", WSL2 has "-microsoft-standard"
+  (not-nil (string-match "-[Mm]icrosoft" operating-system-release)))
+
+(when (tor/is-wsl-p)
+  ;; Source: https://www.emacswiki.org/emacs/Emacs_and_the_Windows_Subsystem_for_Linux
+  (defun wsl-copy-region-to-clipboard (start end)
+    "Copy region to Windows clipboard."
+    (interactive "r")
+    (call-process-region start end "clip.exe" nil 0))
+
+  (defun wsl-clipboard-to-string ()
+    "Return Windows clipboard as string."
+    (let ((coding-system-for-read 'dos))
+      (substring				; remove added trailing \n
+       (shell-command-to-string
+        "powershell.exe -Command Get-Clipboard") 0 -1)))
+
+  (defun wsl-paste-from-clipboard (arg)
+    "Insert Windows clipboard at point. With prefix ARG, also add to kill-ring"
+    (interactive "P")
+    (let ((clip (wsl-clipboard-to-string)))
+      (insert clip)
+      (if arg (kill-new clip)))))
 #+end_src
 
 ** User interface
