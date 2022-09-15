@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
 # name: begin-src
 # key: begin-src
+# binding: C-c y d
 # --
 #+begin_src $1
 $0
