@@ -1312,6 +1312,21 @@ used to limit the exported source code blocks by language."
 (add-hook 'org-babel-post-tangle-hook 'my/org-babel-tangle-backup-post-hook)
 #+end_src
 
+**** Handle ANSI color codes in org-babel results properly
+#+name: el-ansi-color-codes-handling
+#+begin_src emacs-lisp 
+;; Source: https://emacs.stackexchange.com/a/63562
+(defun ek/babel-ansi ()
+  "Properly handle ANSI color codes in the result for a SRC block."
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+(add-hook 'org-babel-after-execute-hook 'ek/babel-ansi)
+#+end_src
 ** Emacs anywhere
 #+begin_src emacs-lisp
 ;; emacs-anywhere: https://github.com/zachcurry/emacs-anywhere
