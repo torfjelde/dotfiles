@@ -3,6 +3,7 @@
 :header-args: emacs-lisp: :tangle init-new.el :comments link
 :END:
 ** Basic Utility functions
+#+name: el-basic-utility-functions
 #+begin_src emacs-lisp
 (defun not-nil (x)
   "Return `t` if X is not nil."
