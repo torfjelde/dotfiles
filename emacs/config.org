@@ -1,3 +1,37 @@
+* Experimental
+** Github Co-pilot integration
+#+begin_src emacs-lisp
+;; Just to make the `company` UI work nicely with the Co-pilot suggestions.
+(use-package company-box)
+
+(use-package copilot
+  :straight (:host github
+             :repo "zerolfx/copilot.el"
+             :files ("dist" "*.el"))
+  :ensure t
+  :config
+  (progn
+    (add-hook 'prog-mode-hook 'copilot-mode)
+
+    (with-eval-after-load 'company
+      ;; disable inline previews
+      (delq 'company-preview-if-just-one-frontend company-frontends)))
+  :init
+  (progn
+    ;; Unbind deprecated navigation bindings from `company'.
+    (require 'bind-key)
+    (unbind-key "M-p" company-active-map)
+    (unbind-key "M-n" company-active-map)
+
+    ;; Add bindings for `copilot'
+    (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "M-p") 'copilot-previous-completion)
+    (define-key copilot-completion-map (kbd "M-n") 'copilot-next-completion)
+    (define-key copilot-completion-map (kbd "M-RET") 'copilot-accept-completion-by-word)
+    (define-key copilot-completion-map (kbd "C-M-<return>") 'copilot-accept-completion-by-line)
+    ))
+#+end_src
 * =init.el= v2
 :PROPERTIES:
 :header-args: emacs-lisp: :tangle init-new.el :comments link
@@ -948,6 +982,31 @@ A couple of notes before we start going through the config for all org-related:
   :after org
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
+
+;; Make it so that errors are also just outputted rather than opened in a different buffer, etc.
+;; NOTE: This does NOT work in combination with `ob-async' (not sure `ob-async' actually runs the advice).
+(defun my/advice--org-babel-execute:shell (args)
+  (let ((body (car args)))
+    ;; `:` at the end is to ensure that the exit-code is 0 rather than 1.
+    ;; If it's 1, then org-babel will simply ignore the output in the results.
+    (cons (concat "exec 2>&1\n" body "\n:\n") (cdr args))))
+
+(advice-add 'org-babel-execute:shell :filter-args #'my/advice--org-babel-execute:shell)
+
+;; NOTE: Attempt at fixing issue with `ob-async'.
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+(use-package ob-async
+  ;; :straight (:type git :host github :repo "astahlman/ob-async")
+  ;; Handling of errors: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+  ;; + some of my own changes.
+  :straight (:type git :host github :repo "torfjelde/ob-async" :branch "tor/develop"))
+
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-1133145526
+(defun no-hide-overlays (orig-fun &rest args)
+  (setq org-babel-hide-result-overlays nil))
+
+(advice-add 'ob-async-org-babel-execute-src-block :before #'no-hide-overlays)
 #+end_src
 
 *** Org Export
