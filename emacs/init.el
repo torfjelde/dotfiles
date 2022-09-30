@@ -1,1664 +1,929 @@
-(setq
- desktop-restore-forces-onscreen nil ;; fixes an error occurring when using restoring `desktop'
- 
- inhibit-startup-screen t
- inhibit-splash-screen t
- create-lockfiles nil
- column-number-mode t
- scroll-error-top-bottom t
- show-paren-delay 0.5
- use-package-always-ensure t
- sentence-end-double-space nil 
- global-prettify-symbols-mode t
- default-tab-width 4
- tool-bar-mode nil
- blink-cursor-mode nil
+(defun not-nil-p (x)
+  "Return `t` if X is not nil."
+  (not (not x)))
 
-system-time-locale "C" ;; ensures that week-days follows English convention, e.g. Thu and Wed
+;; [[file:config.org::*Basic][Basic:1]]
+;; Customize user interface.
+(menu-bar-mode 0)
+(tool-bar-mode 0)
+(scroll-bar-mode 0)
 
- org-adapt-indentation nil  ;; don't indent text in a section to align with section-level
- org-export-allow-bind-keywords t  ;; allows us to set variables in setup-files for project
- org-preview-latex-image-directory "~/.ltximg/"  ;; this '/' at the end is VERY important..
+(setq inhibit-startup-screen t)
+(column-number-mode)
 
- ;; TeX stuff
- TeX-source-correlate-start-server t  ;; clicking in document takes you to source
+;; Don't show trailing whitespace _always_. It's annoying.
+(setq-default show-trailing-whitespace nil)
+(setq-default indicate-empty-lines t)
+(setq-default indicate-buffer-boundaries 'left)
 
- ;; set the backup folder to be the temp-folder
- backup-directory-alist `((".*" . ,temporary-file-directory))
- auto-save-file-name-transforms `((".*" ,temporary-file-directory t))
- 
- ;; omnisharp-server-executable-path "/home/tor/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe"
+;; Consider a period followed by a single space to be end of sentence.
+(setq sentence-end-double-space nil)
 
- yas-triggers-in-field t; Enable nested triggering of snippets
-
- ;; slime
- inferior-lisp-program "/usr/local/bin/sbcl"
- slime-lisp-implementations '((sbcl ("sbcl")))
- ;; lisp-indent-function 'common-lisp-indent-function
- ;; slime-complete-symbol-function 'slime-fuzzy-complete-symbol
-
- safe-local-variable-values '((visual-line-mode . 1)
-                              (visual-line-mode . t)
-                              (org-export-with-toc)
-                              (org-after-todo-state-change-hook . tor/reading-list-done-hook)
-                              (org-after-todo-state-change-hook . tor/impl-list-done-hook))
- )
-
-(defun clone-if-not-exists (remoteurl targetdir)
-  (let* ((parentdir (file-name-directory (directory-file-name targetdir))))
-    (when (not (file-directory-p targetdir))
-      (message "%s not present; cloning from %s..." targetdir remoteurl)
-      (if (eq (shell-command (format "git -C %s clone %s" parentdir remoteurl)) 0)
-          (progn
-            (message "Cloning of %s successful!" remoteurl)
-            t)
-        (progn
-          (warn "Clong of %s FAILED!" remoteurl)
-          nil)))))
-
-
-(defun eval-and-replace ()
-  "Replace the preceding sexp with its value."
-  (interactive)
-  (backward-kill-sexp)
-  (condition-case nil
-      (prin1 (eval (read (current-kill 0)))
-             (current-buffer))
-    (error (message "Invalid expression")
-           (insert (current-kill 0)))))
-;; (global-set-key (kbd "C-c e") 'eval-and-replace)
-
-
-;; https://emacs.stackexchange.com/a/34900
-(defun shell-command-on-region-and-select
-    (start end command
-           &optional output-buffer replace
-           error-buffer display-error-buffer
-           region-noncontiguous-p)
-  "Wrapper for 'shell-command-on-region', re-selecting the output.
-
-Useful when called with a selection, so it can be modified in-place"
-  (interactive)
-  (let ((buffer-size-init (buffer-size)))
-    (shell-command-on-region
-     start end command output-buffer replace
-     error-buffer display-error-buffer
-     region-noncontiguous-p)
-    (setq deactivate-mark t)
-    (setq end (+ end (- (buffer-size) buffer-size-init)))
-    ;; (set-mark start)
-    (goto-char end)
-    (activate-mark)
-    ))
-
-;; TODO: make of these sweeties
-(defun eval-region-as-sympy-simplify ()
-  "Evaluate selection as a python expression, replacing it with the result"
-  (interactive)
-  (shell-command-on-region-and-select
-   (region-beginning)
-   (region-end)
-   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).simplify()))'" 0 t))
-
-(defun eval-region-as-sympy-expand ()
-  "Evaluate selection as a python expression, replacing it with the result"
-  (interactive)
-  (shell-command-on-region-and-select
-   (region-beginning)
-   (region-end)
-   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).expand()))'" 0 t))
-
-(defun eval-region-as-sympy-sum ()
-  "Evaluate selection as a python expression, replacing it with the result"
-  (interactive)
-  (shell-command-on-region-and-select
-   (region-beginning)
-   (region-end)
-   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).doit()))'" 0 t))
-
-(defun eval-region-as-sympy-integrate ()
-  "Evaluate selection as a python expression, replacing it with the result"
-  (interactive)
-  (shell-command-on-region-and-select
-   (region-beginning)
-   (region-end)
-   "python -c 'import sys; from sympy import latex; from sympy.parsing.latex import parse_latex; sys.stdout.write(latex(parse_latex(str(sys.stdin.read())).integrate()))'" 0 t))
-
-;; (global-set-key (kbd "C-c e p") 'eval-and-replace)
-
-;; Allows you to fold everything on a indentation-level greater than the current.
-;; Source: https://stackoverflow.com/a/4459159
-(defun aj-toggle-fold ()
-  "Toggle fold all lines larger than indentation on current line"
-  (interactive)
-  (let ((col 1))
-    (save-excursion
-      (back-to-indentation)
-      (setq col (+ 1 (current-column)))
-      (set-selective-display
-       (if selective-display nil (or col 1))))))
-(global-set-key [(M C i)] 'aj-toggle-fold)
-
-;; PEP-8 tells me not to use tabs..so by defalt we disable this
+;; Use spaces, not tabs, for indentation.
 (setq-default indent-tabs-mode nil)
 
-;; bar-customization
-(menu-bar-mode -1)
+;; Display the distance between two tab stops as 4 characters wide.
+(setq-default tab-width 4)
+
+;; Indentation setting for various languages.
+(setq c-basic-offset 4)
+(setq js-indent-level 2)
+(setq css-indent-offset 2)
+
+;; Highlight matching pairs of parentheses.
+(setq show-paren-delay 0)
+(show-paren-mode)
+
+;; Move the point to bottom/top when using `C-v' and `M-v', respectively,
+;; rather than just trying to scroll.
+(setq scroll-error-top-bottom t)
+
+;; Disable blinking cursor.
+(setq-default visible-cursor nil)
+(blink-cursor-mode 0) ;; Should be unnecessary on Emacs >24?
+
+;; Make `replace-regexp-in-string' case-sensitive by default.
+;; NOTE: This is mainly useful for things like `latex' src-blocks where,
+;; for some reason, variable replacement is done case-insensitively, which I don't like.
+;; But uncertain if this has any unwanted side-effects.
+;; TODO: Maybe make PR to `org-mode' to make this configurable?
+(defun with-case-fold-search-off (orig-fun &rest args)
+  (let ((case-fold-search nil))
+    (apply orig-fun args)))
+
+(advice-add 'replace-regexp-in-string :around #'with-case-fold-search-off)
+
+;; Basic:1 ends here
+
+;; [[file:config.org::*Make =format-time-string= consistent across OS time settings][Make =format-time-string= consistent across OS time settings:1]]
+;; Ensures that we're always going to format the string according to EN locale.
+;; Setting `system-time-locale' to `"C"' or something doesn't work for daemon-mode.
+;; This is copy-paste from https://kisaragi-hiu.com/blog/2019-10-09-format-time-string-today.html.
+(require 'calendar)
+(defun kisaragi/english-dow (&optional time zone abbreviated)
+  "Return ABBREVIATED name of the day of week at TIME and ZONE.
+
+If TIME or ZONE is nil, use `current-time' or `current-time-zone'."
+  (unless time (setq time (current-time)))
+  (unless zone (setq zone (current-time-zone)))
+  (calendar-day-name
+   (pcase-let ((`(,_ ,_ ,_ ,d ,m ,y . ,_)
+                (decode-time time zone)))
+     (list m d y))
+   abbreviated))
+
+(defun kisaragi/advice-format-time-string (func format &optional time zone)
+  "Pass FORMAT, TIME, and ZONE to FUNC.
+
+Replace \"%A\" in FORMAT with English day of week of today,
+\"%a\" with the abbreviated version."
+  (let* ((format (replace-regexp-in-string "%a" (kisaragi/english-dow time zone t)
+                                           format))
+         (format (replace-regexp-in-string "%A" (kisaragi/english-dow time zone nil)
+                                           format)))
+    (funcall func format time zone)))
 
 
-;;; Custom functions for note-taking ;;;
-(defun notes:code-directory ()
-    (let* ((filepath (buffer-file-name))
-           (directory (file-name-directory filepath))
-           (filebase (file-name-base filepath)))
-      (concat
-       directory
-       (file-name-as-directory (concat "." filebase))
-       (file-name-as-directory "code"))))
+(advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
+;; Make =format-time-string= consistent across OS time settings:1 ends here
 
-(defun notes:code-file-path (filename)
-  (let ((code-dir (notes:code-directory)))
-    (concat code-dir filename)))
+;; [[file:config.org::*File backup][File backup:1]]
+;; Write auto-saves and backups to separate directory.
+(make-directory "~/.tmp/emacs/auto-save/" t)
+(setq auto-save-file-name-transforms '((".*" "~/.tmp/emacs/auto-save/" t)))
+(setq backup-directory-alist '(("." . "~/.tmp/emacs/backup/")))
 
+;; Do not move the current file while creating backup.
+(setq backup-by-copying t)
 
-;; fancy letters
-(defun pretty-greek ()
-  (let ((greek '("alpha" "beta" "gamma" "delta" "epsilon" "zeta" "eta" "theta" "iota" "kappa" "lambda" "mu" "nu" "xi" "omicron" "pi" "rho" "sigma_final" "sigma" "tau" "upsilon" "phi" "chi" "psi" "omega")))
-    (loop for word in greek
-          for code = 97 then (+ 1 code)
-          do  (let ((greek-char (make-char 'greek-iso8859-7 code))) 
-                (font-lock-add-keywords nil
-                                        `((,(concatenate 'string "\\(^\\|[^a-zA-Z0-9]\\)\\(" word "\\)[a-zA-Z]")
-                                           (0 (progn (decompose-region (match-beginning 2) (match-end 2))
-                                                     nil)))))
-                (font-lock-add-keywords nil 
-                                        `((,(concatenate 'string "\\(^\\|[^a-zA-Z0-9]\\)\\(" word "\\)[^a-zA-Z]")
-                                           (0 (progn (compose-region (match-beginning 2) (match-end 2)
-                                                                     ,greek-char)
-                                                     nil)))))))))
+;; Disable lockfiles.
+(setq create-lockfiles nil)
+;; File backup:1 ends here
 
-;; prettify-list
-(defun my-prettiest-symbols () 
-  (setq prettify-symbols-alist
-		'(
-		  ("lambda" . 955) ; λ
-		  ("->" . 10140)    ; →
-		  ("=>" . 10233)    ; ⇒
-		  )))
+;; [[file:config.org::*Custom settings in seperate file][Custom settings in seperate file:1]]
+;; Write customizations to a separate file instead of this file.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file t)
+;; Custom settings in seperate file:1 ends here
 
-;; convience functions
-(defun my/open-block-c-mode (id action context)
-  (when (eq action 'insert)
-	(newline)
-	(indent-according-to-mode)
-	(previous-line)
-	(indent-according-to-mode)))
+;; [[file:config.org::*Package management: =straight.el= and =use-package=][Package management: =straight.el= and =use-package=:1]]
+;; straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(defun my/duplicate-line ()
-  "Copies current line to next line. Like C-d in Pycharm"
-  (interactive)
-  (move-beginning-of-line 1)
-  (kill-line)
-  (yank)
-  (open-line 1)
-  (next-line)
-  (yank))
+(defun my/straight-installed-p (package)
+  "Check if PACKAGE is installed (according to `straight.el')."
+  (straight--installed-and-buildable-p
+   ;; `format' allows us to handle both strings and symbols.
+   (gethash (format "%s" package) straight--recipe-cache)))
 
-(defun org-babel-python-strip-session-chars ()
-  "Remove >>> and ... from a Python session output."
-  (when (and (string=
-              "python"
-              (org-element-property :language (org-element-at-point)))
-             (string-match
-              ":session"
-              (org-element-property :parameters (org-element-at-point))))
-    (save-excursion
-      (when (org-babel-where-is-src-block-result)
-        (goto-char (org-babel-where-is-src-block-result))
-        (end-of-line 1)
-        ;(while (looking-at "[\n\r\t\f ]") (forward-char 1))
-        (while (re-search-forward
-                "\\(>>> \\|\\.\\.\\. \\|: $\\|: >>>$\\)"
-                (org-element-property :end (org-element-at-point))
-                t)
-          (replace-match "")
-          ;; this enables us to get rid of blank lines and blank : >>>
-          (beginning-of-line)
-          (when (looking-at "^$")
-            (kill-line)))))))
+;; Deactivate native compilation.
+;; (setq straight-disable-native-compile nil)
 
-;; global keys
-(global-set-key (kbd "C-c c") 'org-capture)
-(global-set-key (kbd "C-c C-d") 'my/duplicate-line)
-;; (global-set-key (kbd "C-;") 'iedit-mode)
+;; use-package.el: Makes configuring the packages much easier.
+(straight-use-package 'use-package)
 
-;; the package manager
-(require 'package)
-(setq
- package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
-                    ("org" . "http://orgmode.org/elpa/")
-                    ("melpa" . "http://melpa.org/packages/")
-                    ("melpa-stable" . "http://stable.melpa.org/packages/"))
- package-archive-priorities '(("melpa-stable" . 1)))
+;; Use `straight.el` by default when calling `use-package`.
+(setq straight-use-package-by-default t)
+;; Package management: =straight.el= and =use-package=:1 ends here
 
-(package-initialize)
-(when (not package-archive-contents)
-  (package-refresh-contents)
-  (package-install 'use-package))
+;; [[file:config.org::*Customizing =use-package=][Customizing =use-package=:1]]
+;; Allow us to "require" system packages to be present using `:ensure-system-package'
+;; in `use-package' blocks.
+(use-package use-package-ensure-system-package)
+;; Customizing =use-package=:1 ends here
 
-(require 'use-package)
+;; [[file:config.org::*OS specific setup][OS specific setup:1]]
+;; Linux
+(defun tor/is-wsl-p ()
+  ;; WSL: WSL1 has "-Microsoft", WSL2 has "-microsoft-standard"
+  (not-nil-p (string-match "-[Mm]icrosoft" operating-system-release)))
 
-;; notes about use-package ;;
-;; :init - executes BEFORE loading package
-;; :config - executes AFTER loading package
+(when (tor/is-wsl-p)
+  ;; Source: https://www.emacswiki.org/emacs/Emacs_and_the_Windows_Subsystem_for_Linux
+  (defun wsl-copy-region-to-clipboard (start end)
+    "Copy region to Windows clipboard."
+    (interactive "r")
+    (call-process-region start end "clip.exe" nil 0))
 
-;; required by some OS specific stuff
-(use-package exec-path-from-shell)
+  (defun wsl-clipboard-to-string ()
+    "Return Windows clipboard as string."
+    (let ((coding-system-for-read 'dos))
+      (substring				; remove added trailing \n
+       (shell-command-to-string
+        "powershell.exe -Command Get-Clipboard") 0 -1)))
 
-;;; OS specific variables ;;;
-(cond
- ;; Windows
- ((string-equal system-type "windows-nt") ; Microsoft Windows
-  (progn
-    (message "Microsoft Windows")))
- 
- ;; Mac OS X
- ;; We want to disable left-cmd and bind left-option to Meta
- ;; due to terminal apps using left-cmd for stuff, and I
- ;; want uniform bindings independent of the environment.
- ;; These variables are for this version of Emacs for Mac OS X:
- ;; https://bitbucket.org/mituharu/emacs-mac
- ((string-equal system-type "darwin") ; Mac OS X
-  (progn
-    (message "Mac OS X")
-    (setq mac-command-modifier nil  ;; disables bindings to left-cmd on Mac
-		  mac-option-modifier (quote (:ordinary meta :function alt :mouse alt))  ;; binds left-option to Meta
-		  mac-right-option-modifier nil)  ;; disables it as a modifier so we can type properly, e.g. "[]|∞≈"
-    (exec-path-from-shell-initialize)
-	(setq racer-rust-src-path "/Users/tef/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/")))
+  (defun wsl-paste-from-clipboard (arg)
+    "Insert Windows clipboard at point. With prefix ARG, also add to kill-ring"
+    (interactive "P")
+    (let ((clip (wsl-clipboard-to-string)))
+      (insert clip)
+      (if arg (kill-new clip)))))
 
- ;; Linux
- ((string-equal system-type "gnu/linux") ; linux
-  (progn
-    (message "Linux")
-    (exec-path-from-shell-initialize)            
-	;; need to do `rustup component add rust-src' for `racer' to work
-    (setq racer-rust-src-path "~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/")
+(when (string-equal system-type "gnu/linux") ; linux
+  (message "Performing Linux-specific setup...")
+  (use-package exec-path-from-shell)
+  (exec-path-from-shell-initialize)
 
-    ;; use xclip to yank, allowing you to yank in terminal to the GLOBAL clipboard
-    (use-package xclip
-      :init (xclip-mode))
-    )))
+  ;; use xclip to yank, allowing you to yank in terminal to the GLOBAL clipboard
+  (when (not (tor/is-wsl-p))
+      ((use-package xclip
+         :init (xclip-mode))))
+  )
+;; OS specific setup:1 ends here
 
-;;; xclip
+;; [[file:config.org::*Themes & styling][Themes & styling:1]]
+(use-package solarized-theme
+  :defer t
+  ;; :init
+  ;; (progn
+  ;;   ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
+  ;;   ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
+  ;;   ;; TODO: Implement `my/loaded-theme-is-solarized-light-p' or something similar
+  ;;   (when (and (my/straight-installed-p 'pdf-tools) (my/loaded-theme-is-solarized-light-p))
+  ;;     ;; (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3"))
+  ;;     ;; (setq pdf-view-midnight-colors '("#3f4446" . "#fdf6e3")) ;; slightly blacker font
+  ;;     (setq pdf-view-midnight-colors '("#556065" . "#fff8e5")) ;; slightly brighter background
+  ;;     ))
+  )
 
-;;; general ;;;
-;; pdf-tools - much improved way to view pdfs
-;; IMPORTANT: need to run `(pdf-tools-install)' to install dependencies
-(use-package pdf-tools
-  :pin melpa
-  :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
-  :init (progn
-          (if (string-equal system-type "gnu/linux") (pdf-tools-install))
-          ;; copied from the source-code, but uses `org-mode' as default major-mode for text-annotations
-          (setq pdf-annot-edit-contents-setup-function
-                (lambda (a)
-                   (let ((mode (if (funcall pdf-annot-latex-string-predicate
-                                            (pdf-annot-get a 'contents))
-                                   'latex-mode
-                                 'org-mode)))
-                     (unless (derived-mode-p mode)
-                       (funcall mode)))))))
+(use-package darktooth-theme)
+(use-package atom-one-dark-theme)
 
-;; AucTeX
-;; (require 'auctex)
-(setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape %S%(PDFout)")))
-;; Update PDF buffers after successful LaTeX runs
-(add-hook 'TeX-after-compilation-finished-functions
-          #'TeX-revert-document-buffer)
-(add-hook 'LaTeX-mode-hook
-          (lambda()
-            (local-unset-key (kbd "C-c ]"))))
+;; Load `solarized-dark` by default.
+;; Themes & styling:1 ends here
 
-(use-package company-auctex
-  :init (progn
-          (company-auctex-init)
-          (add-hook 'LaTeX-mode-hook 'company-mode)
-          (add-hook 'latex-mode-hook 'company-mode)))
+;; [[file:config.org::*Themes & styling][Themes & styling:2]]
+(use-package doom-themes)
+;; (use-package spacegray-theme)
+(load-theme 'doom-nord t)
 
-;; anki-editor
-(use-package anki-editor
-  :pin melpa
-  :init (progn
-          (setq anki-editor-break-consecutive-braces-in-latex t)))
+;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
+(doom-themes-visual-bell-config)
+;; Themes & styling:2 ends here
 
-;; flycheck
-(use-package flycheck
-  :pin melpa-stable
-  :init
-  (progn
-	;; uncomment below if you're having issues with flycheck performance
-	;; (setq 'flycheck-highlighting-mode 'lines) 
-	(add-hook 'after-init-hook #'global-flycheck-mode)))
+;; [[file:config.org::*Themes & styling][Themes & styling:3]]
+;; You must run (all-the-icons-install-fonts) one time after
+;; installing this package!
+(use-package all-the-icons
+  :if (display-graphic-p))
+;; Themes & styling:3 ends here
 
-;; company
-(use-package company
-  :config
-  (progn
-	(add-hook 'prog-mode-hook 'company-mode)
-    (add-to-list 'company-backends '(company-jedi :with company-capf))
-    (add-to-list 'company-backends 'ein:company-backend)
-	(add-to-list 'company-backends '(company-irony-c-headers
-									 company-irony))))
-(use-package company-quickhelp)
+;; [[file:config.org::*Modeline][Modeline:1]]
+;; diminish.el: Allows us to hide certain mini-modes, if we so desire.
+(use-package diminish)
+;; Modeline:1 ends here
 
-;; yasnippet
-(use-package yasnippet
-  :pin melpa-stable
-  :init (yas-global-mode))
+;; [[file:config.org::*Modeline][Modeline:2]]
+(use-package minions
+  :hook (doom-modeline-mode . minions-mode))
 
-;; undo-tree
-(use-package undo-tree
-  :diminish undo-tree-mode
-  :init (global-undo-tree-mode))
+(use-package doom-modeline
+  ;; :after eshell     ;; Make sure it gets hooked after eshell
+  :hook (after-init . doom-modeline-init)
+  :custom
+  (doom-modeline-height 15)
+  (doom-modeline-bar-width 6)
+  (doom-modeline-lsp t)
+  (doom-modeline-github nil)
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc t)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-persp-name nil)
+  (doom-modeline-buffer-file-name-style 'truncate-except-project)
+  (doom-modeline-major-mode-icon nil))
+;; Modeline:2 ends here
 
-;; smartparens
-(use-package smartparens
-  :init
-  (progn
-    (require 'smartparens-config)
-    (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
-    (add-hook 'prog-mode-hook 'show-paren-mode t)))
-
-;; edit server
-(use-package edit-server
-  :init (edit-server-start))
-
-;; helm
+;; [[file:config.org::*=M-x=][=M-x=:1]]
+;; helm.el: Provides a much more pleasant `M-x` experience. Alternative to `ido`.
 (use-package helm
   :diminish helm-mode  ;; removes the helm-mode from the mode-line
-  :init
-  (progn
-    (require 'helm-config)
-    (helm-mode))
+  :init (progn
+          (require 'helm-config)
+          (helm-mode))
   :bind (("M-x" . helm-M-x)))
 
+;; helm-descbinds.el: Adds mode
 (use-package helm-descbinds
-  :bind (("C-h b" . helm-descbinds)
-	 ("C-h w" . helm-descbinds)))
+  :bind (("C-h b" . helm-descbinds)))
+;; =M-x=:1 ends here
 
+;; [[file:config.org::*=M-x=][=M-x=:2]]
+;; which-key.el: Provides suggestions/completions for keybindings upon use.
+(use-package which-key
+  :diminish which-key-mode ;; hide form mode-line
+  :config (which-key-mode))
+;; =M-x=:2 ends here
+
+;; [[file:config.org::*Scaling][Scaling:1]]
+;; default-text-scale.el: Allows decreasing/increasing text size globally
+;; rather than on a per-buffer basis.
+(use-package default-text-scale
+  :bind (("C-M-=" . default-text-scale-increase)
+         ("C-M--" . default-text-scale-decrease)))
+;; Scaling:1 ends here
+
+;; [[file:config.org::*Special][Special:1]]
+;; fic-mode.el: Provides highlighting for TODO, FIXME and BUG in comments.
+(use-package fic-mode
+  :hook (prog-mode . fic-mode)
+  :config
+  ;; Change the font
+  (set-face-attribute 'fic-face nil
+                      :foreground "magenta"
+                      :background "transparent"
+                      :weight 'bold
+                      :slant 'normal)
+  (set-face-attribute 'fic-author-face nil
+                      :foreground "magenta"
+                      :background "transparent"
+                      :weight 'normal
+                      :slant 'italic
+                      :underline t)
+  (add-to-list 'fic-highlighted-words "HACK")
+  (add-to-list 'fic-highlighted-words "NOTE"))
+;; Special:1 ends here
+
+;; [[file:config.org::*Pretty][Pretty:1]]
+(use-package prettify-symbols-mode
+  :straight nil
+  :ensure nil
+  :hook (prog-mode . prettify-symbols-mode)
+  :init
+  ;; Fontification is deactivated upon marker-enter.
+  (setq prettify-symbols-unprettify-at-point 'right-edge))
+;; Pretty:1 ends here
+
+;; [[file:config.org::*File management & browsing][File management & browsing:1]]
+(use-package all-the-icons-dired
+  :after (all-the-icons))
+
+(use-package dired
+  :ensure nil
+  :straight nil
+  :defer t
+  :config
+  (add-hook 'dired-mode-hook
+            (lambda ()
+              (interactive)
+              ;; (dired-omit-mode 1) ;; TODO: Where is this from?
+              ;; (dired-hide-details-mode 1)
+              (when (display-graphic-p)
+                ;; Activate the `all-the-icons-mode` if present.
+                (all-the-icons-dired-mode 1))
+              (hl-line-mode 1)))
+  )
+;; File management & browsing:1 ends here
+
+;; [[file:config.org::*Window navigation][Window navigation:1]]
+;; ace-window.el: Allows you to jump between windows. Super-useful when you're using more than 2 windows.
+;; HACK: Only load if we're using a GUI. For some reason `ace-window' making it so that
+;; switching between windows inserts 'I's and 'O's.
+(when (display-graphic-p)
+  (use-package ace-window
+    ;; We might have multiple Emacs frames open, all using the same server.
+    ;; In these cases it is usually undesired to have `ace-window' suggest
+    ;; opening Emacs windows we can't even see. In addition, we usually then
+    ;; end up with a huge number of candidates.
+    ;; This limits the candidates that we can jump to to the current frame.
+    :custom (aw-scope 'frame)
+    ;; Feel free to change the binding.
+    :bind ("M-[" . ace-window)))
+;; Window navigation:1 ends here
+
+;; [[file:config.org::*Within-buffer navigation][Within-buffer navigation:1]]
+;; avy.el: Allows you to jump to words by specifying the first character.
+(use-package avy
+  ;; Feel free to change the binding.
+  :bind ("M-j" . avy-goto-word-or-subword-1))
+;; Within-buffer navigation:1 ends here
+
+;; [[file:config.org::*Snippets][Snippets:1]]
+;; yasnippet.el: Snippet engine.
+(use-package yasnippet
+  ;; Enable globally.
+  :init (yas-global-mode)
+  :config
+  ;; Enable nested triggering of snippets.
+  (setq yas-triggers-in-field t)
+  ;; Ensures that the indentation is done after my choosing.
+  (setq yas-indent-line 'fixed)
+  )
+
+;; yasnippet-snippets.el: A huge collection of useful snippets.
+(use-package yasnippet-snippets)
+;; Snippets:1 ends here
+
+;; [[file:config.org::*PDF viewing][PDF viewing:1]]
+;; pdf-tools.el: Best. PDF viewer. Ever.
+;; NOTE: might need to run `(pdf-tools-install)' to install dependencies.
+(use-package pdf-tools
+  :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
+  :config (pdf-tools-install)
+  ;; Force it to load so we trigger `pdf-tools-install'.
+  :demand t)
+;; PDF viewing:1 ends here
+
+;; [[file:config.org::*Project management][Project management:1]]
+;; projectile.el: A _bunch_ of utility functionality for working with projects, e.g. rename everywhere
+;; in a projet.
+;; It'll automatically detect if something is a project using different heuristics, e.g.
+;; if you have a `.git` file in a parent directory.
 (use-package projectile
-  :diminish projectile-mode
+  :diminish projectile-mode ;; hide from mode-line since it'll be activated everywhere
+  :bind-keymap ("C-c p" . projectile-command-map)
   :config
   (progn
-    (setq projectile-keymap-prefix (kbd "C-c p"))
     (setq projectile-completion-system 'default)
     (setq projectile-enable-caching t)
     (setq projectile-indexing-method 'alien)
     (add-to-list 'projectile-globally-ignored-files "node-modules")
-	(projectile-global-mode)))
+    (projectile-global-mode)))
+
+;; helm-projectile.el: Improves interaction between `helm.el` and `projetile.el`.
 (use-package helm-projectile)
+(use-package helm-rg)
+;; Project management:1 ends here
 
-;; dirtree
-(use-package dirtree)
+;; [[file:config.org::*Project management][Project management:2]]
+(use-package treemacs)
+(use-package treemacs-projectile)
+(use-package treemacs-all-the-icons)
+;; Project management:2 ends here
 
-;; multiple cursors
-(use-package multiple-cursors
-  :bind (("C->" . mc/mark-next-like-this)))
+;; [[file:config.org::*Git][Git:1]]
+;; magit.el: Objectively the best interface for working with Git-related stuff ever.
+(use-package magit)
+;; forge.el: Magit's interface to different repo hosts, e.g. Github, Gitlab.
+(use-package forge)
+;; Git:1 ends here
 
-;; (use-package ace-jump-mode
-;;   :bind ("C-." . ace-jump-mode))
-(use-package avy
-  :bind ("M-æ" . avy-goto-word-or-subword-1))
-(use-package ace-window
-  :config (global-set-key (kbd "M-å") 'ace-window))
-(use-package iedit
-  :bind ("C-c ,"))
-(use-package rainbow-delimiters)
-(use-package centered-cursor-mode)
-(use-package htmlize)
+;; [[file:config.org::*Git][Git:2]]
+(use-package blamer
+  :ensure t
+  :defer 20
+  :custom
+  (blamer-idle-time 0.3)
+  (blamer-min-offset 70)
+  (blamer-commit-formatter "• %s") ;; default symbol is too large
+  :custom-face
+  (blamer-face ((t :foreground "#7a88cf"
+                   :background nil
+                   :height 0.8 ;; make it slightly smaller than default font-size
+                   :italic t))))
+;; Git:2 ends here
 
-(use-package magit
-  :pin melpa)
-(use-package forge
-  :pin melpa)
-
-
-
-(message "Parsing programming setup")
-
-
-;;; programming languages ;;;
-(add-hook 'prog-mode-hook 'my-prettiest-symbols)
-
-;; provides highlighting for TODO, FIXME and BUG in comments
-(use-package fic-mode
-  :config
-  (progn
-	(add-hook 'prog-mode-hook 'fic-mode)
-	(set-face-attribute 'fic-author-face nil :foreground "dark violet" :underline t)
-	(set-face-attribute 'fic-face nil :foreground "magenta" :weight 'bold)
-    (add-to-list 'fic-highlighted-words "HACK")))
-
-;; c/c++
-;; replace the `completion-at-point' and `complete-symbol' bindings in
-;; irony-mode's buffers by irony-mode's asynchronous function
-(defun my-irony-mode-hook ()
-  (define-key irony-mode-map [remap completion-at-point]
-	'irony-completion-at-point-async)
-  (define-key irony-mode-map [remap complete-symbol]
-	'irony-completion-at-point-async))
-
-(use-package irony
-  :config
-  (progn
-	;; Windows performance tweaks
-    (when (boundp 'w32-pipe-read-delay)
-      (setq w32-pipe-read-delay 0))
-    ;; Set the buffer size to 64K on Windows (from the original 4K)
-    (when (boundp 'w32-pipe-buffer-size)
-      (setq irony-server-w32-pipe-buffer-size (* 64 1024))))
-  :init (progn
-          ;; default to C++11
-          (setq irony-additional-clang-options '("-std=c++11"))))
-
-(use-package company-irony-c-headers)
-(use-package company-irony)
-(use-package cc-mode
-  :bind (("C-c o" . ff-find-other-file)
-	 ("C-c C-d" . my/duplicate-line))
-  :config
-  (progn
-	(add-hook 'c++-mode-hook 'irony-mode)
-    (add-hook 'c-mode-hook 'irony-mode)
-    (add-hook 'objc-mode-hook 'irony-mode)
-
-    ;; used to be set globally but this messed up when opening C files
-    (add-hook 'c++-mode-hook (lambda () (setq flycheck-clang-language-standard "c++11")))
-    (add-hook 'c++-mode-hook (lambda () (setq flycheck-gcc-language-standard "c++11")))
-
-    (add-hook 'irony-mode-hook 'my-irony-mode-hook)
-    (c-set-offset 'case-label '+)
-    (sp-local-pair 'c-mode "{" nil :post-handlers '((my/open-block-c-mode "RET")))
-    (sp-local-pair 'c++-mode "{" nil :post-handlers '((my/open-block-c-mode "RET")))))
-
-(use-package arduino-mode
-  :mode "\.\\(pde\\|ino\\).?$"
-  :config (sp-local-pair 'arduino-mode
-			 "{" nil :post-handlers '((my/open-block-c-mode "RET"))))
-
-;; lisp
-;; (add-to-list 'load-path "/Users/tef/quicklisp/dists/quicklisp/software/slime-2.14")
-;; (require 'slime)
-(defvar slime-repl-font-lock-keywords lisp-font-lock-keywords-2)
-(defun slime-repl-font-lock-setup ()
-  (setq font-lock-defaults
-		'(slime-repl-font-lock-keywords
-		  ;; From lisp-mode.el
-		  nil nil (("+-*/.<>=!?$%_&~^:@" . "w")) nil
-		  (font-lock-syntactic-face-function
-		   . lisp-font-lock-syntactic-face-function))))
-
-(defadvice slime-repl-insert-prompt (after font-lock-face activate)
-	(let ((inhibit-read-only t))
-	  (add-text-properties
-	   slime-repl-prompt-start-mark (point)
-	   '(font-lock-face
-		 slime-repl-prompt-face
-		 rear-nonsticky
-		 (slime-repl-prompt read-only font-lock-face intangible)))))
-
-;; COMMENTED SLIME for a faster startup => uncomment if you want to use it
-;; (add-to-list 'load-path "/Users/tef/.emacs.d/elpa/slime-2.19/contrib/")
-;; (use-package "slime-company")
-;; (use-package "slime"
-;;   ;; :mode "\\.lisp\\.?$"
-  
-;;   :init
-;;   (progn
-;; 	;; (require 'slime-repl)
-;; 	;; (add-hook 'slime-repl-mode-hook 'slime-repl-font-lock-setup)
-;; 	(setq slime-net-coding-system 'utf-8-unix)
-;; 	(slime-setup '(slime-fancy slime-company))
-;; 	(slime-setup '(slime-fancy slime-company))
-;; 	(setq slime-enable-evaluate-in-emacs t)
-;; 	))
-
-(use-package "eldoc"
-  :diminish eldoc-mode
-  :commands turn-on-eldoc-mode
-  :defer t
-  :init
-  (progn
-  (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-  (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
-  (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
-
-;; https://github.com/magnars/dash.el
-(use-package dash
-  :pin melpa)
-
-(use-package helpful
-  :pin melpa-stable)
-
-;; clojure
-(use-package clojure-mode)
-(use-package cider
-  :init
-  (progn
-    (setq cider-cljs-lein-repl
-	  "(do (require 'figwheel-sidecar.repl-api)
-		   (figwheel-sidecar.repl-api/start-figwheel!)
-		   (figwheel-sidecar.repl-api/cljs-repl))")))
-
-;; rust
-(use-package rust-mode
-  :init
-  (progn
-    ;; (add-hook 'rust-mode-hook 'flycheck-rust-setup)  ;; newly added
-	(add-hook 'rust-mode-hook 'pretty-greek)
-	(add-hook 'rust-mode-hook 'my-prettiest-symbols)))
-(use-package racer
-  :bind (("C-c TAB" . company-indent-or-complete-common))
-  :init
-  (progn
-    (add-hook 'rust-mode-hook #'racer-mode)
-    (add-hook 'rust-mode-hook #'eldoc-mode)
-    (setq company-tooltip-align-annotations t)))
-(use-package company-racer)
-
-;; java
-
-;; scala
-(use-package scala-mode
-  :pin melpa-stable
-  :mode "\\.scala\\.?$")
-;; FIXME: apparently `ensime' is done for, and it's replaced by something called `metals'. Probably never going to do Scala again though, so whatever
-;; (use-package ensime
-;;   :pin melpa-stable)
-
-;; groovy
-(use-package groovy-mode
-  :config
-  (progn
-    (sp-local-pair 'c-mode "{" nil :post-handlers '((my/open-block-c-mode "RET")))))
-
-;; c# / c-sharp
-(use-package csharp-mode
-  :mode "\\.cs\\.?$"
-  :pin melpa-stable
-  :config (sp-local-pair 'csharp-mode "{" nil :post-handlers '((my/open-block-c-mode "RET"))))
-
-;; (use-package omnisharp
-;;   :init (setq omnisharp-server-executable-path "/Users/tef/omnisharp-server/Omnisharp/bin/Debug/OmniSharp.exe")
-;;   :config (add-to-list 'company-backends 'company-omnisharp))
-
-;; Golang
-(use-package go-mode
-  :mode "\\.go\\.?$"
-  :pin melpa-stable
-  :config (add-to-list 'company-backends 'company-go))
-(use-package company-go)
-
-;; Julia
-(use-package julia-mode
+;; [[file:config.org::*General][General:1]]
+;; smartparens.el: Automatic insertion of pairs of characters.
+(use-package smartparens
   :config (progn
-            (add-hook 'julia-mode-hook 'my-prettiest-symbols))
-  ;; :config
-  ;; (progn
-  ;;   ;; (load "ess-site")
-  ;;   ;; (add-hook 'julia-mode #'ess-julia-mode)
-  ;;   ;; overwrite this rebinding from `ess-julia-mode'
-  ;;   ;; (bind-key "TAB" 'julia-latexsub-or-indent ess-julia-mode-map))
-    )
+            (require 'smartparens-config)
+            (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
+            (add-hook 'prog-mode-hook 'show-paren-mode t)))
+;; General:1 ends here
 
-;; web development
-;; from FAQ at http://web-mode.org/ for smartparens
-(defun my/web-mode-hook ()
-  (setq web-mode-enable-auto-pairing nil))
+;; [[file:config.org::*Undo & redo][Undo & redo:1]]
+;; undo-tree.el: Tree-based undo-mechanism.
+;; NOTE: To install, see https://github.com/zachcurry/emacs-anywhere.
+(use-package undo-tree
+  :diminish undo-tree-mode
+  :init (global-undo-tree-mode))
+;; Undo & redo:1 ends here
 
-(defun my/sp-web-mode-is-code-context (id action context)
-  (and (eq action 'insert)
-       (not (or (get-text-property (point) 'part-side)
-                (get-text-property (point) 'block-side)))))
-
-(defun setup-tide-mode ()
-  (interactive)
-  (tide-setup)
-  (flycheck-mode +1)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (eldoc-mode +1)
-  (tide-hl-identifier-mode +1)
-  ;; company is an optional dependency. You have to
-  ;; install it separately via package-install
-  ;; `M-x package-install [ret] company`
-  (company-mode +1))
-
-(use-package tide)
-
-(use-package web-mode
-  :mode "\\.\\(html?\\|jinja||tsx\\).$"
+;; [[file:config.org::*Auto completion][Auto completion:1]]
+;; company.el: Autocomplete backend. Other packages implement frontends for this,
+;; e.g. auto-completer for Python.
+(use-package company
   :config
-  (progn
-    (add-hook 'web-mode-hook  'my/web-mode-hook)
-    ;; setup Tide with web-mode
-    (add-hook 'web-mode-hook
-          (lambda ()
-            (when (string-equal "tsx" (file-name-extension buffer-file-name))
-              (setup-tide-mode))))
-    
-    (sp-local-pair 'web-mode "<" nil :when '(my/sp-web-mode-is-code-context))
-    (setq web-mode-markup-indent-offset 2)
-    (setq web-mode-code-indent-offset 2)
-    (setq web-mode-enable-current-element-highlight t)
-    (setq web-mode-ac-sources-alist
-	  '(("css" . (ac-source-css-property))
-	    ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
-	  )))
-
-;; Allows for 'div.className' + C-j => "<div class='className'></div>"
-(use-package emmet-mode
-     :init
-     (progn
-       (add-hook 'web-mode-hook 'emmet-mode)))
-(use-package helm-emmet)
-
-;; javascript
-(use-package js2-mode)
-(use-package rjsx-mode
-  :mode "\\.js\\.?$"
-  :config (setq js-indent-level 2))
-(use-package skewer-mode
-  :init
-  (progn
-    ;; disable warning on missing semi-colons
-    (setq js2-strict-missing-semi-warning nil
-          js2-missing-semi-one-line-override nil)
-    
-    (add-hook 'js2-mode-hook 'skewer-mode)
-    (add-hook 'css-mode-hook 'skewer-css-mode)
-    (add-hook 'html-mode-hook 'skewer-html-mode))
-  :config (skewer-setup))
-
-;; js autocomplete server. Requires "npm install -g tern" too.
-(use-package tern
-  :config
-  (progn
-    (bind-key "C-c C-c" 'compile tern-mode-keymap)
-    (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
-    (add-hook 'js2-mode-hook 'tern-mode)
-    (add-hook 'rjsx-mode-hook 'tern-mode)
-    (setq company-tern-property-marker nil)))
-
-(use-package company-tern
-  :init (add-to-list 'company-backends 'company-tern))
-
-;; typescript
-(use-package typescript-mode
-  :init (sp-local-pair 'csharp-mode "{" nil :post-handlers '((my/open-block-c-mode "RET"))))
-
-;; R
-(use-package ess
-  :pin melpa-stable)
-
-;; python
-(use-package jedi
-  :pin melpa-stable
-  :config
-  (progn
-    (setq jedi:environment-virtualenv (list "virtualenv" "--system-site-packages"))
-    (jedi:setup)))
-
-(use-package company-jedi
-  :pin melpa-stable)
-
-(use-package elpy
-  :pin melpa
-  :config
-  (progn
-    (when (require 'flycheck nil t)
-	  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-	  (add-hook 'elpy-mode-hook 'flycheck-mode)))
+  (add-hook 'prog-mode-hook 'company-mode)
   )
 
-(use-package python
-  :mode ("\\.py\\.?$" . python-mode)
-  :pin melpa-stable
+;; Just to make the `company` UI work nicely with the Co-pilot suggestions.
+(use-package company-box)
+
+(use-package copilot
+  :straight (:host github
+             :repo "zerolfx/copilot.el"
+             :files ("dist" "*.el"))
+  :ensure t
   :config
   (progn
-	(add-hook 'python-mode-hook 'pretty-greek)
-    ;; (add-hook 'python-mode-hook 'jedi-mode)
-	(add-hook 'python-mode-hook 'elpy-mode)
-    (add-hook 'python-mode-hook
-	  (lambda ()
-	    (progn
-	      (setq electric-indent-chars (delq ?: electric-indent-chars)))))
-    ))
-
-(use-package ein
-  :init (progn
-          ;; BUG: this does not currently work for some reason; also I think I need it
-          ;; (setq ein:use-smartrep t)
-          (add-hook 'ein:notebook-mode-hook 'company-mode)))
-
-;; haskell
-(use-package haskell-mode
-  :mode "\\.hs\\.?$"
-  :init (progn
-		  ;; buffer-local variable so to use `hlint'
-		  ;; had performance issues with using `stack-ghc-lint'
-		  (add-hook 'haskell-mode-hook
-					(lambda ()
-					  (setq flycheck-checker 'haskell-ghc)))))
-
-
-;; XAML stuff
-(add-hook 'nxml-mode-hook 'turn-on-smartparens-mode)
-(add-hook 'nxml-mode-hook 'show-paren-mode)
-
-;; YAML
-(use-package yaml-mode
-  :pin melpa-stable
-  :mode "\\.yaml\\'")
-
-;; cassandra CQL
-(use-package cql-mode
-  :mode "\\.cql?$")
-
-
-;; Lua
-(use-package lua-mode
-  :pin melpa
-  :mode "\\.lua?$")
-
-
-(add-hook 'lisp-mode-hook 'pretty-greek)
-(add-hook 'emacs-lisp-mode-hook 'pretty-greek)
-
-;; END programming
-
-;; org-mode
-(defmacro tor/with-local (var val &rest body)
-  "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
-  `(let ((prev ,var)
-         (res nil))
-     (setq ,var ,val)
-     (setq res (progn ,@body))
-     (setq ,var prev)
-     res))
-
-(defvar tor/latex-publish-directory "./.latex/")
-
-(defun tor/blog-dir-as-relative (dir filename)
-  (file-relative-name dir (file-name-directory filename)))
-
-(defun tor/blog-get-latex-directory (plist filename pub-dir)
-  (cond
-   ((plist-member plist :latex-directory) (file-relative-name (plist-get plist :latex-directory) (file-name-directory filename)))
-   ;; ((plist-member plist :assets-directory) (file-relative-name (concat (plist-get plist :assets-directory) "latex/") (file-name-directory filename)))
-   ((plist-member plist :project-directory) (file-relative-name (concat (plist-get plist :project-directory) "assets/latex/") (file-name-directory filename)))))
-
-;; TODO: create a customized publishing function
-(defun tor/org-html-publish-to-html (plist filename pub-dir)
-  "My customized HTML publishing function. Publish an org file to HTML.
-
-PLIST is the property list of the given object.
-FILENAME is the filename of the Org file to be published. 
-PUB-DIR is the publishing directory.
-
-Return output file name."
-  ;; TODO: need to update/republish "local" index if it exists
-  (tor/with-local org-preview-latex-image-directory
-                  (or (tor/blog-get-latex-directory plist filename pub-dir)
-                      tor/latex-publish-directory)
-                  (org-html-publish-to-html plist filename pub-dir)))
-
-(defun tor/publish-html (plist filename pub-dir)
-  (message "%s" plist)
-  (message "%s" filename)
-  (message "%s" pub-dir)
-  (copy-file filename (concat pub-dir (file-name-nondirectory filename)) t)
-  (concat pub-dir (file-name-nondirectory filename)))
-
-;; TODO: format paths properly to avoid recursion and so on.
-(defun tor/org-publish-attachment (plist filename pub-dir)
-  "Publish a file with no transformation of any kind.
-
-PLIST is the property list for the given project.
-FILENAME is the filename of the Org file to be published.  
-PUB-DIR is the publishing directory.
-
-Return output file name."
-  (org-publish-attachment plist filename pub-dir))
-
-(defun tor/org-publish-attachment-local (plist)
-  "Use PLIST to copy the entire base-directory to publishing-directory."
-  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
-
-(defun tor/filename-to-title (filename)
-  "Transform FILENAME into title by splitting on _ and concatenating."
-  (string-join
-   (mapcar #'capitalize
-           (split-string (string-remove-suffix ".org" filename) "\[-_ \]" t))
-   " "))
-
-(use-package mustache
-  :config (require 'ht))
-
-(defun tor/directory-p (d)
-  (string-match-p "\\." d))
-
-(defun tor/org-file-p (p)
-  (string-match-p "\\.org" p))
-
-(defun tor/not-org-file-p (p)
-  (not (tor/org-file-p p)))
-
-(defun tor/posts-render-front-page (files)
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (mustache-render "{{> posts }}"
-                     (ht ("posts"
-                          (-map
-                           (lambda (c) (ht ("title" (tor/filename-to-title c))
-                                      ("link" (concat base-dir c))))
-                           (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/"))))))))
-
-(defun tor/prepare-blog-post-publish (export-options)
-  (let ((files (remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/")))
-        (mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (with-temp-buffer
-      (insert (mustache-render "{{> posts }}"
-                               (ht ("posts"
-                                    (-map
-                                     (lambda (c) (ht ("title" (tor/filename-to-title c))
-                                                ("link" (replace-regexp-in-string "\\.org" ".html" c))))
-                                     files)))))
-      (write-region nil nil "~/org-blog/posts/index.html"))))
-
-(defun tor/render-html-preamble (export-options)
-  "Renders the HTML preamble. EXPORT-OPTIONS refers to the export options passed by org."
-  ;; FIXME: figure out a better way to load this on demand
-  (require 'mustache)
-  (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :base-directory)))
-        (input-file (file-truename (plist-get export-options :input-file))))
-    (message base-dir)
-    (mustache-render "{{> base }}"
-                     (ht ("categories"
-                          (-map
-                           (lambda (c) (ht ("category" (tor/filename-to-title c))
-                                      ("link" (concat (file-relative-name
-                                                       (concat base-dir "/" c)
-                                                       (file-name-directory input-file))
-                                                      "/index.html"))))
-                           (remove-if #'tor/directory-p (directory-files "~/org-blog/notes/"))))))))
-
-(defun tor/render-html-postamble (export-options)
-  "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
-  (require 'mustache)
-  ;; (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/")))
-    (mustache-render "{{> footer}}" (ht ("" nil)))))
-
-(defun tor/render-html-preamble--posts (export-options)
-  "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
-  ;; FIXME: figure out a better way to load this on demand
-  (require 'mustache)
-  (require 'ht)
-
-  (let ((mustache-partial-paths '("~/org-blog/templates/"))
-        (base-dir (file-truename (plist-get export-options :publishing-directory))))
-    (message base-dir)
-    (mustache-render "{{> base }}"
-                     (ht ("categories"
-                          `(,(ht ("category" "Posts") ("link" "index.html"))
-                            ,(ht ("category" "Wiki") ("link" "../notes/index.html"))
-                            ,(ht ("category" "Notes from papers") ("link" "../papers/index.html"))
-                            ,(ht ("category" "About me") ("link" "../about.html"))))))))
-
-(defun tor/element--sort-elements-by-raw-value (el1 el2)
-  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
-  (string-greaterp (org-element-property :raw-value el2)
-                   (org-element-property :raw-value el1)))
-
-(defun tor/element--get-begin (el)
-  "Get beginning of EL."
-  (org-element-property :begin el))
-
-(defun tor/element--get-end (el)
-  "Get end of EL."
-  (org-element-property :end el))
-
-(defun tor/reading-list-sort (&optional level)
-  "Sort reading list at LEVEL."
-  (interactive)
-  (let* ((i 0)
-         (headline-level (or level 1))
-         (parsed (org-element-parse-buffer))
-         (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
-                            (org-element-map parsed 'headline 'identity)))
-         (start (-min (-map 'tor/element--get-begin headlines)))
-         (end (-max (-map 'tor/element--get-end headlines))))
-    (delete-region start end)
-    (goto-char start)
-    (insert (string-join
-             ;; TODO: update indices
-             (-map
-              (lambda (el)
-                (progn
-                  (setq i (+ i 1))
-                  (replace-regexp-in-string "* TODO [0-9]+\\."
-                                            (format "* TODO %03d." i)
-                                             el)))
-              (-map 'org-element-interpret-data
-                         (sort headlines 'tor/element--sort-elements-by-raw-value)))
-             ""))))
-
-(defun tor/reading-list--get-next-idx (&optional level category)
-  "Get index for reading list at LEVEL and ."
-  (let* ((headline-level (or level 1))
-         (parsed (org-element-parse-buffer))
-         (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
-                                          ;; FIXME: BROKEN. Grab this from the property-drawer
-                                          (if category
-                                              (org-element-property :category el)
-                                            t)))
-                             (org-element-map parsed 'headline 'identity))))
-    (+ 1 (-max
-          (or (-filter
-               (lambda (x) (not (= x 0)))
-               (-map (lambda (el)
-                       (string-to-number
-                        (car (split-string
-                              (org-element-property :raw-value el) "\\."))))
-                     headlines))
-              '(0))))))
-
-(defun tor/list-done-hook (filename)
-  "Remove number of completed todo and re-sort reading list."
-  (when (and (boundp 'org-state) (string-equal org-state "DONE"))
-    (save-excursion
-      (with-current-buffer (find-file-noselect filename)
-        (goto-char (point-min))
-        ;; ONLY match one instead of going on a spree here
-        (if (re-search-forward "* DONE \\([0-9]+\\)\\." nil t)
-            ;; replace the completed heading            
-            (let ((n (string-to-number (buffer-substring (match-beginning 1) (match-end 1)))))
-              (message (buffer-substring (match-beginning 0) (match-end 0)))
-              (replace-match "* DONE" nil nil nil 0)
-              ;; search for next headings which need to be updated; +1 to their number
-              (message (number-to-string (point)))
-              (message (buffer-name))
-              (goto-char (match-end 0))
-              (while (re-search-forward "* TODO [0-9]+\\." nil t)
-                (message (number-to-string n))
-                (replace-match (format "* TODO %03d." n))
-                (setf n (+ n 1)))))
-        ;; sort reading-list
-        (tor/reading-list-sort)
-        ))))
-
-(defun tor/reading-list-next-idx ()
-  (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
-      (format "%03d" (tor/reading-list--get-next-idx)))))
-
-;; used to have this `-*- org-after-todo-state-change-hook: tor/reading-list-done-hook; -*-'
-;; at the top of `reading.org', but it doesn't quite work for some reason
-;; ACTUALLY this is not what's causing the issue I believe, so I reactivated it.
-(defun tor/reading-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/reading.org"))
-
-(defun tor/impl-list-next-idx ()
-  (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/implement.org")
-      (format "%03d" (tor/reading-list--get-next-idx)))))
-
-(defun tor/impl-list-done-hook ()
-  (tor/list-done-hook "~/Dropbox/org/implement.org"))
-
-;; TODO: setup this to properly work
-;; currently having issues with inactive timestamps used in the appointments
-(defun tor/clocks-to-clocked-string (start end)
-  (format "%s--%s"
-          (format-time-string "[%Y-%m-%d %H:%M]" start)
-          (format-time-string "[%Y-%m-%d %H:%M]" end)))
-
-(defun tor/appt-fake-clock-hook ()
-  "Create 'fake' clock-in and clock-out entry for appointment with time-range."
-  (org-back-to-heading)
-  (let* ((hl (org-element-headline-parser 1000))
-         (sch (org-element-property :scheduled hl))
-         (closed (org-element-property :closed hl)))
-    (message "%s" hl)
-    (when (and sch (or (string-equal (org-element-property :type sch) "active-range")
-                       (and (string-equal (org-element-property :type closed) "inactive")
-                            (org-element-property :year-end closed))))
-      ;; instead of creating the entire entry, we create a small one and replace the values
-      (message "clocking in and out")
-      (org-clock-in)
-      (org-clock-out)
-
-      (if (re-search-forward "CLOCK: \\[.+\\]--\\[.+\\]" nil t 1)
-          (format-time-string "[%Y-%m-%d]" (current-time))
-        (replace-match (concat
-                        "CLOCK: "
-                        (tor/clocks-to-clocked-string
-                         (date-to-time (format "%s %02d:%02d"
-                                               (current-time)
-                                               ;; (org-element-property :year-start sch)
-                                               ;; (org-element-property :month-start sch)
-                                               ;; (org-element-property :day-start sch)
-                                               (org-element-property :hour-start sch)
-                                               (org-element-property :minute-start sch)))
-                         (date-to-time (format "%s %02d:%02d"
-                                               (current-time)
-                                               ;; (org-element-property :year-end sch)
-                                               ;; (org-element-property :month-end sch)
-                                               ;; (org-element-property :day-end sch)
-                                               (org-element-property :hour-end sch)
-                                               (org-element-property :minute-end sch)))))))
-      (org-clock-update-time-maybe)
-      (message "%s" sch))))
-
-(defun tor/latex-export-sqlite-blocks (text backend info)
-  "Replaces `sqlite' src blocks by `sql' src blocks, as these are handled by minted."
-  (when (org-export-derived-backend-p backend 'latex)
-    (with-temp-buffer
-      (insert text)
-      ;; replace verbatim env by listings
-      (goto-char (point-min))
-      (replace-string "\\begin{minted}[]{sqlite}" "\\begin{minted}[]{sql}")
-      (buffer-substring-no-properties (point-min) (point-max)))))
-
-(use-package ob-http)
-;; (use-package ob-ipython
-;;   :config (progn
-;;             (setq ob-ipython-resources-dir "/tmp/obipy-resources/")
-
-;;             ;; HACK: the one below is an improvement
-;;             ;; (advice-add 'ob-ipython--collect-json :before
-;;             ;; (lambda (&rest args)
-;;             ;;   (when (re-search-forward "{" nil t)
-;;             ;;     (backward-char))))
-;;             (advice-add 'ob-ipython--collect-json :before
-;;                         (lambda (&rest args)
-;;                           (let ((start (point)))
-;;                             (set-mark (point))
-;;                             (while (re-search-forward "{" nil t)
-;;                               (backward-char)
-;;                               (kill-region (region-beginning) (region-end))
-;;                               (re-search-forward "}\n" nil t)
-;;                               (set-mark (point)))
-;;                             (end-of-buffer)
-;;                             (kill-region (region-beginning) (region-end))
-;;                             (goto-char start))))))
-(use-package ob-sql-mode)
-(use-package jupyter
-  :pin melpa
-  :config (progn
-            (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
-                                                                (:session . "jl")
-                                                                (:kernel . "julia-1.3")))
-            (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-                                                                 (:session . "py")
-                                                                 (:kernel . "python3")))))
-
-(use-package org
-  :pin org
-  :bind (("C-c l" . org-store-link))
-  :init
-  (progn
-    ;; `sqlite' not available using `minted', so we change those blocks to std `sql' blocks
-    (require 'ox)
-    (add-to-list 'org-export-filter-src-block-functions 'tor/latex-export-sqlite-blocks)
-    (setq org-confirm-babel-evaluate nil
-          org-export-headline-levels 5
-          org-export-with-toc 2
-          org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks
-
-          org-latex-listings 'minted ;; use `minted' instead of `listings' when exporting to latex
-
-          org-src-window-setup 'current-window ;; makes it so that the src block is opened in the current window
-
-          ;; customization for latex-preview in org-mode
-          org-format-latex-options '(:foreground default
-                                                 :background default
-                                                 :scale 1.5
-                                                 :html-foreground "steelblue"
-                                                 :html-background "Transparent"
-                                                 :html-scale 1.0
-                                                 :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
-          )
-    ;; disable execution on export UNLESS otherwise specified
-    (add-to-list 'org-babel-default-header-args '(:eval . "never-export")))
-  :config
-  (progn
-    (setq org-confirm-babel-evaluate nil
-		  org-export-headline-levels 5
-		  org-export-with-toc 2
-		  org-export-use-babel t ;; necessary for parsing header-arguments of src-blocks 
-          )
-    ;; disable execution on export UNLESS otherwise specified
-    (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
-
-    (global-set-key (kbd "C-c å") 'org-agenda)
-    (global-set-key (kbd "C-c ¤") 'org-mark-ring-goto)
-
-    ;; https://emacs.stackexchange.com/a/18146
+    ;; Unbind deprecated navigation bindings from `company'.
     (require 'bind-key)
-    (unbind-key "C-c [" org-mode-map)
-    
-    (setcar org-emphasis-regexp-components " \t('\"{[:alpha:]")
-    (setcar (nthcdr 1 org-emphasis-regexp-components) "[:alpha:]- \t.,:!?;'\")}\\")
-    (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
+    (unbind-key "M-p" company-active-map)
+    (unbind-key "M-n" company-active-map)
 
-    ;; Custom hooks
-    (add-hook 'org-mode-hook 'pretty-greek)
-    (add-hook 'org-mode-hook 'my-prettiest-symbols)
-
-    (font-lock-add-keywords 'org-mode
-                            '(("^ +\\([-*]\\) "
-                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-
-    ;; org-agenda / org-capture
-    (setq org-agenda-files '("~/Dropbox/org/gtd.org"
-                             "~/Dropbox/org/school.org"
-                             "~/Dropbox/org/reading.org"
-                             "~/Dropbox/org/implement.org"))
-    (setq org-default-notes-file "~/Dropbox/org/gtd.org")
-    (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2) 
-			       ("~/Dropbox/org/someday.org" :level . 2)))
-    (setq org-capture-templates
-          '(("t"        ;; shortcut
-             "Todo"     ;; title
-             entry      ;; type of template
-             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
-             "* TODO %^{Brief Description} %^g\n  Entered on %U\n  %?\n  %i\n  %a"  ;; template
-             :empty-lines 1 ;; property
-             )
-            
-            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
-             "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
-            
-            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
-
-            ("s" "School" entry
-             (file "~/Dropbox/org/school.org")
-             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
-
-            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
-             "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
-
-            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
-             "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
-            ))
-    (setq org-agenda-custom-commands
-          '(("s" alltodo "" ((org-agenda-files '("~/Dropbox/org/school.org"))))
-            ("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
-            ("i" alltodo "" ((org-agenda-files '("~/Dropbox/org/implement.org"))))
-            ("p" . "PROJECT+Name tags searches")
-            ("pI" tags "+PROJECT+My")
-            ("po" tags "+PROJECT+Octochain")
-            ("pm" tags "+PROJECT+Masterloop")
-            ("pe" tags "+PROJECT+Easee")
-            ("pp" tags "+PROJECT+Public")))
-
-    ;; babel
-    (setq org-babel-clojure-backend 'cider)
-    (add-hook 'org-babel-after-execute-hook 'org-babel-python-strip-session-chars)
-
-    ;; Latex
-    (require 'ox-latex)
-    (add-to-list 'org-latex-packages-alist '("" "listingsutf8"))
-    (add-to-list 'org-latex-packages-alist '("" "color"))
-    (add-to-list 'org-latex-packages-alist '("" "minted"))
-
-    (add-hook 'org-mode-hook 'visual-line-mode)
-
-    (let ((targetdir "~/.emacs.d/private/ox-jekyll-lite/"))
-      (clone-if-not-exists "https://github.com/torfjelde/ox-jekyll-lite.git"
-                           targetdir)
-      (when (file-directory-p targetdir)
-        (add-to-list 'load-path targetdir)))
-
-    ;; HACK: I generally don't use
-    (clone-if-not-exists "https://github.com/gjkerns/ob-julia.git"
-                         "~/.emacs.d/private/ob-julia/")
-    (let ((targetdir "~/.emacs.d/private/ob-julia/"))
-      (when (file-directory-p targetdir)
-        (add-to-list 'load-path targetdir)))
-
-    ;; if you ever have issues with org-evaluate being disabled
-    ;; => https://emacs.stackexchange.com/questions/28441/org-mode-9-unable-to-eval-code-blocks
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp t)
-       (shell . t)
-       (C . t)
-       (dot . t)
-       (latex . t)
-       (sql . t)
-       (sqlite . t)
-       (clojure . t)
-       (python . t)
-       ;; (R . t)
-       ;; (ein . t)
-       ;; (ipython . t)
-       ;; (scala . t)
-       ;; (rust . t)
-       ;; (haskell . t)
-       (jupyter . t)
-       (julia . t)
-       ;; (csharp. t)
-       (ditaa . t)))
-
-    (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
-                                                        (:session . "jl")
-                                                        (:kernel . "julia-1.4")))
-
-    ;; ensure that we use Py3 to evaluate Python blocks
-    (setq org-babel-python-command "python3")
-
-    (org-babel-jupyter-override-src-block "julia")
-    (org-babel-jupyter-override-src-block "python")
-
-    ;; customization for HTML export using MathJax
-    (setq org-html-mathjax-template "<script type=\"text/x-mathjax-config\">
- MathJax.Hub.Config({
-   displayAlign: \"%ALIGN\",
-   displayIndent: \"%INDENT\",
-
-   \"HTML-CSS\": { scale: %SCALE,
-                 linebreaks: { automatic: \"%LINEBREAKS\" },
-                 webFont: \"%FONT\"
-   },
-   SVG: {scale: %SCALE,
-         linebreaks: { automatic: \"%LINEBREAKS\" },
-         font: \"%FONT\"},
-   NativeMML: {scale: %SCALE},
-   TeX: { equationNumbers: {autoNumber: \"%AUTONUMBER\"},
-          MultLineWidth: \"%MULTLINEWIDTH\",
-          TagSide: \"%TAGSIDE\",
-          TagIndent: \"%TAGINDENT\",
-          extensions: [\"color.js\", \"cancel.js\"]
-   },
-   extensions: [\"[Contrib]/physics/physics.js\"]
- });
-</script>
-<script type=\"text/javascript\"
-        src=\"%PATH\"></script>
-
-")
-
-    ;; show agenda on startup
-    (setq initial-buffer-choice (lambda ()
-                                  (org-agenda-list)
-                                  (get-buffer "*Org Agenda*")))
-    
-    ;; ox-publish
-    (require 'ox-publish)
-    (setq org-publish-project-alist
-          '(
-            ;; ... add all the components here (see below)...
-            ("blog-latex"
-             :base-directory "~/org-blog/assets/latex"
-             :publishing-directory "~/org-blog/public_html/assets/latex"
-             :recursive t
-             :publishing-function tor/org-publish-attachment
-             :base-extension "png\\|jpg\\|gif\\\\|ogg\\|swf")
-
-            ;; ;; TODO: somehow allow us to simply copy the files in one go instead of going through
-            ;; ;; all files to check if modified
-            ("blog-latex-local"
-             :base-directory "~/org-blog/assets/latex"
-             :publishing-directory "~/org-blog/public_html/assets/latex"
-             :recursive nil
-             :preparation-function tor/org-publish-attachment-local
-             :publishing-function identity
-             :base-extension "")
-            
-            ("org-posts"
-             :project-directory "~/org-blog/"
-             :assets-directory "~/org-blog/assets/"
-             :base-directory "~/org-blog/posts/"
-             :base-extension "org"
-             :exclude ".*\\.org_archive|.*\\.org_old"  ;; HACK: this allows us to filter out posts
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :recursive nil
-             :publishing-function tor/org-html-publish-to-html
-             ;; :preparation-function tor/prepare-blog-post-publish
-             :headline-levels 4
-             :auto-preamble t
-             :html-preamble tor/render-html-preamble--posts
-             :html-postamble nil
-             :html-html5-fancy t
-             :html-metadata-timestamp-format "%Y-%m-%d %a")
-
-            ("org-posts-index"
-             :base-directory "~/org-blog/posts"
-             :base-extension "html"
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :publishing-function tor/publish-html
-             :preparation-function tor/prepare-blog-post-publish
-             :recursive nil
-             :auto-preamble nil
-             :html-postamble nil
-             :html-preamble nil)
-
-            ("org-posts-assets"
-             :base-directory "~/org-blog/posts/"
-             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/posts/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org-blog" :components ("org-posts" "org-posts-index" "org-posts-assets"))
-            
-            ("org-notes"
-             :project-directory "~/org-blog/"
-             :assets-directory "̃~/org-blog/assets/"
-             :base-directory "~/org-blog/notes/"
-             :base-extension "org"
-             :publishing-directory "~/org-blog/public_html/notes/"
-             :recursive t
-             :publishing-function tor/org-html-publish-to-html
-             :headline-levels 4             ; Just the default for this project.
-             :auto-preamble t
-             :html-preamble tor/render-html-preamble
-             :html-postamble nil
-             ;; :html-postamble tor/render-html-postamble
-             ;; :html-html5-fancy t
-             :html-metadata-timestamp-format "%Y-%m-%d %a"
-             )
-
-            ("org-notes-assets"
-             :base-directory "~/org-blog/notes/"
-             :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/notes/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org-static"
-             :project-directory "~/org-blog/"
-             :base-directory "~/org-blog/assets/"
-             ;; :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
-             :base-extension "css\\|js\\|gif\\|mp3\\|ogg\\|swf"
-             :publishing-directory "~/org-blog/public_html/assets/"
-             :recursive t
-             :publishing-function tor/org-publish-attachment)
-
-            ("org"
-             :components ("org-notes" "org-notes-assets" "org-static"))
-
-            ("org-papers"
-             ;; :base-directory "~/Dropbox/bibliography/notes/"
-             :project-directory "~/org-blog/"
-             :assets-directory "̃~/org-blog/assets/"
-             :base-directory "~/org-blog/papers/"
-             :base-extension "org"
-             :publishing-directory "~/org-blog/public_html/papers/"
-             :recursive nil
-             :publishing-function tor/org-html-publish-to-html
-             :headline-levels 4
-             :auto-premable t
-             :html-postamble nil)
-            ))
-    ))
-
-(use-package org-bullets
-  :init (add-hook 'org-mode-hook 'org-bullets-mode))
-
-(defun tor/org-ref-open-bibtex-pdf ()
-  "Attemt to open PDF from file-field in BibTeX entry if does not exist in default pdf-dir."
-  (interactive)
-  (save-excursion
-    (bibtex-beginning-of-entry)
-    (let* ((bibtex-expand-strings t)
-           (entry (bibtex-parse-entry t))
-           (key (reftex-get-bib-field "=key=" entry))
-           (pdf (org-ref-get-mendeley-filename key)))
-      (message "%s" pdf)
-      (if (file-exists-p pdf)
-          (org-open-link-from-string (format "[[file:%s]]" pdf))
-        (ding)))))
-
-(use-package org-ref
-  :pin melpa
-  :config (progn
-            (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
-                  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
-                  org-ref-pdf-directory "~/Dropbox/bibliography/pdfs/"
-                  biblio-download-directory "~/Dropbox/bibliography/pdfs/"
-                  bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib")
-                  ;; bibtex-completion-notes-path "/home/tor/Dropbox/bibliography/notes/"
-                  bibtex-completion-notes-path "/home/tor/org-blog/papers/"
-                  bibtex-completion-notes-template-multiple-files "#+SETUPFILE: ../setup-level-1.org\n#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n\n"
-                  
-                  bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs")
-
-                  ;; ensures that the use of #+NAME: works properly when exporting
-                  org-latex-prefer-user-labels t
-
-                  ;; with this activated it's horrendously SLOW for large files
-                  org-ref-show-broken-links nil
-
-                  org-latex-pdf-process '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                          "bibtex %b"
-                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-                                          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")
-                  ;; also attempts to open what's referenced in the "file = ..." field of the BibTeX entry
-                  org-ref-open-pdf-function 'tor/org-ref-open-bibtex-pdf
-
-                  ;; adds more entry-types, e.g. @misc and @online
-                  ;; bibtex-dialect 'biblatex
-                  )
-
-            ;; overwrites the 'inbook' BibTeX type defined by doi-utils
-            ;; +FIXME+: getting an issue with "mandatory field is missing: chapter"
-            ;; the above was due to the choice of dialect
-            (doi-utils-def-bibtex-type book ("book")
-                                       author title booktitle series publisher year pages doi url)
-            (doi-utils-def-bibtex-type inbook ("book-chapter" "chapter" "reference-entry")
-                                       author title booktitle series publisher year pages doi url)
-            ;;
-
-            ;; FIXME: for now we make `misc' a placeholder for `online'
-            ;; since the dialect `BibTeX' does not support `online'
-            ;; which causes issues when exporting Org-files
-
-            ;; (doi-utils-def-bibtex-type online ("online")
-            ;;                            author title url year)
-            ;; (add-to-list 'org-ref-bibliography-entry-format '("online" . "%a, %t, <a href=\"%U\">link</a>. %N"))
-            ;; and misc
-            
-            (add-to-list 'org-ref-bibliography-entry-format '("misc" . "%a, %t, <a href=\"%U\">link</a>.. %N"))
-
-            ;; NOT WORKING
-            ;; (defun my-pdf-proxy (orig-fun &rest args)
-            ;;   (let* ((pdf-url (apply orig-fun args))
-            ;;          (url-struct (url-generic-parse-url pdf-url)))
-            ;;     (setf (url-host url-struct)
-            ;;           (concat (url-host url-struct) ".ezproxy.is.ed.ac.uk"))
-            ;;     (url-recreate-url url-struct)))
-
-            ;; remove it like this.
-            ;; (advice-remove 'doi-utils-get-pdf-url #'my-pdf-proxy)
-            ;; (advice-add 'doi-utils-get-pdf-url :around #'my-pdf-proxy)
-            (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)
-            )
-  :init (progn
-          (require 'org-ref-pdf)
-          (bind-key "C-c [" 'org-ref-insert-ref-link)
-          (bind-key "C-c ]" 'org-ref-helm-insert-cite-link)))
-
-;; END org-mode
-
-;;; themes ;;;
-(message "Parsing themes")
-(use-package solarized-theme)
-;; (use-package darktooth-theme)
-;; (use-package atom-one-dark-theme)
-  ;; :init
-  ;; (add-hook 'after-make-frame-functions
-  ;;         '(lambda (frame)
-  ;;           (select-frame frame)
-  ;;           (if window-system
-  ;;               nil
-  ;; 	      (set-frame-parameter nil 'background-color "#2B2B2B")
-;; 	      ))))
-
-(defun on-frame-open (&optional frame)
-  "If the FRAME created in terminal don't load background color."
-  (unless (display-graphic-p frame)
-    (set-face-background 'default "unspecified-bg" frame)))
-
-(add-hook 'after-make-frame-functions 'on-frame-open)
-
-(use-package smart-mode-line)
-(use-package spaceline
+    ;; Add bindings for `copilot'
+    (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "M-p") 'copilot-previous-completion)
+    (define-key copilot-completion-map (kbd "M-n") 'copilot-next-completion)
+    (define-key copilot-completion-map (kbd "M-RET") 'copilot-accept-completion-by-word)
+    (define-key copilot-completion-map (kbd "C-M-<return>") 'copilot-accept-completion-by-line)
   :init
   (progn
-	(require 'spaceline-config)
-	(spaceline-emacs-theme)
-        ))
+    (add-hook 'prog-mode-hook 'copilot-mode)
 
-(use-package default-text-scale
-  :pin melpa)
+    (with-eval-after-load 'company
+      ;; disable inline previews
+      (delq 'company-preview-if-just-one-frontend company-frontends)))))
+;; Auto completion:1 ends here
 
-;; (let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-;;                              ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-;;                              ((x-list-fonts "Verdana")         '(:font "Verdana"))
-;;                              ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-;;                              (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-;;        (base-font-color     (face-foreground 'default nil 'default))
-;;        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+;; [[file:config.org::*Terminal emulation][Terminal emulation:1]]
+(use-package vterm
+  :config (setq vterm-buffer-name-string "*vterm [%s]*"))
+;; Terminal emulation:1 ends here
 
-;; 	  ;; some settings for makin headings and bullets nicer
-;; 	  (custom-theme-set-faces 'user
-;; 							  `(org-level-8 ((t (,@headline ,@variable-tuple))))
-;; 							  `(org-level-7 ((t (,@headline ,@variable-tuple))))
-;; 							  `(org-level-6 ((t (,@headline ,@variable-tuple))))
-;; 							  `(org-level-5 ((t (,@headline ,@variable-tuple))))
-;; 							  `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-;; 							  `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-;; 							  `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-;; 							  `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-;; 							  `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
+;; [[file:config.org::*Flycheck][Flycheck:1]]
+(use-package flycheck
+  :config
+  ;; Make `flycheck' recognize the packages available in Emacs' `load-path'.
+  ;; Otherwise we get complaints on every `(require ...)'.
+  ;; https://github.com/flycheck/flycheck/issues/1559#issuecomment-478569550
+  (setq flycheck-emacs-lisp-load-path 'inherit))
+;; Flycheck:1 ends here
 
-;; Tor's keybindings
-(defun tor/duplicate-downward (begin end)
-  "https://emacs.stackexchange.com/a/32515"
-  (interactive "r")
-  (let (deactivate-mark (point (point)))
-    (insert (buffer-substring begin end))
-    (push-mark point)))
-
-(bind-keys*
- ("C-x C-y" . tor/duplicate-downward)
- ("C-c C-x C-m" . mc/mark-all-in-region))
-
-;; add the private files to `load-path'
-(message "Loading private files")
-(add-to-list 'load-path "~/.emacs.d/private/")
-(load "utilities")
-(require 'bookmark+)
-
-;; TODO: make this automatically download and set it up
-;; Requires downloading and loading https://github.com/emacsmirror/emacswiki.org/blob/master/header2.el
-;; and then the following can be used to automatically insert headers!
-;; (defsubst header-org-mode-latex-default ()
-;;   (when (eq major-mode 'org-mode)
-;;     (insert "#+SETUPFILE: ~/org-blog/setup.org\n")))
-
-;; (setq make-header-hook '(header-org-mode-latex-default))
-
-;; (add-hook 'org-mode-hook 'auto-make-header)
-
-(message "Parsing custom-variables")
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(TeX-view-program-selection
-   (quote
-    (((output-dvi has-no-display-manager)
+;; [[file:config.org::*LaTeX][LaTeX:1]]
+;; Don't clone but instead use `elpa' for this one.
+(use-package tex
+  :straight auctex
+  ;; NOTE: You might have to build Auctex manually. Checkout the `INSTALL`
+  ;; file in the cloned repo.
+  :straight (auctex
+             :type git
+             :host github
+             :repo "emacs-straight/auctex")
+  
+  :custom
+  (TeX-source-correlate-start-server t)
+  (TeX-macro-private nil "???")
+  (TeX-parse-self t "Ensures that completion, etc. works properly.")
+  (TeX-command-extra-options "-shell-escape")
+  (TeX-view-program-selection
+   '(((output-dvi has-no-display-manager)
       "dvi2tty")
      ((output-dvi style-pstricks)
       "dvips and gv")
      (output-dvi "xdvi")
      (output-pdf "PDF Tools")
-     (output-html "xdg-open"))))
- '(ansi-color-names-vector
-   ["#32302F" "#FB4934" "#B8BB26" "#FABD2F" "#83A598" "#D3869B" "#17CCD5" "#EBDBB2"])
- '(bibtex-completion-pdf-field "file")
- '(blink-cursor-mode nil)
- '(bmkp-last-as-first-bookmark-file "~/.emacs.d/bookmarks")
- '(compilation-message-face (quote default))
- '(cua-global-mark-cursor-color "#2aa198")
- '(cua-normal-cursor-color "#657b83")
- '(cua-overwrite-cursor-color "#b58900")
- '(cua-read-only-cursor-color "#859900")
- '(custom-enabled-themes (quote (solarized-dark)))
- '(custom-safe-themes
-   (quote
-    ("a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "2809bcb77ad21312897b541134981282dc455ccd7c14d74cc333b6e549b824f3" "13a8eaddb003fd0d561096e11e1a91b029d3c9d64554f8e897b2513dbf14b277" "830877f4aab227556548dc0a28bf395d0abe0e3a0ab95455731c9ea5ab5fe4e1" "7f1d414afda803f3244c6fb4c2c64bea44dac040ed3731ec9d75275b9e831fe5" "669e02142a56f63861288cc585bee81643ded48a19e36bfdf02b66d745bcc626" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "d91ef4e714f05fff2070da7ca452980999f5361209e679ee988e3c432df24347" "0598c6a29e13e7112cfbc2f523e31927ab7dce56ebb2016b567e1eff6dc1fd4f" "ec5f761d75345d1cf96d744c50cf7c928959f075acf3f2631742d5c9fe2153ad" "59171e7f5270c0f8c28721bb96ae56d35f38a0d86da35eab4001aebbd99271a8" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
- '(default-text-scale-mode t nil (default-text-scale))
- '(elpy-rpc-python-command "python3")
- '(fci-rule-color "#eee8d5")
- '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
- '(highlight-symbol-colors
-   (--map
-    (solarized-color-blend it "#fdf6e3" 0.25)
-    (quote
-     ("#b58900" "#2aa198" "#dc322f" "#6c71c4" "#859900" "#cb4b16" "#268bd2"))))
- '(highlight-symbol-foreground-color "#586e75")
- '(highlight-tail-colors
-   (quote
-    (("#eee8d5" . 0)
-     ("#B4C342" . 20)
-     ("#69CABF" . 30)
-     ("#69B7F0" . 50)
-     ("#DEB542" . 60)
-     ("#F2804F" . 70)
-     ("#F771AC" . 85)
-     ("#eee8d5" . 100))))
- '(hl-bg-colors
-   (quote
-    ("#DEB542" "#F2804F" "#FF6E64" "#F771AC" "#9EA0E5" "#69B7F0" "#69CABF" "#B4C342")))
- '(hl-fg-colors
-   (quote
-    ("#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3")))
- '(hl-paren-colors (quote ("#2aa198" "#b58900" "#268bd2" "#6c71c4" "#859900")))
- '(julia-max-block-lookback 100000)
- '(magit-diff-use-overlays nil)
- '(markdown-command "/usr/bin/pandoc")
- '(nrepl-message-colors
-   (quote
-    ("#dc322f" "#cb4b16" "#b58900" "#546E00" "#B4C342" "#00629D" "#2aa198" "#d33682" "#6c71c4")))
- '(org-agenda-files
-   (quote
-    ("~/Dropbox/org/gtd.org" "~/Dropbox/org/school.org" "~/Dropbox/org/reading.org" "~/Dropbox/org/implement.org")))
- '(org-babel-inline-result-wrap "%s")
- '(org-edit-src-content-indentation 0)
- '(org-emphasis-alist
-   (quote
-    (("*" bold)
-     ("/" italic)
-     ("_" default)
-     ("=" org-verbatim verbatim)
-     ("~" org-code verbatim)
-     ("+"
-      (:strike-through t)))))
- '(org-format-latex-header
+     (output-html "xdg-open"))
+   "Specify the programs to use. In particular, use PDF tools for PDF viewing.")
+  :config
+  ;; Revert the document after compilation completes.
+  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+  )
+
+;; company-auctex.el: `company.el` frontend for `auctex.el`.
+(use-package company-auctex
+  :after (company)
+  :hook (LaTeX-mode . company-mode)
+  :init (company-auctex-init))
+
+;; company-reftex.el: Completion of citations and labels within LaTeX commands, e.g. `\cite{}'.
+(use-package company-reftex
+  :after (company)
+  :config (setq
+           company-reftex-labels-regexp
+           (rx "\\"
+               ;; List taken from `reftex-ref-style-alist'
+               (or "autoref"
+                   "autopageref"
+                   "Cpageref"
+                   "cpageref"
+                   "Cref"
+                   "cref"
+                   "eqref"
+                   "Fref"
+                   "fref"
+                   "pageref"
+                   "Ref"
+                   "ref"
+                   "vpageref"
+                   "Vref"
+                   "vref"
+                   ;; custom stuff:
+                   "propref"
+                   "thmref"
+                   "lemref"
+                   "lemmaref"
+                   "appref"
+                   "assumptref"
+                   "secref")
+               "{"
+               (group (* (not (any "}"))))
+               (regexp "\\=")))
+  (add-to-list 'company-backends 'company-reftex-labels)
+  (add-to-list 'company-backends 'company-reftex-citations))
+;; LaTeX:1 ends here
+
+;; [[file:config.org::*Markdown][Markdown:1]]
+;; markdown-mode.el: Standard mode for markdown.
+(use-package markdown-mode
+  :hook
+  (
+   ;; `visual-line-mode` adds word-wrap, etc.
+   (markdown-mode . visual-line-mode)
+   ;; Makes it so that we get automatic closing of **, etc.
+   (markdown-mode . turn-on-smartparens-mode)
+   )
+  )
+;; Markdown:1 ends here
+
+(use-package yaml-mode)
+
+;; [[file:config.org::*Polymode][Polymode:1]]
+;; polymode: Allows you to use multiple modes within a single buffer, e.g.
+;; use `julia-mode` for highlighting, etc. in a code-block within a markdown file.
+(use-package polymode)
+
+;; poly-markdown.el: Implementation of `polymode` for markdown, allowing other modes
+;; to be used within buffers with `markdown-mode` enabled.
+(use-package poly-markdown
+  :mode ("\\.[jJ]md" . poly-markdown-mode) ;; Also enable for .jmd files.
+  :bind (:map poly-markdown-mode-map
+              ("C-c '" . markdown-edit-code-block)))
+
+;; edit-indirect.el: Allows one to parts/subsections of buffers in a separate editable buffer,
+;; whose changes are reflected in the main document. This is used by `poly-markdown` to allow
+;; opening code-blocks in a separate editable buffer (see the `markdown-edit-code-block` from
+;; the above `poly-markdown` block).
+(use-package edit-indirect
+  :config (progn
+            (define-key edit-indirect-mode-map (kbd "C-c C-c") nil)))
+;; Polymode:1 ends here
+
+;; [[file:config.org::*Julia][Julia:1]]
+;; Julia
+(defvar prettify-symbols-alist--julia
+  '(
+    ("lambda" . ?λ)
+    ("->" . ?↦)
+    ("=>" . ?⟹)
+    ))
+
+(defun my/set-julia-prettify-symbols-alist ()
+  (setq prettify-symbols-alist prettify-symbols-alist--julia)
+  ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
+  (prettify-symbols-mode 1))
+
+(use-package julia-mode
+  :config
+  (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
+  )
+;; Julia:1 ends here
+
+;; [[file:config.org::*Python][Python:1]]
+;; Python
+(use-package python
+  ;; :hook
+  ;; (
+  ;;  ;; Make it so that `elpy-mode` is also enabled whenever `python-mode` is.
+  ;;  (python-mode . elpy-mode)
+  ;;  )
+  )
+
+;; TODO: can we remove this?
+(use-package elpy
+  ;; :defer t
+  ;; `advice-add` effecftively allows you insert code before/after the execution of
+  ;; some other functions. In this case we insert `(elpy-enable)` "before" `python-mode`,
+  ;; i.e. whenever `python-mode` is called, `elpy-enable` will be called just before it.
+  ;; :init (advice-add 'python-mode :before 'elpy-enable)
+  )              
+
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook
+  ((lsp-mode . lsp-enable-which-key-integration))
+  )
+
+(use-package lsp-ui :commands lsp-ui-mode)
+(use-package lsp-treemacs :commands lps-treemacs-errors-list)
+
+(use-package lsp-julia)
+
+(use-package lsp-pyright
+  :ensure t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp))))  ; or lsp-deferred
+;; Python:1 ends here
+
+;; [[file:config.org::*Emacs-lisp][Emacs-lisp:1]]
+(use-package rainbow-delimiters
+  :hook ((emacs-lisp-mode . rainbow-delimiters-mode)
+         (ielm-mode . rainbow-delimiters-mode)
+         (lisp-interaction-mode . rainbow-delimiters-mode)
+         (list-mode . rainbow-delimiters-mode))
+  ;; :config
+  ;; ;; Custom faces.
+  ;; (set-face-foreground 'rainbow-delimiters-depth-1-face "#c66")  ; red
+  ;; (set-face-foreground 'rainbow-delimiters-depth-2-face "#6c6")  ; green
+  ;; (set-face-foreground 'rainbow-delimiters-depth-3-face "#69f")  ; blue
+  ;; (set-face-foreground 'rainbow-delimiters-depth-4-face "#cc6")  ; yellow
+  ;; (set-face-foreground 'rainbow-delimiters-depth-5-face "#6cc")  ; cyan
+  ;; (set-face-foreground 'rainbow-delimiters-depth-6-face "#c6c")  ; magenta
+  ;; (set-face-foreground 'rainbow-delimiters-depth-7-face "#ccc")  ; light gray
+  ;; (set-face-foreground 'rainbow-delimiters-depth-8-face "#999")  ; medium gray
+  ;; (set-face-foreground 'rainbow-delimiters-depth-9-face "#666")  ; dark gray
+  )
+;; Emacs-lisp:1 ends here
+
+;; [[file:config.org::*Jupyter][Jupyter:1]]
+;; Jupyter
+;; This is awesome _but_ requires an Emacs version built with dynamic modules.
+;; See https://github.com/nnicandro/emacs-zmq for more information on this.
+;; But if this has been done, then you cna uncomment the line below.
+(use-package jupyter
+  :config
+  (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                      (:session . "jl")
+                                                      (:kernel . "julia-1.6")))
+  (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+                                                       (:session . "py")
+                                                       (:kernel . "python3"))))
+;; Jupyter:1 ends here
+
+;; [[file:config.org::*Org][Org:1]]
+(defvar prettify-symbols-alist--org
+  '(
+    ("#+name:" . ?✎)
+    ("#+begin_src" . ?↪)
+    ("#+end_src" . ?□)
+    ("#+begin_definition" . ?𝒟)
+    ("#+end_definition" . ?□)
+    ("#+begin_theorem" . ?𝒯)
+    ("#+end_theorem" . ?□)
+    ("#+begin_proof" . ?𝒫)
+    ("#+end_proof" . ?■)
+    ))
+
+(defun my/prettify-symbols-alist-set--org ()
+  (setq prettify-symbols-alist prettify-symbols-alist--org)
+  ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
+  (prettify-symbols-mode 1))
+
+(message "hi 2")
+(use-package org
+  ;; Ensures that we're using the version of `org` which comes with Emacs.
+  :straight (org :type built-in)
+  :hook (org-mode . my/prettify-symbols-alist-set--org)
+  ;; Bind `C-c l' to `org-store-link'.
+  :bind (("C-c l" . org-store-link))
+  :config
+  ;; customization for latex-preview in org-mode
+  (setq org-format-latex-options '(:foreground default
+                                               :background default
+                                               :scale 1.5
+                                               :html-foreground "steelblue"
+                                               :html-background "Transparent"
+                                               :html-scale 1.0
+                                               :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+  ;; During LaTeX export, try to preserve the labels defined by the user.
+  (setq org-latex-prefer-user-labels t)
+  ;; Hide emphasis markup.
+  (setq org-hide-emphasis-markers nil)
+  ;; Use bullets for lists.
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  ;; Don't query us every time we trying to evaluate code in buffers.
+  (setq org-confirm-babel-evaluate nil)
+  ;; Don't indent text in a section to align with section-level.
+  (setq org-adapt-indentation nil)
+  ;; Don't indent body of code-blocks at all.
+  (setq org-edit-src-content-indentation 0)
+  ;; Allow setting variables in setup-files.
+  (setq org-export-allow-bind-keywords t)
+  ;; Where to store the generated images from `org-latex-preview'. This '/' at the end is VERY important.
+  (setq org-preview-latex-image-directory "~/.ltximg/")
+  ;; Make it so that the src block is opened in the current window when we open to edit.
+  (setq org-src-window-setup 'current-window)
+  ;; Necessary for header-arguments in src-blocks to take effect during export.
+  (setq org-export-use-babel t)
+  ;; Disable execution of code-blocks on export by default.
+  (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+  ;; Allow us to specify width of images with `#+ATTR_ORG: :width ...'
+  (setq org-image-actual-width nil)
+  ;; Just generally a better default in our case.
+  (setq org-directory "~/org-blog")
+  ;; Format dates a bit nicer in latex exports.
+  (setq org-latex-active-timestamp-format "\\texttt{%s}")
+  (setq org-latex-inactive-timestamp-format "\\texttt{%s}")
+  ;; Use `minted' for syntax highlighting in latex exports.
+  (setq  org-latex-listings 'minted)
+  ;; Don't export `_', etc. as subscript/supscript.
+  (setq org-export-with-sub-superscripts nil)
+
+  ;; Make `org-goto' nice to work with.
+  ;; Source: https://emacs.stackexchange.com/a/32625
+  ;; Complete on outlines/headings.
+  ;; This uses `completing-read' behind the scenes, hence if you have something like
+  ;; `helm' or `ivy' activated, this will be used for the completion.
+  (setq org-goto-interface 'outline-path-completion)
+  ;; Don't try to complete headings in steps.
+  (setq org-outline-path-complete-in-steps nil)
+
+  ;; Org-agenda / Org-capture related
+  (setq org-agenda-files '("~/Dropbox/org/gtd.org"
+                           "~/Dropbox/org/school.org"
+                           "~/Dropbox/org/reading.org"
+                           "~/Dropbox/org/implement.org"))
+  (setq org-agenda-files nil)
+  (setq org-default-notes-file "~/Dropbox/org/gtd.org")
+  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)))
+
+  (setq org-capture-templates
+        '(("t"        ;; shortcut
+           "Todo"     ;; title
+           entry      ;; type of template
+           (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+           "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
+           :empty-lines 1 ;; property
+           )
+
+          ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+           "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
+
+          ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+          ("s" "School" entry
+           (file "~/Dropbox/org/school.org")
+           "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
+
+          ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+           "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+          ("R" "Research" entry (file "~/org-blog/notes/research.org")
+           "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
+
+          ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+           "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+          ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
+          ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
+          ;; we also get autocomplete for the tags.
+          ("a" "Anki basic"
+           entry
+           (file+headline org-my-anki-file "Dispatch Shelf")
+           "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
+
+          ("A" "Anki cloze"
+           entry
+           (file+headline org-my-anki-file "Dispatch Shelf")
+           "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
+          ))
+
+  ;; Hooks.
+  ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
+  ;; NOTE: This is maybe a bit "harsh". Could potentially just disable certain
+  ;; features of `flycheck`.
+  (when (my/straight-installed-p 'flycheck)
+    (require 'flycheck)
+    (defun disable-flycheck-in-org-src-block ()
+      (flycheck-mode -1))
+    (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
+
+  ;; Use `visual-line-mode' as it gives word-wrapping, etc.
+  (add-hook 'org-mode-hook 'visual-line-mode)
+
+  ;; https://emacs.stackexchange.com/a/18146
+  ;; I want this bindings for references, etc. + don't add files to agenda
+  ;; often enough to warrant having a binding for it.
+  (require 'bind-key)
+  (unbind-key "C-c [" org-mode-map)
+  (unbind-key "C-c ]" org-mode-map)
+  (unbind-key "C-c ," org-mode-map)
+  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
+
+  ;; Make `org-capture' globally available.
+  (global-set-key (kbd "C-c c") 'org-capture)
+
+  ;;;; Org-Babel ;;;;
+  ;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
+  ;; to be a dependency of `ob-*' babel) using the wrong recipe.
+  ;; (use-package ob-julia
+  ;;   :config (setq org-babel-julia-command "julia"))
+
+  ;; Specify which programming languages to support in code-blocks.
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp t)
+     (shell . t)
+     (C . t)
+     (latex . t)
+     (python . t)
+     (jupyter . t)
+     (latex . t)
+     ;; (julia-vterm . t)
+     ;; (julia . t)
+     ))
+
+  (require 'ob-jupyter)
+  (org-babel-jupyter-override-src-block "julia")
+  (org-babel-jupyter-override-src-block "python")
+
+  ;; TODO: Figure out what is causing errors when using the terminal.
+  ;; Faces.
+  ;; (custom-theme-set-faces
+  ;;  'user
+  ;;  '(variable-pitch ((t (:family "ETBembo" :height 1.0))))
+  ;;  '(fixed-pitch ((t ( :family "Source Sans Prop" :height 1.0))))
+  ;;  )
+
+  ;; (custom-theme-set-faces
+  ;;  'user
+  ;;  '(org-block ((t (:inherit fixed-pitch))))
+  ;;  '(org-code ((t (:inherit fixed-pitch))))
+  ;;  '(org-document-info ((t (:foreground "dark orange"))))
+  ;;  '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+  ;;  '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+  ;;  '(org-link ((t (:foreground "royal blue" :underline t))))
+  ;;  '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch) :weight normal))))
+  ;;  '(org-property-value ((t (:inherit fixed-pitch))) t)
+  ;;  '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+  ;;  '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+  ;;  '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+  ;;  '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+
+  ;; (let* ((variable-tuple
+  ;;         (cond
+  ;;          ;; ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+  ;;          ;; ((x-list-fonts "Lobster")         '(:font "Lobster")) ;; NOTE: This one is fun.
+  ;;          ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+  ;;          ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+  ;;          ((x-list-fonts "Verdana")         '(:font "Verdana"))
+  ;;          ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+  ;;          (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))
+  ;;          ))
+  ;;        (base-font-color     (face-foreground 'default nil 'default))
+  ;;        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+  ;;   (custom-theme-set-faces
+  ;;    'user
+  ;;    `(org-level-8 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-7 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-6 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-5 ((t (,@headline ,@variable-tuple))))
+  ;;    `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
+  ;;    `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
+  ;;    `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
+  ;;    `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
+  ;;    `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+  :custom
+  (org-format-latex-header
    "\\documentclass{article}
 \\usepackage[usenames]{color}
 [PACKAGES]
@@ -1677,26 +942,9 @@ Return output file name."
 \\addtolength{\\textheight}{-3cm}
 \\setlength{\\topmargin}{1.5cm}
 \\addtolength{\\topmargin}{-2.54cm}")
- '(org-format-latex-options
-   (quote
-    (:foreground default :background default :scale 1.5 :html-foreground "SteelBlue" :html-background "Transparent" :html-scale 1.0 :matchers
-                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
- '(org-html-htmlize-output-type (quote inline-css))
- '(org-html-mathjax-options
-   (quote
-    ((path "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML")
-     (scale "100")
-     (align "center")
-     (font "Neo-Euler")
-     (linebreaks "false")
-     (autonumber "AMS")
-     (indent "0em")
-     (multlinewidth "85%")
-     (tagindent ".8em")
-     (tagside "right"))))
- '(org-latex-default-packages-alist
-   (quote
-    (("AUTO" "inputenc" t
+
+  (org-latex-default-packages-alist
+   '(("AUTO" "inputenc" t
       ("pdflatex"))
      ("T1" "fontenc" t
       ("pdflatex"))
@@ -1709,27 +957,22 @@ Return output file name."
      ("" "amsmath" t nil)
      ("" "textcomp" t nil)
      ("" "amssymb" t nil)
-     ("" "capt-of" nil nil))))
- '(org-latex-hyperref-template "
-")
- '(org-latex-pdf-process
-   (quote
-    ("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "bibtex %b" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f" "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
- '(org-link-file-path-type (quote relative))
- '(org-preview-latex-image-directory "/home/tor/.ltximg/")
- '(org-preview-latex-process-alist
-   (quote
-    ((dvipng :programs
+     ("" "capt-of" nil nil)
+     ("" "mathpazo" t nil)
+     ("" "eulervm" t nil)))
+
+  (org-preview-latex-process-alist
+   '((dvipng :programs
              ("latex" "dvipng")
              :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
              (1.0 . 1.0)
              :latex-compiler
              ("latex -interaction nonstopmode -output-directory %o %f")
              :image-converter
-             ("dvipng -fg %F -bg %B -D %D -T tight -o %O %f"))
+             ("dvipng -D %D -T tight -bg 'Transparent' -o %O %f"))
      (dvisvgm :programs
               ("latex" "dvisvgm")
-              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :use-xcolor t :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
               (1.7 . 1.5)
               :latex-compiler
               ("latex -interaction nonstopmode -output-directory %o %f")
@@ -1737,95 +980,609 @@ Return output file name."
               ("dvisvgm %f -n -b min -c %S -o %O"))
      (imagemagick :programs
                   ("latex" "convert")
-                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :use-xcolor t :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :image-input-type "pdf" :image-output-type "png" :image-size-adjust
                   (1.0 . 1.0)
                   :latex-compiler
                   ("pdflatex -interaction nonstopmode -output-directory %o %f")
                   :image-converter
-                  ("convert -density %D -trim -antialias %f -quality 100 -transparent white %O")))))
- '(org-ref-bib-html "")
- '(org-ref-formatted-citation-formats
-   (quote
-    (("text"
-      ("article" . "${author}, ${title}, ${journal}, ${archivePrefix}:${eprint} [${primaryClass}], ${volume}(${number}), ${pages} (${year}). ${doi}")
-      ("inproceedings" . "${author}, ${title}, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("book" . "${author}, ${title} (${year}), ${address}: ${publisher}.")
-      ("phdthesis" . "${author}, ${title} (Doctoral dissertation) (${year}). ${school}, ${address}.")
-      ("inbook" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("incollection" . "${author}, ${title}, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("proceedings" . "${editor} (Eds.), ${booktitle} (${year}). ${address}: ${publisher}.")
-      ("unpublished" . "${author}, ${title} (${year}). Unpublished manuscript.")
-      (nil . "${author}, ${title} (${year})."))
-     ("org"
-      ("article" . "${author}, /${title}/, ${journal}, *${volume}(${number})*, ${pages} (${year}). ${doi}")
-      ("inproceedings" . "${author}, /${title}/, In ${editor}, ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("book" . "${author}, /${title}/ (${year}), ${address}: ${publisher}.")
-      ("phdthesis" . "${author}, /${title}/ (Doctoral dissertation) (${year}). ${school}, ${address}.")
-      ("inbook" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("incollection" . "${author}, /${title}/, In ${editor} (Eds.), ${booktitle} (pp. ${pages}) (${year}). ${address}: ${publisher}.")
-      ("proceedings" . "${editor} (Eds.), _${booktitle}_ (${year}). ${address}: ${publisher}.")
-      ("unpublished" . "${author}, /${title}/ (${year}). Unpublished manuscript.")
-      (nil . "${author}, /${title}/ (${year}).")))))
- '(org-reveal-mathjax-url "./MathJax-2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
- '(package-selected-packages
-   (quote
-    (solarized-theme ox-jekyll-md stan-mode pdf-tools helm-bibtex gnuplot org-tree-slide gnu-elpa-keyring-update annotate jupyter lv sudo-edit ox-gfm graphviz-dot-mode ox-reveal projectile-ripgrep sublimity gif-screencast ox-rst interleave xah-lookup org-brain web-mode use-package string-inflection spotify spaceline smartparens smart-mode-line racer ox-hugo ox-clip owdriver org-ref org-clock-convenience org-bullets ob-sql-mode ob-rust ob-http ob-go mustache multiple-cursors matlab-mode irony-eldoc iedit helm-spotify helm-projectile helm-org-rifle helm-emmet helm-descbinds groovy-mode fic-mode exec-path-from-shell ess edit-server edit-indirect dirtree darktooth-theme csharp-mode cql-mode company-tern company-racer company-quickhelp company-jedi company-irony-c-headers company-irony company-go company-auctex centered-cursor-mode arduino-mode ace-window ace-jump-mode)))
- '(python-shell-interpreter "python3")
- '(scroll-bar-mode nil)
- '(term-default-bg-color "#fdf6e3")
- '(term-default-fg-color "#657b83")
- '(tool-bar-mode nil)
- '(vc-annotate-background nil)
- '(vc-annotate-background-mode nil)
- '(vc-annotate-color-map
-   (quote
-    ((20 . "#dc322f")
-     (40 . "#e52a72950000")
-     (60 . "#e52aabe00000")
-     (80 . "#b58900")
-     (100 . "#e52ae52a0000")
-     (120 . "#e52ae52a0000")
-     (140 . "#e52ae52a0000")
-     (160 . "#e52ae52a0000")
-     (180 . "#859900")
-     (200 . "#98c7e52a4c63")
-     (220 . "#7295e52a7295")
-     (240 . "#4c63e52a98c7")
-     (260 . "#2631e52abef8")
-     (280 . "#2aa198")
-     (300 . "#0000e52ae52a")
-     (320 . "#0000e52ae52a")
-     (340 . "#0000e52ae52a")
-     (360 . "#268bd2"))))
- '(vc-annotate-very-old-color nil)
- '(warning-suppress-types (quote ((yasnippet backquote-change) (:warning))))
- '(weechat-color-list
-   (quote
-    (unspecified "#fdf6e3" "#eee8d5" "#990A1B" "#dc322f" "#546E00" "#859900" "#7B6000" "#b58900" "#00629D" "#268bd2" "#93115C" "#d33682" "#00736F" "#2aa198" "#657b83" "#839496")))
- '(xterm-color-names
-   ["#eee8d5" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#073642"])
- '(xterm-color-names-bright
-   ["#fdf6e3" "#cb4b16" "#93a1a1" "#839496" "#657b83" "#6c71c4" "#586e75" "#002b36"])
- '(yas-indent-line (quote fixed)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "#002b36" :foreground "#839496" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 90 :width normal :foundry "PfEd" :family "DejaVu Sans Mono"))))
- '(fic-author-face ((t (:foreground "dark violet" :underline t))))
- '(fic-face ((t (:foreground "magenta" :weight bold))))
- '(org-block ((t (:background "#002d39"))))
- '(org-block-begin-line ((t (:inherit org-meta-line :underline nil))))
- '(org-block-end-line ((t (:inherit org-meta-line :overline nil :slant normal :weight bold))))
- '(org-document-title ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5 :underline nil))))
- '(org-level-1 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.75))))
- '(org-level-2 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.5))))
- '(org-level-3 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.25))))
- '(org-level-4 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif" :height 1.1))))
- '(org-level-5 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-6 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-7 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-level-8 ((t (:inherit default :weight bold :foreground "#ABB2BF" :family "Sans Serif"))))
- '(org-meta-line ((t (:foreground "#586e75" :slant normal :weight bold)))))
-(put 'narrow-to-region 'disabled nil)
+                  ("convert -density %D -trim -antialias %f -quality 100 %O")))))
+
+;; Override `org-babel-expand-body:latex' to support case-sensitive matching.
+(defun my/org-babel-expand-body:latex (body params)
+  "Expand BODY according to PARAMS, return the expanded body."
+  (mapc (lambda (pair) ;; replace variables
+          (setq body
+                (replace-regexp-in-string
+                 (regexp-quote (format "%S" (car pair)))
+                 (if (stringp (cdr pair))
+                     (cdr pair) (format "%S" (cdr pair)))
+                 body
+                 t)))
+	(org-babel--get-vars params))
+  (org-trim body))
+
+;; TODO: Move this into `org' :config?
+(advice-add 'org-babel-expand-body:latex :override #'my/org-babel-expand-body:latex)
+
+;; Generate ID for headline if none exist.
+(require 'org-id)
+(defun org-id-new (&optional prefix)
+  "Create a new globally unique ID.
+
+An ID consists of two parts separated by a colon:
+- a prefix
+- a unique part that will be created according to `org-id-method'.
+
+PREFIX can specify the prefix, the default is given by the variable
+`org-id-prefix'.  However, if PREFIX is the symbol `none', don't use any
+prefix even if `org-id-prefix' specifies one.
+
+So a typical ID could look like \"Org-4nd91V40HI\"."
+  (let* ((prefix (if (eq prefix 'none)
+                     ""
+                   (concat (or prefix org-id-prefix) "-")))
+         unique)
+    (if (equal prefix "-") (setq prefix ""))
+    (cond
+     ((memq org-id-method '(uuidgen uuid))
+      (setq unique (org-trim (shell-command-to-string org-id-uuid-program)))
+      (unless (org-uuidgen-p unique)
+        (setq unique (org-id-uuid))))
+     ((eq org-id-method 'org)
+      (let* ((etime (org-reverse-string (org-id-time-to-b36)))
+             (postfix (if org-id-include-domain
+                          (progn
+                            (require 'message)
+                            (concat "@" (message-make-fqdn))))))
+        (setq unique (concat etime postfix))))
+     (t (error "Invalid `org-id-method'")))
+    (concat prefix unique)))
+
+
+(defun my/generate-sanitized-alnum-dash-string(str)
+  "Returns a string which contains only a-zA-Z0-9 with single dashes
+ replacing all other characters in-between them.
+
+ Some parts were copied and adapted from org-hugo-slug
+ from https://github.com/kaushalmodi/ox-hugo (GPLv3)."
+  (let* (;; Remove "<FOO>..</FOO>" HTML tags if present.
+         (str (replace-regexp-in-string "<\\(?1:[a-z]+\\)[^>]*>.*</\\1>" "" str))
+         ;; Remove URLs if present in the string.  The ")" in the
+         ;; below regexp is the closing parenthesis of a Markdown
+         ;; link: [Desc](Link).
+         (str (replace-regexp-in-string (concat "\\](" ffap-url-regexp "[^)]+)") "]" str))
+         ;; Replace "&" with " and ", "." with " dot ", "+" with
+         ;; " plus ".
+         (str (replace-regexp-in-string
+               "&" " and "
+               (replace-regexp-in-string
+                "\\." " dot "
+                (replace-regexp-in-string
+                 "\\+" " plus " str))))
+         ;; Replace German Umlauts with 7-bit ASCII.
+         (str (replace-regexp-in-string "[Ä]" "Ae" str t))
+         (str (replace-regexp-in-string "[Ü]" "Ue" str t))
+         (str (replace-regexp-in-string "[Ö]" "Oe" str t))
+         (str (replace-regexp-in-string "[ä]" "ae" str t))
+         (str (replace-regexp-in-string "[ü]" "ue" str t))
+         (str (replace-regexp-in-string "[ö]" "oe" str t))
+         (str (replace-regexp-in-string "[ß]" "ss" str t))
+         ;; Replace all characters except alphabets, numbers and
+         ;; parentheses with spaces.
+         (str (replace-regexp-in-string "[^[:alnum:]()]" " " str))
+         ;; On emacs 24.5, multibyte punctuation characters like "："
+         ;; are considered as alphanumeric characters! Below evals to
+         ;; non-nil on emacs 24.5:
+         ;;   (string-match-p "[[:alnum:]]+" "：")
+         ;; So replace them with space manually..
+         (str (if (version< emacs-version "25.0")
+                  (let ((multibyte-punctuations-str "：")) ;String of multibyte punctuation chars
+                    (replace-regexp-in-string (format "[%s]" multibyte-punctuations-str) " " str))
+                str))
+         ;; Remove leading and trailing whitespace.
+         (str (replace-regexp-in-string "\\(^[[:space:]]*\\|[[:space:]]*$\\)" "" str))
+         ;; Replace 2 or more spaces with a single space.
+         (str (replace-regexp-in-string "[[:space:]]\\{2,\\}" " " str))
+         ;; Replace parentheses with double-hyphens.
+         (str (replace-regexp-in-string "\\s-*([[:space:]]*\\([^)]+?\\)[[:space:]]*)\\s-*" " -\\1- " str))
+         ;; Remove any remaining parentheses character.
+         (str (replace-regexp-in-string "[()]" "" str))
+         ;; Replace spaces with hyphens.
+         (str (replace-regexp-in-string " " "-" str))
+         ;; Remove leading and trailing hyphens.
+         (str (replace-regexp-in-string "\\(^[-]*\\|[-]*$\\)" "" str)))
+    str)
+  )	
+
+(defun my/id-get-or-generate(&optional pom)
+  "Returns the ID property if set or generates and returns a new one if not set.
+ The generated ID is stripped off potential progress indicator cookies and
+ sanitized to get a slug. Furthermore, it is prepended with an ISO date-stamp
+ if none was found before."
+  (interactive)
+  (org-with-point-at pom
+    (when (not (org-id-get))
+      (let* (
+             ;; TODO: Only get the raw text, i.e. ignore stuff like a link [[...]].
+	         ;; retrieve heading string
+    	     (my-heading-text (nth 4 (org-heading-components)))
+             (my-heading-text (progn
+                                (message "%s" my-heading-text)
+                                (message "%s" (org-element-interpret-data (org-element-at-point)))
+                                (org-element-interpret-data my-heading-text)))
+		     ;; remove progress indicators like "[2/7]" or "[25%]"
+		     (my-heading-text (replace-regexp-in-string "[[][0-9%/]+[]] " "" my-heading-text))
+		     ;; get slug from heading text
+             (new-id (my/generate-sanitized-alnum-dash-string my-heading-text))
+    	     )
+        (when (not (string-match "[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]-.+" new-id))
+          ;; only if no ISO date-stamp is found at the beginning of the new id:
+          (setq new-id (concat (format-time-string "%Y-%m-%d-%H-%M-%S-") new-id)))
+        (org-set-property "ID" new-id)
+        )
+      ))
+
+  (org-id-get);; retrieve the current ID in any case as return value
+  )
+
+(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+
+(defun my/org-add-ids-to-headlines-in-file ()
+  "Add CUSTOM_ID properties to all headlines in the current
+   file which do not already have one. Only adds ids if the
+   `auto-id' option is set to `t' in the file somewhere. ie,
+   #+OPTIONS: auto-id:t"
+  (interactive)
+  (save-excursion
+    (widen)
+    (goto-char (point-min))
+    (org-map-entries (lambda () (my/id-get-or-generate (point))))))
+
+;; automatically add ids to saved org-mode headlines
+(add-hook 'org-mode-hook
+          (lambda ()
+            (add-hook 'before-save-hook
+                      (lambda ()
+                        (when (and (eq major-mode 'org-mode)
+                                   (eq buffer-read-only nil))
+                          (my/org-add-ids-to-headlines-in-file))))))
+
+;; Make it so that errors are also just outputted rather than opened in a different buffer, etc.
+;; NOTE: This does NOT work in combination with `ob-async' (not sure `ob-async' actually runs the advice).
+(defun my/advice--org-babel-execute:shell (args)
+  (let ((body (car args)))
+    (cons (concat "exec 2>&1\n" body "\n:\n") (cdr args))))
+
+(advice-add 'org-babel-execute:shell :filter-args #'my/advice--org-babel-execute:shell)
+
+;; NOTE: Attempt at fixing issue with `ob-async'.
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+(use-package ob-async
+  ;; :straight (:type git :host github :repo "astahlman/ob-async")
+  ;; Handling of errors: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+  ;; + some of my changes.
+  :straight (:type git :host github :repo "torfjelde/ob-async" :branch "tor/develop"))
+
+;; TODO: Does this actually work? Check it.
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-1133145526
+(defun no-hide-overlays (orig-fun &rest args)
+  (setq org-babel-hide-result-overlays nil))
+
+(advice-add 'ob-async-org-babel-execute-src-block :before #'no-hide-overlays)
+
+;; Source: https://emacs.stackexchange.com/a/63562
+(defun ek/babel-ansi ()
+  "Properly handle ANSI color codes in the result for a SRC block."
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+(add-hook 'org-babel-after-execute-hook 'ek/babel-ansi)
+
+(defmacro my/by-backend (&rest body)
+  "Allow specification of different behavior for different backends.
+The BODY is evaluated with the variable `org-export-current-backend' bound
+to the current backend.  If the backend is not specified in the BODY, the
+first form is used.
+
+Example:
+
+#+header: :results (my/backend (latex \"latex\") (t \"output\"))
+#+begin_src emacs-lisp
+...
+#+end_src
+
+results in `latex' used if the current backend is latex, and `output' otherwise.
+"
+  `(cl-case (if (not (not org-export-current-backend)) (org-export-backend-name (org-export-get-backend org-export-current-backend)) nil) ,@body))
+
+(use-package org-bullets
+  :after org
+  :config
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
+;; Very useful package for navigating Org buffers.
+(use-package helm-org-ql
+  :after org
+  :init (progn
+          (setq org-ql-search-directories-files-recursive t)))
+
+
+;; Org:1 ends here
+
+;; [[file:config.org::*Jupyter notebook][Jupyter notebook:1]]
+;; (use-package ox-ipynb
+;;   :straight (:type git :host github :repo "jkitchen/ox-ipynb")
+;;   :init
+;;   ;; It doesn't respect the `(org-babel-jupyter-override-src-block "python")' statements
+;;   ;; and so it won't recognize `python' blocks as `jupyter-python', and thus not export properly.
+;;   (setq ox-ipynb-kernelspecs '((R . (kernelspec . ((display_name . "R")
+;;                                                    (language . "R")
+;;                                                    (name . "ir"))))
+;;                                (julia . (kernelspec . ((display_name . "Julia 1.6.2")
+;;                                                        (language . "julia")
+;;                                                        (name . "julia-1.6"))))
+;;                                (jupyter-python . (kernelspec . ((display_name . "Python 3")
+;;                                                                 (language . "python")
+;;                                                                 (name . "python3"))))
+;;                                (python . (kernelspec . ((display_name . "Python 3")
+;;                                                         (language . "python")
+;;                                                         (name . "python3"))))))
+
+
+;;   (setq ox-ipynb-language-infos
+;;         '((jupyter-python . (language_info . ((codemirror_mode . ((name . ipython)
+;;                                                                   (version . 3)))
+;;                                               (file_extension . ".py")
+;;                                               (mimetype . "text/x-python")
+;;                                               (name . "python")
+;;                                               (nbconvert_exporter . "python")
+;;                                               (pygments_lexer . "ipython3")
+;;                                               (version . "3.8.10"))))
+;;           (python . (language_info . ((codemirror_mode . ((name . ipython)
+;;                                                           (version . 3)))
+;;                                       (file_extension . ".py")
+;;                                       (mimetype . "text/x-python")
+;;                                       (name . "python")
+;;                                       (nbconvert_exporter . "python")
+;;                                       (pygments_lexer . "ipython3")
+;;                                       (version . "3.8.10"))))
+
+;;           (julia . (language_info . ((codemirror_mode . "julia")
+;;                                      (file_extension . ".jl")
+;;                                      (mimetype . "text/x-julia")
+;;                                      (name . "julia")
+;;                                      (pygments_lexer . "julia")
+;;                                      (version . "1.6.2"))))
+
+;;           (R . (language_info . ((codemirror_mode . "r")
+;;                                  (file_extension . ".r")
+;;                                  (mimetype . "text/x-r-source")
+;;                                  (name . "R")
+;;                                  (pygments_lexer . "r")
+;;                                  (version . "3.3.2")))))))
+;; Jupyter notebook:1 ends here
+
+;; [[file:config.org::*Org-roam][Org-roam:1]]
+(message "hi 1")
+;; (use-package org-roam
+;;   :straight (:type git :host github :repo "org-roam/org-roam-v1")
+;;   ;; :hook
+;;   ;; (after-init . org-roam-mode)
+;;   :custom
+;;   (org-roam-directory (file-truename "~/org-roam/"))
+;;   (org-roam-completion-everywhere t)
+;;   (org-roam-include-type-in-ref-path-completions t)
+;;   :bind (:map org-roam-mode-map
+;;          (("C-c n l" . org-roam)
+;;           ("C-c n f" . org-roam-find-file)
+;;           ("C-c n g" . org-roam-graph))
+;;          :map org-mode-map
+;;          (("C-c n i" . org-roam-insert))
+;;          (("C-c n I" . org-roam-insert-immediate)))
+;;   )
+;; Org-roam:1 ends here
+
+;; [[file:config.org::*Org-ref][Org-ref:1]]
+;; helm-bibtex.el: Provides completion with `helm` for bibliographies.
+(use-package helm-bibtex
+  :bind ("C-c ]" . helm-bibtex)
+  :config
+  (setq bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs/"))
+  (setq bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib"))
+  (setq bibtex-completion-additional-search-fields '(keywords))
+  (setq bibtex-completion-pdf-field "file")
+
+  ;; Same as old `org-ref'
+  (setq bibtex-completion-display-formats 
+        '((t . "${author:36} ${title:*} ${year:4} ${=has-pdf=:1}${=has-note=:1} ${=type=:7} ${keywords:40}")))
+
+  ;; Use `org-ref-insert-cite-keys' for citation formatting when in `org-mode'.
+  (setq bibtex-completion-format-citation-functions
+        ;; TODO: Actually, functions used here are expected to _return_ the formatted string, _not_ insert
+        ;; it directly into the buffer (which is what `org-ref-insert-cite-keys' does).
+        '((org-mode . org-ref-insert-cite-keys)
+          (latex-mode . bibtex-completion-format-citation-cite)
+          (markdown-mode . bibtex-completion-format-citation-pandoc-citeproc)
+          (python-mode . bibtex-completion-format-citation-sphinxcontrib-bibtex)
+          (rst-mode . bibtex-completion-format-citation-sphinxcontrib-bibtex)
+          (default . bibtex-completion-format-citation-default)))
+  )
+
+;; org-ref.el: Provides citation management and handling for Org-mode.
+(use-package org-ref
+  :config
+  ;; Use `helm-bibtex' for completion etc.
+  (require 'org-ref-helm)
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-helm
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
+;; Org-ref:1 ends here
+
+;; [[file:config.org::*helm-org-named][helm-org-named:1]]
+
+
+(message "hi 3")
+
+(use-package helm-org-named
+  :straight (:type git :host github :repo "torfjelde/helm-org-named")
+  :bind ("C-c [" . helm-org-named)
+  :config
+  (setq helm-org-named-directories '("/home/tor/org-blog/notes")))
+;; helm-org-named:1 ends here
+
+;; [[file:config.org::*Org-pomodoro][Org-pomodoro:1]]
+;; (use-package org-pomodoro
+;;   :ensure-system-package mplayer
+;;   :config
+;;   ;; Add notification.
+;;   ;; NOTE: This might only work on linux.
+;;   (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
+;;   ;; Keep the time entered even if we killed the timer midway.
+;;   (setq org-pomodoro-keep-killed-pomodoro-time t)
+;;   ;; Use 45min sessions instead.
+;;   (setq org-pomodoro-length 45)
+;;   ;; Force us to enter break manually, thus we're just making `org-pomodoro` a "notifier" that
+;;   ;; we've spent so and so much time on a particular task, rather than religiously following "The Pomodoro Way".
+;;   (setq org-pomodoro-manual-break t)
+;;   ;; ;; Disable sound.
+;;   ;; (setq org-pomodoro-play-sounds nil)
+
+;;   ;; Use `mplayer' since this allows us specify the volume.
+;;   (setq org-pomodoro-audio-player "mplayer")
+;;   (setq org-pomodoro-finished-sound-args "-volume 50")
+;;   (setq org-pomodoro-long-break-sound-args "-volume 50")
+;;   (setq org-pomodoro-short-break-sound-args "-volume 50")
+
+;;   ;; Play a sound when we start. It's useful feedback.
+;;   (setq org-pomodoro-start-sound-p t)
+;;   (setq org-pomodoro-start-sound-args "-volume 50")
+
+;;   ;; Play a sound when we run into overtime too.
+;;   (setq org-pomodoro-overtime-sound-p t)
+;;   (setq org-pomodoro-overtime-sound-args "-volume")
+;;   )
+;; Org-pomodoro:1 ends here
+
+;; [[file:config.org::*Org-ql][Org-ql:1]]
+(use-package org-ql)
+;; Org-ql:1 ends here
+
+;; [[file:config.org::*Org-noter][Org-noter:1]]
+;; (use-package org-noter
+;;   :config
+;;   ;; Don't hide the other sections when we scroll to a new page.
+;;   (setq org-noter-hide-other nil)
+
+;;   (setq org-noter-doc-property-in-notes t)
+
+;;   (setq org-noter-notes-search-path '("~/org-blog/papers/"))
+;;   (setq org-noter-default-notes-file-names '("notes.org"))
+;;   ;; (require 'org-noter-pdftools)
+;;   )
+
+;; (use-package org-noter-pdftools
+;;   :after org-noter
+;;   :config
+;;   ;; Add a function to ensure precise note is inserted
+;;   (defun org-noter-pdftools-insert-precise-note (&optional toggle-no-questions)
+;;     (interactive "P")
+;;     (org-noter--with-valid-session
+;;      (let ((org-noter-insert-note-no-questions (if toggle-no-questions
+;;                                                    (not org-noter-insert-note-no-questions)
+;;                                                  org-noter-insert-note-no-questions))
+;;            (org-pdftools-use-isearch-link t)
+;;            (org-pdftools-use-freestyle-annot t))
+;;        (org-noter-insert-note (org-noter--get-precise-info)))))
+
+;; ;;   ;; fix https://github.com/weirdNox/org-noter/pull/93/commits/f8349ae7575e599f375de1be6be2d0d5de4e6cbf
+;; ;;   (defun org-noter-set-start-location (&optional arg)
+;; ;;     "When opening a session with this document, go to the current location.
+;; ;; With a prefix ARG, remove start location."
+;; ;;     (interactive "P")
+;; ;;     (org-noter--with-valid-session
+;; ;;      (let ((inhibit-read-only t)
+
+;; ;;            (ast (org-noter--parse-root))
+;; ;;            (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
+;; ;;        (with-current-buffer (org-noter--session-notes-buffer session)
+;; ;;          (org-with-wide-buffer
+;; ;;           (goto-char (org-element-property :begin ast))
+;; ;;           (if arg
+;; ;;               (org-entry-delete nil org-noter-property-note-location)
+;; ;;             (org-entry-put nil org-noter-property-note-location
+;; ;;                            (org-noter--pretty-print-location location))))))))
+
+;;   (with-eval-after-load 'pdf-annot
+;;     (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
+;; Org-noter:1 ends here
+
+;; [[file:config.org::*Emacs anywhere][Emacs anywhere:1]]
+;; emacs-anywhere: https://github.com/zachcurry/emacs-anywhere
+(defun github-conversation-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   (or (string-match-p "Pull Request" window-title)
+       (string-match-p "Issue" window-title))))
+
+(defun plutojl-p (app-name window-title)
+  (and
+   (string-match-p "google-chrome" (downcase app-name))
+   ;; Last part of the window name should be `Pluto.jl'
+   (string-match-p "Pluto\\.jl$" window-title)))
+
+(defun popup-handler (app-name window-title x y w h)
+  ;; Resize
+  (set-frame-width (selected-frame) 250)
+  (set-frame-height (selected-frame) 50)
+  ;; set major mode
+  (cond
+   ((github-conversation-p app-name window-title) (poly-markdown-mode))
+   ((plutojl-p app-name window-title) (julia-mode))
+   ;; ...
+   (t (poly-markdown-mode)) ; default major mode
+   ))
+
+;; NOTE: `ea-popup-hook' is used by `emacs-anywhere'.
+(add-hook 'ea-popup-hook 'popup-handler)
+;; Emacs anywhere:1 ends here
+
+;; [[file:config.org::*Frame name][Frame name:1]]
+;; Format the application/window name as "USER [PROJECT NAME]: FILE"
+(setq-default frame-title-format
+              '(:eval
+                (format "%s [%s]: %s"
+                        (or (file-remote-p default-directory 'user)
+                            user-real-login-name)
+                        ;; (or (file-remote-p default-directory 'host)
+                        ;;     system-name)
+                        (projectile-project-name)
+                        (buffer-name)
+                        )))
+;; Frame name:1 ends here
+
+(message "hi 4")
+
+;; Emoji support
+;; Source: https://ianyepan.github.io/posts/emacs-emojis/
+(use-package emojify)
+
+;; Copied from `%systemroot%/Fonts'.
+(when (member "Segoe UI Emoji" (font-family-list))
+  (set-fontset-font t 'symbol (font-spec :family "Segoe UI Emoji") nil 'prepend))
+
+;; Just use the `:' specification for emojis.
+(setq emojify-emoji-styles '(github))
+;; Use unicode instead of images.
+(setq emojify-display-style 'unicode)
+
+;; Replicate `org-previous-src-block' with including matching inline calls.
+(defvar my/org-babel-inline-call-regexp "call_\\S-\\|^[ \t]*#\\+CALL:"
+  "Regexp matching inline calls.")
+
+(defun my/join-regexps-or (regexp1 regexp2)
+  "Join two regexps in an OR match."
+  (concat "\\(" regexp1 "\\)\\|\\(" regexp2 "\\)"))
+
+(defun org-next-src-block-or-inline-call (&optional arg)
+  "Jump to the next source block or inline call."
+  (interactive "p")
+  (org-next-block arg nil (my/join-regexps-or org-babel-src-block-regexp my/org-babel-inline-call-regexp)))
+
+(defun org-previous-src-block-or-inline-call (&optional arg)
+  "Jump to the previous source block or inline call."
+  (interactive "p")
+  (org-previous-block arg (my/join-regexps-or org-babel-src-block-regexp my/org-babel-inline-call-regexp)))
+
+;; Override.
+(defun org-next-block (arg &optional backward block-regexp)
+  "Jump to the next block.
+
+With a prefix argument ARG, jump forward ARG many blocks.
+
+When BACKWARD is non-nil, jump to the previous block.
+
+When BLOCK-REGEXP is non-nil, use this regexp to find blocks.
+Match data is set according to this regexp when the function
+returns.
+
+Return point at beginning of the opening line of found block.
+Throw an error if no block is found."
+  (interactive "p")
+  (let ((re (or block-regexp "^[ \t]*#\\+BEGIN"))
+	    (case-fold-search t)
+	    (search-fn (if backward #'re-search-backward #'re-search-forward))
+	    (count (or arg 1))
+	    (origin (point))
+	    last-element)
+    (if backward (beginning-of-line) (end-of-line))
+    (while (and (> count 0) (funcall search-fn re nil t))
+      (let ((element (save-excursion
+		               (goto-char (match-beginning 0))
+		               (save-match-data (org-element-at-point)))))
+	    (when (and (memq (org-element-type element)
+			             '(center-block comment-block dynamic-block
+					                    example-block export-block quote-block
+					                    special-block src-block verse-block
+                                        ;; NOTE: This is the only change. We've just added `babel-call' and `inline-babel-call'.
+                                        babel-call inline-babel-call))
+		           (<= (match-beginning 0)
+		               (org-element-property :post-affiliated element)))
+	      (setq last-element element)
+	      (cl-decf count))))
+    (if (= count 0)
+	    (prog1 (goto-char (org-element-property :post-affiliated last-element))
+	      (save-match-data (org-show-context)))
+      (goto-char origin)
+      (user-error "No %s code blocks" (if backward "previous" "further")))))
+
+;; Bind `C-c C-v C-p' to `org-previous-src-block-or-inline-call'.
+(define-key org-mode-map (kbd "C-c C-v C-p") 'org-previous-src-block-or-inline-call)
+;; Bind `C-c C-v C-n' to `org-next-src-block-or-inline-call'.
+(define-key org-mode-map (kbd "C-c C-v C-n") 'org-next-src-block-or-inline-call)
+
+
+;; Call `org-display-inline-images' on the current subtree.
+(defun org-display-inline-images-in-subtree ()
+  "Display inline images in the current subtree."
+  (interactive)
+  (let ((current-num-inline-images (length org-inline-image-overlays))
+        (start (save-excursion (org-back-to-heading) (point)))
+        (end (save-excursion (org-end-of-subtree) (point))))
+    (org-display-inline-images nil t start end)
+    (when (called-interactively-p 'interactive)
+      (message "Displayed %d inline images"
+               (- (length org-inline-image-overlays) current-num-inline-images)))))
+
+
+;; Very useful when an org file grows too large.
+;; Nicely lists the TODOs in the current buffer while providing ease of navigation.
+(use-package org-sidebar)
+
+;; Useful for searching in org files.
+;; Allows one to jump to a heading whose contents or itself has a match
+;; with the search string.
+(use-package helm-org-rifle
+  :config
+  (setq helm-org-rifle-show-path nil))
+
+
+;; Source: https://marcohassan.github.io/bits-of-experience/pages/emacs/
+(fset 'yes-or-no-p 'y-or-n-p)
+
+(defun my/org-add-export-file-name-property ()
+  "Add the property `EXPORT_FILE_NAME' to the current heading, if it doesn't already exist, using the title of the heading as the default name."
+  (interactive)
+  (let ((export-file-name (org-entry-get (point) "EXPORT_FILE_NAME")))
+    (if export-file-name
+        (message "The property `EXPORT_FILE_NAME' already exists.")
+      (let* ((default-name (org-get-heading t t))
+             ;; Santiize the default name.
+             (default-name (replace-regexp-in-string "[^a-zA-Z0-9_]+" "-" default-name))
+             (name (read-string (format "Export file name (default: %s): " default-name) nil nil default-name)))
+        (org-entry-put (point) "EXPORT_FILE_NAME" name)))))
