@@ -181,6 +181,10 @@ Some sources on the interwebs says to use =remotepass= in the above, but that do
 :END:
 ** Basic
 #+begin_src emacs-lisp
+(defun not-nil-p (x)
+  "Return `t` if X is not nil."
+  (not (not x)))
+
 ;; Customize user interface.
 (menu-bar-mode 0)
 (tool-bar-mode 0)
@@ -326,73 +330,13 @@ Replace \"%A\" in FORMAT with English day of week of today,
   )
 #+end_src
 
+** Compat.el
+#+begin_src emacs-lisp
+;; TODO: Restrict to v28.1.2.2 and use the `emacs-compat' remote, not the `emacs-straight' (which doesn't have tags)
+(use-package compat)
+#+end_src
+
 ** User interface
-*** Themes & styling
-/Usually/, our main theme will either be =solarized-dark= or =solarized-light= (if we're outside).
-
-#+begin_src emacs-lisp
-(use-package solarized-theme
-  :defer t
-  ;; :init
-  ;; (progn
-  ;;   ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
-  ;;   ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
-  ;;   ;; TODO: Implement `my/loaded-theme-is-solarized-light-p' or something similar
-  ;;   (when (and (my/straight-installed-p 'pdf-tools) (my/loaded-theme-is-solarized-light-p))
-  ;;     ;; (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3"))
-  ;;     ;; (setq pdf-view-midnight-colors '("#3f4446" . "#fdf6e3")) ;; slightly blacker font
-  ;;     (setq pdf-view-midnight-colors '("#556065" . "#fff8e5")) ;; slightly brighter background
-  ;;     ))
-  )
-
-(use-package darktooth-theme)
-(use-package atom-one-dark-theme)
-
-;; Load `solarized-dark` by default.
-(load-theme 'solarized-dark t)
-#+end_src
-
-Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
-
-#+begin_src emacs-lisp
-(use-package doom-themes)
-;; (use-package spacegray-theme)
-
-;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
-(doom-themes-visual-bell-config)
-#+end_src
-
-#+begin_src emacs-lisp
-;; You must run (all-the-icons-install-fonts) one time after
-;; installing this package!
-(use-package all-the-icons
-  :if (display-graphic-p))
-#+end_src
-*** Modeline
-#+begin_src emacs-lisp
-;; diminish.el: Allows us to hide certain mini-modes, if we so desire.
-(use-package diminish)
-#+end_src
-
-#+begin_src emacs-lisp
-(use-package minions
-  :hook (doom-modeline-mode . minions-mode))
-
-(use-package doom-modeline
-  ;; :after eshell     ;; Make sure it gets hooked after eshell
-  :hook (after-init . doom-modeline-init)
-  :custom
-  (doom-modeline-height 15)
-  (doom-modeline-bar-width 6)
-  (doom-modeline-lsp t)
-  (doom-modeline-github nil)
-  (doom-modeline-mu4e nil)
-  (doom-modeline-irc t)
-  (doom-modeline-minor-modes t)
-  (doom-modeline-persp-name nil)
-  (doom-modeline-buffer-file-name-style 'truncate-except-project)
-  (doom-modeline-major-mode-icon nil))
-#+end_src
 *** =M-x=
 Personally I like =helm= as I find its discovery to be quite good.
 
@@ -492,16 +436,20 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
 ;; ace-window.el: Allows you to jump between windows. Super-useful when you're using more than 2 windows.
 ;; HACK: Only load if we're using a GUI. For some reason `ace-window' making it so that
 ;; switching between windows inserts 'I's and 'O's.
-(when (display-graphic-p)
-  (use-package ace-window
-    ;; We might have multiple Emacs frames open, all using the same server.
-    ;; In these cases it is usually undesired to have `ace-window' suggest
-    ;; opening Emacs windows we can't even see. In addition, we usually then
-    ;; end up with a huge number of candidates.
-    ;; This limits the candidates that we can jump to to the current frame.
-    :custom (aw-scope 'frame)
-    ;; Feel free to change the binding.
-    :bind ("M-[" . ace-window)))
+(use-package ace-window
+  :ensure nil
+  :defer t
+  ;; We might have multiple Emacs frames open, all using the same server.
+  ;; In these cases it is usually undesired to have `ace-window' suggest
+  ;; opening Emacs windows we can't even see. In addition, we usually then
+  ;; end up with a huge number of candidates.
+  ;; This limits the candidates that we can jump to to the current frame.
+  :custom (aw-scope 'frame)
+  ;; Feel free to change the binding.
+  :bind ("M-[" . ace-window))
+
+;; Only load `ace-window' upon frame-creation.
+(add-hook after-make-frame-functions (lambda () (when (display-graphic-p) (require 'ace-window)))
 #+end_src
 
 **** Within-buffer navigation
@@ -582,12 +530,17 @@ The default tab-bar name uses the buffer name."
 *** Git
 #+begin_src emacs-lisp
 ;; magit.el: Objectively the best interface for working with Git-related stuff ever.
-(use-package magit)
+(use-package magit
+  :config
+  ;; Make `magit' look for the password in `~/.authinfo'.
+  ;; Useful if you're working with, say, Overleaf where SSH is not an option for git.
+  (add-hook 'magit-process-find-password-functions
+            'magit-process-password-auth-source))
 ;; forge.el: Magit's interface to different repo hosts, e.g. Github, Gitlab.
 (use-package forge)
 #+end_src
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (use-package blamer
   :ensure t
   :defer 20
@@ -655,6 +608,21 @@ The default tab-bar name uses the buffer name."
 #+end_src
 
 ** Programming & Markup
+*** Language Server Protocol
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e.g. python-mode)
+         (julia-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+(use-package lsp-ui :commands lsp-ui-mode)
+(use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+#+end_src
 *** Flycheck
 #+begin_src emacs-lisp
 (use-package flycheck
@@ -674,6 +642,7 @@ The default tab-bar name uses the buffer name."
              :host nil
              :repo "https://git.savannah.gnu.org/git/auctex.git")
   :custom
+  (TeX-command-extra-options "-shell-escape")
   (TeX-source-correlate-start-server t)
   (TeX-macro-private nil "???")
   (TeX-parse-self t "Ensures that completion, etc. works properly.")
@@ -787,6 +756,17 @@ The default tab-bar name uses the buffer name."
   (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
   )
 #+end_src
+
+#+begin_src emacs-lisp
+;; The `lsp' setup for Julia
+;; You might need to dev both `LanguageServer.jl' and `StaticLint.jl'
+;; for everything to work (at least I had to on 02/03/2021).
+(use-package lsp-julia
+  ;; :pin melpa
+  :config (progn
+            ;; (setq lsp-julia-package-dir nil)
+            (setq lsp-julia-default-environment "~/.julia/environments/v1.8")))
+#+end_src
 *** Python
 #+begin_src emacs-lisp
 ;; Python
@@ -833,13 +813,21 @@ The default tab-bar name uses the buffer name."
 ;; See https://github.com/nnicandro/emacs-zmq for more information on this.
 ;; But if this has been done, then you cna uncomment the line below.
 (use-package jupyter
+  :bind (:map jupyter-repl-interaction-mode-map
+              ("C-<return>" . jupyter-eval-line-or-region)
+              ("C-M-<return>" . jupyter-eval-defun)
+              )
   :config
   (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
                                                       (:session . "jl")
-                                                      (:kernel . "julia-1.6")))
+                                                      (:kernel . "julia-1.8")))
   (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
                                                        (:session . "py")
                                                        (:kernel . "python3"))))
+#+end_src
+*** R
+#+begin_src emacs-lisp 
+(use-package ess)
 #+end_src
 
 ** Org
@@ -847,6 +835,92 @@ A couple of notes before we start going through the config for all org-related:
 1. =org= is a dependency of a bunch of packages, e.g. =org-ref=, /and/ we often want to have a custom recipe for =org=, e.g. =:straight (org :type buil-in)= to ensure that we're using the built-in version of =org=. In this case, to ensure that our custom recipe is respected, we need to load =org= /before/ any of its dependencies (otherwise we'll end up using the default recipe of =org= in the installation of the dependant).
    - https://github.com/raxod502/straight.el#recipe-lookup for more about this.
 
+*** Tor's reading list
+#+begin_src emacs-lisp 
+;; Tor's reading list and stuff
+(defun tor/element--sort-elements-by-raw-value (el1 el2)
+  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
+  (string-greaterp (org-element-property :raw-value el2)
+		   (org-element-property :raw-value el1)))
+
+(defun tor/element--get-begin (el)
+  "Get beginning of EL."
+  (org-element-property :begin el))
+
+(defun tor/element--get-end (el)
+  "Get end of EL."
+  (org-element-property :end el))
+
+(defun tor/reading-list-sort (&optional level)
+  "Sort reading list at LEVEL."
+  (interactive)
+  (let* ((i 0)
+	 (headline-level (or level 1))
+	 (parsed (org-element-parse-buffer))
+	 (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
+			    (org-element-map parsed 'headline 'identity)))
+	 (start (-min (-map 'tor/element--get-begin headlines)))
+	 (end (-max (-map 'tor/element--get-end headlines))))
+    (delete-region start end)
+    (goto-char start)
+    (insert (string-join
+	     ;; TODO: update indices
+	     (-map
+	      (lambda (el)
+		(progn
+		  (setq i (+ i 1))
+		  (replace-regexp-in-string "* TODO [0-9]+\\."
+					    (format "* TODO %03d." i)
+					     el)))
+	      (-map 'org-element-interpret-data
+			 (sort headlines 'tor/element--sort-elements-by-raw-value)))
+	     ""))))
+
+(defun tor/reading-list--get-next-idx (&optional level category)
+  "Get index for reading list at LEVEL and ."
+  (let* ((headline-level (or level 1))
+	 (parsed (org-element-parse-buffer))
+	 (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
+					  ;; FIXME: BROKEN. Grab this from the property-drawer
+					  (if category
+					      (org-element-property :category el)
+					    t)))
+			     (org-element-map parsed 'headline 'identity))))
+    (+ 1 (-max
+	  (or (-filter
+	       (lambda (x) (not (= x 0)))
+	       (-map (lambda (el)
+		       (string-to-number
+			(car (split-string
+			      (org-element-property :raw-value el) "\\."))))
+		     headlines))
+	      '(0))))))
+
+(defun tor/reading-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
+#+end_src
+
+*** Agenda utilities
+#+begin_src emacs-lisp 
+(defun my/org-skip-subtree-if-priority (priority)
+  "Skip an agenda subtree if it has a priority of PRIORITY.
+
+PRIORITY may be one of the characters ?A, ?B, or ?C."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+        (pri-value (* 1000 (- org-lowest-priority priority)))
+        (pri-current (org-get-priority (thing-at-point 'line t))))
+    (if (= pri-value pri-current)
+        subtree-end
+      nil)))
+
+(defun my/pop-to-org-agenda ()
+  "Visit the org agenda in the current window."
+  (interactive)
+  (let ((org-agenda-window-setup 'current-window))
+    (org-agenda nil "c")))
+#+end_src
 *** Org
 #+begin_src emacs-lisp
 (defvar prettify-symbols-alist--org
@@ -906,10 +980,13 @@ A couple of notes before we start going through the config for all org-related:
   (setq org-export-use-babel t)
   ;; Disable execution of code-blocks on export by default.
   (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
-
-  ;; Don't use the actual width of an image when previewing.
-  ;; Allows us to specify the width of the image using something like `#+ATTR_ORG: :width 600'.
+  ;; Use `minted' for latex exports.
+  (setq org-latex-listings 'minted)
+  ;; Allow customization of image preview width.
   (setq org-image-actual-width nil)
+
+  ;; Open exported PDFs in emacs using `pdf-tools'.
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
 
   ;; Make `org-goto' nice to work with.
   ;; Source: https://emacs.stackexchange.com/a/32625
@@ -934,6 +1011,14 @@ A couple of notes before we start going through the config for all org-related:
            entry      ;; type of template
            (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
            "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
+           :empty-lines 1 ;; property
+           )
+
+          ("e"        ;; shortcut
+           "Reply to email"     ;; title
+           entry      ;; type of template
+           (file+headline "~/Dropbox/org/gtd.org" "Mail correspondance")  ;; what and where to add
+           "* TODO %:from %:subject\nSCHEDULED: %t\n:PROPERTIES:\n:END:\n\n%a\n\n%?"
            :empty-lines 1 ;; property
            )
 
@@ -967,16 +1052,38 @@ A couple of notes before we start going through the config for all org-related:
            entry
            (file+headline org-my-anki-file "Dispatch Shelf")
            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
-          )
 
-        ("c" "Code"
-         entry
-         (file+headline "~/Dropbox/org/gtd.org" "Code")
-         "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
-         :prepend t	 ; properties
-         :empty-lines 1	 ; properties
-         :created t	 ; properties
-         :kill-buffer t))
+          ("c"
+           "Code"
+           entry
+           (file+headline "~/Dropbox/org/gtd.org" "Code")
+           "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
+           :prepend t	 ; properties
+           :empty-lines 1	 ; properties
+           :created t	 ; properties
+           :kill-buffer t) ; properties
+          ))
+
+  (setq org-agenda-custom-commands
+	    '(("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
+          ("c" "My agenda view"
+           ((tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (agenda "" ((org-agenda-span 1)
+                        (org-habit-graph-column 60)))
+            ;; TODO: Do we need a weekly view too?
+            ;; (agenda "")
+            (alltodo ""
+                     ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                      (org-agenda-overriding-header "Readings (top 5):")
+                      (org-agenda-max-entries 5)))
+            (alltodo ""
+                     ((org-agenda-skip-function
+                       '(or (my/org-skip-subtree-if-priority ?A)
+                            (org-agenda-skip-if nil '(scheduled deadline))))
+                      (org-agenda-files '("~/Dropbox/org/gtd.org")))))
+           ((org-agenda-compact-blocks nil)))))
 
   ;; Hooks.
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
@@ -1018,6 +1125,7 @@ A couple of notes before we start going through the config for all org-related:
      (latex . t)
      (python . t)
      (jupyter . t)
+     (R . t)
      ;; (julia-vterm . t)
      (julia . t)
      ))
@@ -1025,54 +1133,6 @@ A couple of notes before we start going through the config for all org-related:
   (require 'ob-jupyter)
   (org-babel-jupyter-override-src-block "julia")
   (org-babel-jupyter-override-src-block "python")
-
-  ;; TODO: Figure out what is causing errors when using the terminal.
-  ;; Faces.
-  ;; (custom-theme-set-faces
-  ;;  'user
-  ;;  '(variable-pitch ((t (:family "ETBembo" :height 1.0))))
-  ;;  '(fixed-pitch ((t ( :family "Source Sans Prop" :height 1.0))))
-  ;;  )
-
-  ;; (custom-theme-set-faces
-  ;;  'user
-  ;;  '(org-block ((t (:inherit fixed-pitch))))
-  ;;  '(org-code ((t (:inherit fixed-pitch))))
-  ;;  '(org-document-info ((t (:foreground "dark orange"))))
-  ;;  '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-  ;;  '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-  ;;  '(org-link ((t (:foreground "royal blue" :underline t))))
-  ;;  '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch) :weight normal))))
-  ;;  '(org-property-value ((t (:inherit fixed-pitch))) t)
-  ;;  '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-  ;;  '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
-  ;;  '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-  ;;  '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-
-  ;; (let* ((variable-tuple
-  ;;         (cond
-  ;;          ;; ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-  ;;          ;; ((x-list-fonts "Lobster")         '(:font "Lobster")) ;; NOTE: This one is fun.
-  ;;          ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-  ;;          ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-  ;;          ((x-list-fonts "Verdana")         '(:font "Verdana"))
-  ;;          ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-  ;;          (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))
-  ;;          ))
-  ;;        (base-font-color     (face-foreground 'default nil 'default))
-  ;;        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
-
-  ;;   (custom-theme-set-faces
-  ;;    'user
-  ;;    `(org-level-8 ((t (,@headline ,@variable-tuple))))
-  ;;    `(org-level-7 ((t (,@headline ,@variable-tuple))))
-  ;;    `(org-level-6 ((t (,@headline ,@variable-tuple))))
-  ;;    `(org-level-5 ((t (,@headline ,@variable-tuple))))
-  ;;    `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-  ;;    `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-  ;;    `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-  ;;    `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-  ;;    `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
   :custom
   (org-format-latex-header
    "\\documentclass{article}
@@ -1109,7 +1169,7 @@ A couple of notes before we start going through the config for all org-related:
      ("" "textcomp" t nil)
      ("" "amssymb" t nil)
      ("" "capt-of" nil nil)
-     ("" "hyperref" nil nil)
+     ;; ("" "hyperref" nil nil) ;; NOTE: this is usually included in the `header.tex'
      ("" "mathpazo" t nil)
      ("" "eulervm" t nil)))
 
@@ -1137,12 +1197,19 @@ A couple of notes before we start going through the config for all org-related:
                   :latex-compiler
                   ("pdflatex -interaction nonstopmode -output-directory %o %f")
                   :image-converter
-                  ("convert -density %D -trim -antialias %f -quality 100 %O")))))
+                  ("convert -density %D -trim -antialias %f -quality 100 %O"))))
+
+  ;; Add `-shell-escape' to the PDF process so we can use `minted'.
+  (org-latex-pdf-process '("latexmk -shell-escape -bibtex -pdf %f"))
+  )
 
 (use-package org-bullets
   :after org
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
+(use-package org-pdftools
+  :hook (org-mode . org-pdftools-setup-link))
 #+end_src
 
 *** Org Export
@@ -1435,25 +1502,21 @@ A query language for Org-files. In particular, the commands =org-ql-view= and =o
 *** Org-download
 #+begin_src emacs-lisp 
 (use-package org-download
+  :custom
+  (org-download-heading-lvl nil "Don't use the sub-headings for the folder names")
+  (org-download-image-org-width 600)
+  (org-download-display-inline-images nil "Don't display inline images after download")
   :config (progn
-          ;; don't want to use the sub-headings for the folder name
-          ;; TODO: check if this actually work! Might be buffer-local, hence not do anything.
-          (setq org-download-heading-lvl nil)
-
-          ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
-          (defun org-download--dir-1 ()
-            (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments")))
-
-          ;; Default image width.
-          (setq org-download-image-org-width 600)
-          ))
+            ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
+            (defun org-download--dir-1 ()
+              (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments")))))
 #+end_src
 
 *** Org-id
 #+begin_src emacs-lisp
 ;; Generate ID for headline if none exist.
 (require 'org-id)
-(defun org-id-new (&optional prefix)g
+(defun org-id-new (&optional prefix)
   "Create a new globally unique ID.
 An ID consists of two parts separated by a colon:
 - a prefix
@@ -1673,6 +1736,14 @@ So a typical ID could look like \"Org-4nd91V40HI\"."
 (use-package helm-org-rifle
   :config
   (setq helm-org-rifle-show-path nil))
+#+end_src
+
+*** Org-contrib
+#+begin_src emacs-lisp
+;; Means that a heading with the `:ignore:` tag won't be exported, ONLY its contents will!
+(use-package org-contrib)
+(require 'ox-extra)
+(ox-extras-activate '(ignore-headlines))
 #+end_src
 
 *** Hacks
@@ -1898,6 +1969,15 @@ used to limit the exported source code blocks by language."
              "Edit notes"                 'helm-bibtex-edit-notes
              "Show entry"                 'helm-bibtex-show-entry
              "Add PDF to library"         'helm-bibtex-add-pdf-to-library)))
+#+end_src
+
+** Anki
+#+begin_src emacs-lisp 
+(use-package anki-editor
+  ;; Fork of `anki-editor.el' that seems to be working with the most recent version of AnkiConnect.
+  :straight (:type git :host github :repo "orgtre/anki-editor")
+  :init (progn
+          (setq anki-editor-break-consecutive-braces-in-latex t)))
 #+end_src
 
 ** Emacs anywhere
@@ -2164,6 +2244,10 @@ text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
 
 ** Copilot
 #+begin_src emacs-lisp 
+(use-package company-box
+  ;; :hook (company-mode . company-box-mode)
+  )
+
 (use-package copilot
   :straight (:host github
              :repo "zerolfx/copilot.el"
@@ -2228,6 +2312,93 @@ This will then export both code and result if the backend is HTML,
 and nothing for all other backends."
   `(progn
      (cl-case org-export-current-backend ,@body)))
+#+end_src
+
+** Themes & styling
+*** Themes
+/Usually/, our main theme will either be =solarized-dark= or =solarized-light= (if we're outside).
+
+#+begin_src emacs-lisp
+(use-package solarized-theme
+  :defer t
+  ;; :init
+  ;; (progn
+  ;;   ;; Sets it to similar colors as the theme-colors; if `t' we use `dark' else we use `light'.
+  ;;   ;; `solarized-dark' will have the "correct" midnight mode, so only do it if using `light'.
+  ;;   ;; TODO: Implement `my/loaded-theme-is-solarized-light-p' or something similar
+  ;;   (when (and (my/straight-installed-p 'pdf-tools) (my/loaded-theme-is-solarized-light-p))
+  ;;     ;; (setq pdf-view-midnight-colors '("#556065" . "#fdf6e3"))
+  ;;     ;; (setq pdf-view-midnight-colors '("#3f4446" . "#fdf6e3")) ;; slightly blacker font
+  ;;     (setq pdf-view-midnight-colors '("#556065" . "#fff8e5")) ;; slightly brighter background
+  ;;     ))
+  )
+
+(use-package darktooth-theme)
+(use-package atom-one-dark-theme)
+
+;; Load desired theme.
+(load-theme 'doom-moonlight t)
+(enable-theme 'doom-moonlight)  ;; ensures that fg-color and stuff is set correctly (I think)
+#+end_src
+
+Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
+
+#+begin_src emacs-lisp
+(use-package doom-themes)
+;; (use-package spacegray-theme)
+
+;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
+(doom-themes-visual-bell-config)
+#+end_src
+
+#+begin_src emacs-lisp
+;; You must run (all-the-icons-install-fonts) one time after
+;; installing this package!
+(use-package all-the-icons
+  :if (display-graphic-p))
+#+end_src
+
+#+begin_src emacs-lisp 
+(defun tor/enable-theme-after (theme)
+  "Run after loading THEME."
+  ;; Ensures that the midnight mode has the correct colors set.
+  (when (my/straight-installed-p 'pdf-tools)
+    (setq pdf-view-midnight-colors `(,(face-attribute 'default :foreground) . ,(face-attribute 'default :background)))
+    )
+
+  ;; Change the directory for the latex preview fragments.
+  ;; Otherwise, you run into issues where org-mode tries to render
+  ;; cached versions of some latex which, because they were created in
+  ;; a different theme, has the wrong colors.
+  (setq org-preview-latex-image-directory (concat "~/.ltximg-" (symbol-name theme) "/"))
+  )
+
+(advice-add 'enable-theme :after #'tor/enable-theme-after)
+#+end_src
+*** Modeline
+#+begin_src emacs-lisp
+;; diminish.el: Allows us to hide certain mini-modes, if we so desire.
+(use-package diminish)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package minions
+  :hook (doom-modeline-mode . minions-mode))
+
+(use-package doom-modeline
+  ;; :after eshell     ;; Make sure it gets hooked after eshell
+  :hook (after-init . doom-modeline-init)
+  :custom
+  (doom-modeline-height 15)
+  (doom-modeline-bar-width 6)
+  (doom-modeline-lsp t)
+  (doom-modeline-github nil)
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc t)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-persp-name nil)
+  (doom-modeline-buffer-file-name-style 'truncate-except-project)
+  (doom-modeline-major-mode-icon nil))
 #+end_src
 
 * =init.el=
