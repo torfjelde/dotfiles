@@ -1,3 +1,180 @@
+* General stuff
+
+** Email
+There are two needs:
+1. Retrieving emails.
+   - Which we'll solve using *internet message access protocol (IMAP)*.
+2. Sending emails.
+   - Which we'll solve using *simple mail transport protocol (SMTP)*.
+3. An interface (in Emacs) that unifies the two.
+
+*** Retrieving emails using =offlineimap=
+
+**** Integration with different providers
+
+***** Outlook
+
+****** =davmail=
+- Effectively functions as a local email server, handling everything between you and Outlook, e.g. authentication.
+
+#+begin_src shell :results output :wrap "src conf"
+less ~/.offlineimaprc
+#+end_src
+
+#+RESULTS:
+#+begin_src conf
+[general]
+accounts = tor-erlend95,tef30,dcsa,tor-github
+maxsyncaccounts = 4
+# Path to file with arbitrary Python code to load.
+pythonfile = ~/.offlineimap.py
+
+[Account tef30]
+localrepository = tef30-local
+remoterepository = tef30-exchange
+# postsynchook = $HOME/.local/bin/check-email
+
+[Repository tef30-local]
+type = Maildir
+localfolders = $HOME/mail/tef30@cam.ac.uk
+# TODO: This is too aggressive.
+nametrans = lambda folder: folder.replace('sent', 'Sent Items')
+
+[Repository tef30-exchange]
+type = IMAP
+ssl = no
+remotehost = localhost
+remoteport = 1143
+remoteuser = tef30@cam.ac.uk
+remotepass = asdfas # it's not actually used
+# createFolders = False # don't create folders remotely
+# readonly = yes
+# TODO: This is too aggressive.
+nametrans = lambda folder: folder.replace('Sent Items', 'sent')
+folderfilter = lambda folder: "Hermes" not in folder
+
+[Account dcsa]
+localrepository = dcsa-local
+remoterepository = dcsa-exchange
+# postsynchook = $HOME/.local/bin/check-email
+
+[Repository dcsa-local]
+type = Maildir
+localfolders = $HOME/mail/dcsa_coms@darwin.cam.ac.uk
+# TODO: This is too aggressive.
+nametrans = lambda folder: folder.replace('sent', 'Sent Items')
+
+[Repository dcsa-exchange]
+type = IMAP
+ssl = no
+remotehost = localhost
+remoteport = 1143
+remoteuser = tef30@cam.ac.uk/dcsa_coms@darwin.cam.ac.uk
+remotepass = asdfas # it's not actually used
+# This is really stupid.
+folderfilter = lambda folder: '/users/dcsa_coms@darwin/cam/ac/uk/' not in folder
+# createFolders = False # don't create folders remotely
+# readonly = yes
+# TODO: This is too aggressive.
+nametrans = lambda folder: folder.replace('Sent Items', 'sent')
+
+[Account tor-erlend95]
+localrepository = tor-erlend95-local
+remoterepository = tor-erlend95-remote
+# postsynchook = $HOME/.local/bin/check-email
+
+[Repository tor-erlend95-remote]
+type = Gmail
+remoteuser = tor.erlend95@gmail.com
+remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.erlend95@gmail.com", 587)
+ssl = yes
+sslcacertfile = OS-DEFAULT
+
+[Repository tor-erlend95-local]
+type = GmailMaildir
+localfolders = $HOME/mail/tor.erlend95@gmail.com
+
+
+[Account tor-github]
+localrepository = tor-github-local
+remoterepository = tor-github-remote
+# postsynchook = $HOME/.local/bin/check-email
+
+[Repository tor-github-remote]
+type = Gmail
+remoteuser = tor.github@gmail.com
+remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.github@gmail.com", 587)
+ssl = yes
+sslcacertfile = OS-DEFAULT
+
+[Repository tor-github-local]
+type = GmailMaildir
+localfolders = $HOME/mail/tor.github@gmail.com
+#+end_src
+
+******* Setup
+
+***** Gmail
+
+**** Authentication
+- Using =~/.authinfo= to store the passwords (this is also used by Emacs' SMTP functionality)
+- Need some setup to make =offlineimap= work nicely with this.
+
+#+begin_src python :tangle ~/.offlineimap.py
+#!/usr/bin/env python2
+import re, os, sys
+
+
+def get_authinfo_password(machine, login, port):
+    "Extracts password from `~/.authinfo` for a given `machine`, `login`, `port` combination."
+    s = "machine %s login %s port %s password (.*)$" % (machine, login, port)
+    p = re.compile(s, flags=re.MULTILINE)
+    # TODO: Use encrypted `.authinfo`.
+    # authinfo = os.popen("gpg -q --no-tty -d ~/.authinfo.gpg").read()
+    with open("/home/tor/.authinfo", "r") as f:
+        authinfo = f.read()
+
+    return p.search(authinfo).group(1)
+
+
+if __name__ == "__main__":
+    # Useful for testing.
+    print(get_authinfo_password(sys.argv[1], sys.argv[2], sys.argv[3]))
+#+end_src
+
+And then we need to load this file in our =.offlineimaprc=:
+
+#+begin_src shell :results output :wrap src conf :eval no :exports output
+sed -n "1,5p" ~/.offlineimaprc
+#+end_src
+
+#+RESULTS:
+#+begin_src conf
+[general]
+...
+# Path to file with arbitrary Python code to load.
+pythonfile = ~/.offlineimap.py
+#+end_src
+
+Now we can use the =remotepasseval= setting for the remote repositories to extract the auth info:
+
+#+begin_src conf :eval no :exports code
+# NOTE: Usually here we should be using `imap.gmail.com`, but we'll be needing the same auth info for SMTP so might as well just re-use
+# rather than having multiple entries with the same info in the `~/.authinfo`.
+remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.github@gmail.com", 587)
+#+end_src
+
+#+begin_warning
+Some sources on the interwebs says to use =remotepass= in the above, but that doesn't seem to work. 
+#+end_warning
+
+*** Interfacing with emails using =notmuch=
+- Provides a simple and powerful tagging system
+- Treats everything as a single big "inbox", allowing us to easily filter based on different tags.
+  - Personally find this very useful due to all the different email accounts I manage.
+
+
+
 * =init.el= v2
 :PROPERTIES:
 :header-args: emacs-lisp: :tangle init-new.el :comments link
@@ -252,18 +429,18 @@ Personally I like =helm= as I find its discovery to be quite good.
 #+end_src
 **** Special
 #+begin_src emacs-lisp
-;; fic-mode.el: Provides highlighting for TODO, FIXME and BUG in comments.
-(use-package fic-mode
-  :hook (prog-mode . fic-mode)
+;; hl-mode.el: Provides highlighting for TODO, FIXME, etc.
+(use-package hl-todo
+  :hook (prog-mode . hl-todo-mode)
   :config
-  ;; Change the font
-  (set-face-attribute 'fic-face nil
-                      :foreground "magenta"
-                      :background "transparent"
-                      :weight 'bold
-                      :slant 'normal)
-    (add-to-list 'fic-highlighted-words "HACK")
-    (add-to-list 'fic-highlighted-words "NOTE"))
+  (setq hl-todo-highlight-punctuation ":"
+        hl-todo-keyword-faces
+        `(("TODO"       warning bold)
+          ("FIXME"      error bold)
+          ("HACK"       font-lock-constant-face bold)
+          ("REVIEW"     font-lock-keyword-face bold)
+          ("NOTE"       success bold)
+          ("DEPRECATED" font-lock-doc-face bold))))
 #+end_src
 **** Pretty
 #+begin_src emacs-lisp
@@ -277,6 +454,16 @@ Personally I like =helm= as I find its discovery to be quite good.
 #+end_src
 
 Languages should then set the local variable =prettify-symbols-alist= on their own, e.g. see [[*Julia][Julia]].
+**** Others
+#+begin_src emacs-lisp
+(use-package visual-fill-column
+  :ensure t
+  :custom
+  (visual-fill-column-center-text t)
+  :config
+  (add-hook 'notmuch-show-hook '(lambda () (setq-local visual-fill-column-width 120)))
+  (add-hook 'notmuch-show-hook 'visual-fill-column-mode))
+#+end_src
 
 *** File management & browsing
 #+begin_src emacs-lisp
@@ -366,10 +553,25 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
     (setq projectile-indexing-method 'alien)
     (add-to-list 'projectile-globally-ignored-files "node-modules")
     (projectile-global-mode)))
+#+end_src
 
+#+begin_src emacs-lisp 
 ;; helm-projectile.el: Improves interaction between `helm.el` and `projetile.el`.
 (use-package helm-projectile)
 (use-package helm-rg)
+#+end_src
+
+#+begin_src emacs-lisp
+;; Use project name obtained from `projectile' as the default name for the tab.
+(defun tor/name-tab-by-project-or-default ()
+  "Return project name if in a project, or default tab-bar name if not.
+The default tab-bar name uses the buffer name."
+  (let ((project-name (projectile-project-name)))
+    (if (string= "-" project-name)
+        (tab-bar-tab-name-current)
+      (projectile-project-name))))
+
+(setq tab-bar-tab-name-function #'tor/name-tab-by-project-or-default)
 #+end_src
 
 #+begin_src emacs-lisp
@@ -394,12 +596,29 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   (blamer-min-offset 70)
   (blamer-commit-formatter "• %s") ;; default symbol is too large
   :custom-face
-  (blamer-face ((t :foreground "#7a88cf"
+  (blamer-face ((t :foreground "#586e75"
                    :background nil
                    :height 0.8 ;; make it slightly smaller than default font-size
                    :italic t)))
   :config
   (global-blamer-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp 
+(use-package git-link
+  :ensure t
+  :config (setq git-link-use-commit t))
+#+end_src
+*** Perspective
+#+begin_src emacs-lisp 
+;; For handling multiple workspaces in Emacs.
+(use-package perspective
+  :custom
+  (persp-mode-prefix-key (kbd "C-x x"))
+  :init
+  (persp-mode))
+
+(use-package persp-projectile)
 #+end_src
 
 ** Editing
@@ -688,6 +907,10 @@ A couple of notes before we start going through the config for all org-related:
   ;; Disable execution of code-blocks on export by default.
   (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
 
+  ;; Don't use the actual width of an image when previewing.
+  ;; Allows us to specify the width of the image using something like `#+ATTR_ORG: :width 600'.
+  (setq org-image-actual-width nil)
+
   ;; Make `org-goto' nice to work with.
   ;; Source: https://emacs.stackexchange.com/a/32625
   ;; Complete on outlines/headings.
@@ -744,7 +967,16 @@ A couple of notes before we start going through the config for all org-related:
            entry
            (file+headline org-my-anki-file "Dispatch Shelf")
            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
-          ))
+          )
+
+        ("c" "Code"
+         entry
+         (file+headline "~/Dropbox/org/gtd.org" "Code")
+         "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
+         :prepend t	 ; properties
+         :empty-lines 1	 ; properties
+         :created t	 ; properties
+         :kill-buffer t))
 
   ;; Hooks.
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
@@ -967,6 +1199,82 @@ A couple of notes before we start going through the config for all org-related:
                                  (pygments_lexer . "r")
                                  (version . "3.3.2")))))))
 #+end_src
+**** Org-reveal
+#+begin_src emacs-lisp 
+(use-package ox-reveal
+  ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
+  ;; which is actually not provided (despite the name of the project).
+  :straight (ox-reveal :host github :repo "yjwen/org-reveal"))
+#+end_src
+
+#+begin_src emacs-lisp 
+;; HACK: This piece of code let's me 
+(setq reveal--revealjs-version "4.1.0")
+(setq reveal--mathjax-version "2.7.5")
+(setq reveal--revealjs-cdn-base "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/")
+(setq reveal--mathjax-cdn-base "https://cdnjs.cloudflare.com/ajax/libs/mathjax/") 
+
+(defun reveal--revealjs-local-basename ()
+  (concat "reveal.js-" reveal--revealjs-version))
+
+(defun reveal--mathjax-local-basename ()
+  (concat "MathJax-" reveal--mathjax-version))
+
+(defun reveal--revealjs-cdn-basename ()
+  reveal--revealjs-version)
+
+(defun reveal--mathjax-cdn-basename ()
+  reveal--mathjax-version)
+
+(defun reveal--revealjs-cdn ()
+  (concat reveal--revealjs-cdn-base (reveal--revealjs-cdn-basename)))
+
+(defun reveal--mathjax-cdn ()
+  (concat reveal--mathjax-cdn-base (reveal--mathjax-cdn-basename)))
+
+(defun reveal--revealjs-local (asset-path)
+  (f-join asset-path (reveal--revealjs-local-basename)))
+
+(defun reveal--mathjax-local (asset-path)
+  (f-join asset-path (reveal--mathjax-local-basename)))
+
+(defun reveal--replace-local-with-cdn (asset-path)
+  (let* ((revealjs-local-path (reveal--revealjs-local asset-path))
+         (mathjax-local-path (reveal--mathjax-local asset-path))
+         (regexp-optimized (regexp-opt
+                            (list
+                             revealjs-local-path
+                             (concat "file://" revealjs-local-path)
+                             (f-join revealjs-local-path "dist")
+                             (concat "file://" (f-join revealjs-local-path "dist"))
+                             mathjax-local-path
+                             (concat "file://" mathjax-local-path)
+                             ))))
+   (save-excursion
+     ;; Go the beginning of the buffer.
+     (goto-char (point-min))
+     ;; Find the matches.
+     (save-match-data
+       (while (re-search-forward regexp-optimized nil t)
+         (cond
+          ((save-match-data
+             (string-match (reveal--revealjs-local asset-path) (match-string 0)))
+           (replace-match (reveal--revealjs-cdn)))
+          ((save-match-data
+             (string-match (reveal--mathjax-local asset-path) (match-string 0)))
+           (replace-match (reveal--mathjax-cdn)))
+          (_ (error "couldn't find the a match")))
+         )))))
+
+(defun reveal--default-asset-path ()
+  (f-join (buffer-file-name) ".." "assets"))
+
+(defun reveal-replace-local-with-cdn (asset-path)
+  (interactive (list
+                (read-string (format "directory (%s): " (reveal--default-asset-path))
+                             nil nil (reveal--default-asset-path))))
+  (reveal--replace-local-with-cdn asset-path))
+#+end_src
 *** Org-roam
 #+begin_src emacs-lisp
 (use-package org-roam
@@ -1124,6 +1432,249 @@ A query language for Org-files. In particular, the commands =org-ql-view= and =o
     (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
 #+end_src
 
+*** Org-download
+#+begin_src emacs-lisp 
+(use-package org-download
+  :config (progn
+          ;; don't want to use the sub-headings for the folder name
+          ;; TODO: check if this actually work! Might be buffer-local, hence not do anything.
+          (setq org-download-heading-lvl nil)
+
+          ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
+          (defun org-download--dir-1 ()
+            (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments")))
+
+          ;; Default image width.
+          (setq org-download-image-org-width 600)
+          ))
+#+end_src
+
+*** Org-id
+#+begin_src emacs-lisp
+;; Generate ID for headline if none exist.
+(require 'org-id)
+(defun org-id-new (&optional prefix)g
+  "Create a new globally unique ID.
+An ID consists of two parts separated by a colon:
+- a prefix
+- a unique part that will be created according to `org-id-method'.
+PREFIX can specify the prefix, the default is given by the variable
+`org-id-prefix'.  However, if PREFIX is the symbol `none', don't use any
+prefix even if `org-id-prefix' specifies one.
+So a typical ID could look like \"Org-4nd91V40HI\"."
+  (let* ((prefix (if (eq prefix 'none)
+                     ""
+                   (concat (or prefix org-id-prefix) "-")))
+         unique)
+    (if (equal prefix "-") (setq prefix ""))
+    (cond
+     ((memq org-id-method '(uuidgen uuid))
+      (setq unique (org-trim (shell-command-to-string org-id-uuid-program)))
+      (unless (org-uuidgen-p unique)
+        (setq unique (org-id-uuid))))
+     ((eq org-id-method 'org)
+      (let* ((etime (org-reverse-string (org-id-time-to-b36)))
+             (postfix (if org-id-include-domain
+                          (progn
+                            (require 'message)
+                            (concat "@" (message-make-fqdn))))))
+        (setq unique (concat etime postfix))))
+     (t (error "Invalid `org-id-method'")))
+    (concat prefix unique)))
+
+
+(defun my/generate-sanitized-alnum-dash-string(str)
+  "Returns a string which contains only a-zA-Z0-9 with single dashes
+ replacing all other characters in-between them.
+ Some parts were copied and adapted from org-hugo-slug
+ from https://github.com/kaushalmodi/ox-hugo (GPLv3)."
+  (let* (;; Remove "<FOO>..</FOO>" HTML tags if present.
+         (str (replace-regexp-in-string "<\\(?1:[a-z]+\\)[^>]*>.*</\\1>" "" str))
+         ;; Remove URLs if present in the string.  The ")" in the
+         ;; below regexp is the closing parenthesis of a Markdown
+         ;; link: [Desc](Link).
+         (str (replace-regexp-in-string (concat "\\](" ffap-url-regexp "[^)]+)") "]" str))
+         ;; Replace "&" with " and ", "." with " dot ", "+" with
+         ;; " plus ".
+         (str (replace-regexp-in-string
+               "&" " and "
+               (replace-regexp-in-string
+                "\\." " dot "
+                (replace-regexp-in-string
+                 "\\+" " plus " str))))
+         ;; Replace German Umlauts with 7-bit ASCII.
+         (str (replace-regexp-in-string "[Ä]" "Ae" str t))
+         (str (replace-regexp-in-string "[Ü]" "Ue" str t))
+         (str (replace-regexp-in-string "[Ö]" "Oe" str t))
+         (str (replace-regexp-in-string "[ä]" "ae" str t))
+         (str (replace-regexp-in-string "[ü]" "ue" str t))
+         (str (replace-regexp-in-string "[ö]" "oe" str t))
+         (str (replace-regexp-in-string "[ß]" "ss" str t))
+         ;; Replace all characters except alphabets, numbers and
+         ;; parentheses with spaces.
+         (str (replace-regexp-in-string "[^[:alnum:]()]" " " str))
+         ;; On emacs 24.5, multibyte punctuation characters like "："
+         ;; are considered as alphanumeric characters! Below evals to
+         ;; non-nil on emacs 24.5:
+         ;;   (string-match-p "[[:alnum:]]+" "：")
+         ;; So replace them with space manually..
+         (str (if (version< emacs-version "25.0")
+                  (let ((multibyte-punctuations-str "：")) ;String of multibyte punctuation chars
+                    (replace-regexp-in-string (format "[%s]" multibyte-punctuations-str) " " str))
+                str))
+         ;; Remove leading and trailing whitespace.
+         (str (replace-regexp-in-string "\\(^[[:space:]]*\\|[[:space:]]*$\\)" "" str))
+         ;; Replace 2 or more spaces with a single space.
+         (str (replace-regexp-in-string "[[:space:]]\\{2,\\}" " " str))
+         ;; Replace parentheses with double-hyphens.
+         (str (replace-regexp-in-string "\\s-*([[:space:]]*\\([^)]+?\\)[[:space:]]*)\\s-*" " -\\1- " str))
+         ;; Remove any remaining parentheses character.
+         (str (replace-regexp-in-string "[()]" "" str))
+         ;; Replace spaces with hyphens.
+         (str (replace-regexp-in-string " " "-" str))
+         ;; Remove leading and trailing hyphens.
+         (str (replace-regexp-in-string "\\(^[-]*\\|[-]*$\\)" "" str)))
+    str)
+  )
+
+(defun my/org-custom-id-from-id (&optional pom)
+  (let ((pom (or pom (point))))
+    (when (and (not-nil-p (org-id-get)) (not (org-entry-get (point) "CUSTOM_ID")))
+      (org-set-property "CUSTOM_ID" (org-id-get)))))
+
+(defun my/org-generate-custom-ids-from-ids ()
+  (interactive)
+  (save-excursion
+    (widen)
+    (goto-char (point-min))
+    (org-map-entries (lambda () (my/org-custom-id-from-id (point))))))
+
+(defun my/id-get-or-generate (&optional pom)
+  "Returns the ID property if set or generates and returns a new one if not set.
+ The generated ID is stripped off potential progress indicator cookies and
+ sanitized to get a slug. Furthermore, it is prepended with an ISO date-stamp
+ if none was found before."
+  (interactive)
+  (org-with-point-at pom
+    (when (not (org-id-get))
+      (let* (
+             ;; TODO: Only get the raw text, i.e. ignore stuff like a link [[...]].
+	         ;; retrieve heading string
+    	     (my-heading-text (nth 4 (org-heading-components)))
+             (my-heading-text (progn
+                                (message "%s" my-heading-text)
+                                (message "%s" (org-element-interpret-data (org-element-at-point)))
+                                (org-element-interpret-data my-heading-text)))
+		     ;; remove progress indicators like "[2/7]" or "[25%]"
+		     (my-heading-text (replace-regexp-in-string "[[][0-9%/]+[]] " "" my-heading-text))
+		     ;; get slug from heading text
+             (new-id (my/generate-sanitized-alnum-dash-string my-heading-text))
+    	     )
+        (when (not (string-match "[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]-.+" new-id))
+          ;; only if no ISO date-stamp is found at the beginning of the new id:
+          (setq new-id (concat (format-time-string "%Y-%m-%d-%H-%M-%S-") new-id)))
+        (org-set-property "ID" new-id)
+        )
+      ))
+
+  (org-id-get);; retrieve the current ID in any case as return value
+  )
+
+(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+
+(defun my/org-add-ids-to-headlines-in-file ()
+  "Add CUSTOM_ID properties to all headlines in the current
+   file which do not already have one. Only adds ids if the
+   `auto-id' option is set to `t' in the file somewhere. ie,
+   #+OPTIONS: auto-id:t"
+  (interactive)
+  (save-excursion
+    (widen)
+    (goto-char (point-min))
+    (org-map-entries (lambda () (my/id-get-or-generate (point))))))
+
+;; ;; automatically add ids to saved org-mode headlines
+;; (add-hook 'org-mode-hook
+;;           (lambda ()
+;;             (add-hook 'before-save-hook
+;;                       (lambda ()
+;;                         (when (and (eq major-mode 'org-mode)
+;;                                    (eq buffer-read-only nil))
+;;                           (my/org-add-ids-to-headlines-in-file))))))
+#+end_src
+
+*** Org-present
+#+begin_src emacs-lisp 
+;; `org-present'
+(use-package org-present
+  :ensure t)
+
+(defun my/org-present-prepare-slide (buffer-name heading)
+  ;; Show only top-level headlines
+  (org-overview)
+
+  ;; Unfold the current entry
+  (org-show-entry)
+
+  ;; Show only direct subheadings of the slide but don't expand them
+  (org-show-children))
+
+(defun my/org-present-start ()
+  ;; Usually going to use `org-present-big' so we store the current settings and update.
+  (setq-local org-present--org-format-latex-options org-format-latex-options)
+  (setq-local org-format-latex-options '(:foreground default
+                                                     :background default
+                                                     :scale 3.0
+                                                     :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+  ;; Since the latex generated will be quite a different size, we use
+  ;; a different output folder.
+  (setq-local org-present--org-preview-latex-image-directory org-preview-latex-image-directory)
+  (setq-local org-preview-latex-image-directory "~/.ltximg-present/")
+
+  ;; Set a blank header line string to create blank space at the top
+  (setq header-line-format " ")
+
+  ;; Display inline images automatically
+  (org-display-inline-images)
+
+  ;; Center the presentation and wrap lines
+  (visual-fill-column-mode 1)
+  (visual-line-mode 1))
+
+(defun my/org-present-end ()
+  ;; (setq-local face-remapping-alist '((default default)))
+
+  ;; Reset the latex preview stuff.
+  (setq-local org-format-latex-options org-present--org-format-latex-options)
+  (setq-local org-preview-latex-image-directory org-present--org-preview-latex-image-directory)
+  
+  ;; Clear the header line string so that it isn't displayed
+  (setq header-line-format nil)
+
+  ;; Stop displaying inline images
+  (org-remove-inline-images)
+
+  ;; Stop centering the document
+  (visual-fill-column-mode 0)
+  (visual-line-mode 0))
+
+;; Register hooks with org-present
+(add-hook 'org-present-mode-hook 'my/org-present-start)
+(add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+(add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+#+end_src
+
+*** Org-rifle
+#+begin_src emacs-lisp 
+;; Useful for searching in org files.
+;; Allows one to jump to a heading whose contents or itself has a match
+;; with the search string.
+(use-package helm-org-rifle
+  :config
+  (setq helm-org-rifle-show-path nil))
+#+end_src
+
 *** Hacks
 **** Diff before tangle
 This works but uncertain if I actually want it in the init-file or not.
@@ -1275,6 +1826,79 @@ used to limit the exported source code blocks by language."
 
 (add-hook 'org-babel-post-tangle-hook 'my/org-babel-tangle-backup-post-hook)
 #+end_src
+**** =ob-async=
+#+begin_src emacs-lisp 
+;; NOTE: Attempt at fixing issue with `ob-async'.
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+(use-package ob-async
+  ;; :straight (:type git :host github :repo "astahlman/ob-async")
+  ;; Handling of errors: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+  ;; + some of my changes.
+  :straight (:type git :host github :repo "torfjelde/ob-async" :branch "tor/develop")
+  :config
+  ;; NOTE: Fixes issue when interacting with `jupyter'.
+  ;; https://github.com/nnicandro/emacs-jupyter/issues/383#issuecomment-1020919685
+  (setq ob-async-no-async-languages-alist '("python" "julia" "jupyter-python" "jupyter-julia")))
+#+end_src
+**** Proper handling of ANSI color codes
+#+begin_src emacs-lisp 
+;; Source: https://emacs.stackexchange.com/a/63562
+(defun ek/babel-ansi ()
+  "Properly handle ANSI color codes in the result for a SRC block."
+  ;; FIXME(torfjelde): I don't think this works if the result is a single line,
+  ;; i.e. NOT wrapped in a `#+begin_example'.
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+
+(add-hook 'org-babel-after-execute-hook 'ek/babel-ansi)
+#+end_src
+**** Add helm-action which inserts URL or DOI
+- This is quite useful when I just want to point someone to the paper.
+
+#+begin_src emacs-lisp 
+(defun tor/bibtex-insert-url-or-doi (keys)
+  "Open the URL or DOI associated with entries in KEYS in a browser."
+  (dolist (key keys)
+    (let* ((entry (bibtex-completion-get-entry key))
+           (url (bibtex-completion-get-value "url" entry))
+           (doi (bibtex-completion-get-value "doi" entry))
+           (browse-url-browser-function
+            (or bibtex-completion-browser-function
+                browse-url-browser-function)))
+      (if url
+          (insert url)
+        (if doi
+            (insert
+             (s-concat "http://dx.doi.org/" doi))
+          (message "No URL or DOI found for this entry: %s"
+                   key))))))
+
+(helm-bibtex-helmify-action tor/bibtex-insert-url-or-doi tor/helm-bibtex-insert-url-or-doi)
+
+(setq helm-source-bibtex
+  (helm-build-sync-source "BibTeX entries"
+    :header-name (lambda (name)
+                   (format "%s%s: " name (if helm-bibtex-local-bib " (local)" "")))
+    :candidates 'helm-bibtex-candidates
+    :filtered-candidate-transformer 'helm-bibtex-candidates-formatter
+    :action (helm-make-actions
+             "Open PDF, URL or DOI"       'helm-bibtex-open-any
+             "Open URL or DOI in browser" 'helm-bibtex-open-url-or-doi
+             "Insert citation"            'helm-bibtex-insert-citation
+             "Insert reference"           'helm-bibtex-insert-reference
+             "Insert BibTeX key"          'helm-bibtex-insert-key
+             "Insert BibTeX entry"        'helm-bibtex-insert-bibtex
+             "Insert URL or DOI"          'tor/helm-bibtex-insert-url-or-doi  ;; my addition
+             "Attach PDF to email"        'helm-bibtex-add-PDF-attachment
+             "Edit notes"                 'helm-bibtex-edit-notes
+             "Show entry"                 'helm-bibtex-show-entry
+             "Add PDF to library"         'helm-bibtex-add-pdf-to-library)))
+#+end_src
 
 ** Emacs anywhere
 #+begin_src emacs-lisp
@@ -1307,6 +1931,268 @@ used to limit the exported source code blocks by language."
 (add-hook 'ea-popup-hook 'popup-handler)
 #+end_src
 
+** Email
+#+begin_src emacs-lisp 
+;; Email
+;; Useful resources:
+;; - https://kkatsuyuki.github.io/notmuch-conf/
+;; - https://chrisdone.com/posts/emacs-mail/
+;; - Multiple email setup:
+;; - https://www.djcbsoftware.nl/code/mu/mu4e/Example-configurations.html#Example-configurations
+;;   Example configurations using =mu=, but also invovles some setting of general mail variables
+;;   and examples with `offlineimap'.
+;; - https://emacs.stackexchange.com/a/12932
+;;   Example using `smptmail-multi', which is _very_ useful.
+;; - https://protesilaos.com/codelog/2021-05-15-emacs-notmuch/
+;;   Demo of `notmuch'.
+;; - https://sqrtminusone.xyz/posts/2021-02-27-gmail/
+;;   Different approach to syncing with gmail using `lieer'. This also allows syncing tags with gmail.
+
+(setq mail-user-agent 'message-user-agent)
+
+;; Replies
+(setq message-citation-line-function 'message-insert-formatted-citation-line)
+(setq message-citation-line-format "\n\nOn %a, %d/%m/%Y, %f wrote:\n")
+
+(use-package smtpmail-multi
+  :ensure t)
+
+;; Define the different accounts and their corresponding settings.
+(setq smtpmail-multi-accounts
+      '((tor-erlend95 . (
+                         ;; `smtpmail-smtp-user'
+                         "tor.erlend95@gmail.com"
+                         ;; `smtpmail-smtp-server'
+                         "smtp.gmail.com"
+                         ;; `smtpmail-smtp-service'
+                         587
+                         ;; `mail-specify-envelope-from' will be set to `t', and `mail-envelope-from' will be set to the value
+                         header
+                         ;; `smptmail-stream-type'
+                         starttls
+                         ;; STARTTLS key (used to set `smptmail-starttls-credentials')
+                         nil ;; TODO: is this correct?
+                         ;; STARTTLS certificate (used to set `smtpmail-startttls-credentials')
+                         nil ;; TODO: is this correct?
+                         ;; `smtpmail-local-domain'
+                         nil
+                         ))
+        (tor-github . ("tor.github@gmail.com" "smtp.gmail.com" 587 header starttls nil nil nil))
+
+        ;; Set up to send email through local `davmail' instance.
+        (tef30 . ("tef30@cam.ac.uk" "localhost" 1025 header nil))
+        (dcsa-coms . ("dcsa_coms@darwin.cam.ac.uk" "localhost" 1025 header nil))))
+
+;; Specify association rules for the different accounts.
+(setq smtpmail-multi-associations '(("tor.erlend95@gmail.com" tor-erlend95)
+                                    ("tor.github@gmail.com" tor-github)
+                                    ("tef30@cam.ac.uk" tef30)
+                                    ("dcsa_coms@darwin.cam.ac.uk" dcsa-coms)))
+
+;; Make the send mail function use `smtpmail-multi-send-it'.
+(setq message-send-mail-function 'smtpmail-multi-send-it)
+;; Useful for debugging purposes.
+(setq smtpmail-debug-info t)
+
+;; Allow usage of org-mode to compose emails.
+(use-package org-mime)
+(setq org-mime-library 'mml)
+
+;; `notmuch' and related.
+;; Docs: https://notmuchmail.org/doc/latest/notmuch-emacs.html
+(use-package notmuch
+  :config
+  (setq notmuch-always-prompt-for-sender t)
+  (setq notmuch-saved-searches '((:name "inbox" :query "tag:inbox" :key "i")
+                                 (:name "unread" :query "tag:unread" :sort-order newest-first :key "u")
+                                 (:name "flagged" :query "tag:flagged" :sort-order newest-first :key "f")
+                                 (:name "all mail" :query "*" :key "a")
+                                 (:name "tor.erlend95" :query "tag:tor.erlend95" :sort-order newest-first :key "t")
+                                 (:name "tef30" :query "tag:tef30" :sort-order newest-first :key "o")
+                                 (:name "dcsa_coms" :query "tag:dcsa_coms" :sort-order newest-first :key "d")
+                                 (:name "tor.github" :query "tag:tor.github" :sort-order newest-first :key "g")))
+  )
+
+;; Adds nice integration with `org-mode', e.g. storing of links.
+(use-package ol-notmuch
+  :ensure t)
+
+;; Usually have to have point at the HTML to show it,
+;; which is a bit annoying.
+(defun notmuch-show-view-html+ ()
+  "Open the text/html part of the current message using
+`notmuch-show-view-part'."
+  (interactive)
+  (save-excursion
+    (goto-char
+     (prop-match-beginning
+      (text-property-search-forward
+       :notmuch-part
+       "text/html"
+       (lambda (value notmuch-part)
+         (equal (plist-get notmuch-part :content-type)
+                value)))))
+    (notmuch-show-view-part)))
+
+;; Custom HTML renderer for email which simply converts into the source.
+;; Adapted version of `mm-shr'.
+;; FIXME: When activating the `web-mode', we end up disabling the `notmuch' keybindings.
+(defun my/mm-raw-html (handle)
+  (let (charset coding char document)
+    (mm-with-part (or handle (setq handle (mm-dissect-buffer t)))
+      ;; Identify encoding.
+      (setq case-fold-search t)
+      (or (setq charset
+		        (mail-content-type-get (mm-handle-type handle) 'charset))
+	      (progn
+	        (goto-char (point-min))
+	        (and (re-search-forward "\
+<meta\\s-+http-equiv=[\"']?content-type[\"']?\\s-+content=[\"']?\
+text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
+		         (setq coding (mm-charset-to-coding-system (match-string 1)
+							                               nil t))))
+	      (setq charset mail-parse-charset))
+      ;; Decode and insert contents if it's not ASCII.
+      (when (and (or coding
+		             (setq coding (mm-charset-to-coding-system charset nil t)))
+		         (not (eq coding 'ascii)))
+	    (insert (prog1
+		            (decode-coding-string (buffer-string) coding)
+		          (erase-buffer)
+		          (set-buffer-multibyte t))))
+      ;; Go back to start of the buffer.
+      (goto-char (point-min))
+      (while (re-search-forward
+	          "&#\\(?:x\\([89][0-9a-f]\\)\\|\\(1[2-5][0-9]\\)\\);" nil t)
+	    (when (setq char
+		            (cdr (assq (if (match-beginning 1)
+				                   (string-to-number (match-string 1) 16)
+				                 (string-to-number (match-string 2)))
+			                   mm-extra-numeric-entities)))
+	      (replace-match (char-to-string char))))
+      ;; Remove "soft hyphens".
+      (goto-char (point-min))
+      (while (search-forward "­" nil t)
+	    (replace-match "" t t))
+      ;; Set the `document' variable to the raw buffer contents.
+      (setq document (buffer-string))
+      )
+    ;; Display.
+    (save-restriction
+      (narrow-to-region (point) (point))
+      ;; Insert the HTML contents.
+      (insert document)
+      ;; Activate HTML mode.
+      (web-mode)
+      ;; Fontify so we get syntax highlighting and stuff.
+      (font-lock-fontify-buffer)
+      ;; Indent the buffer.
+      (save-excursion
+        (indent-region (point-min) (point-max) nil))
+      ;; If we're at the beginning of the buffer, i.e. it's empty,
+      ;; insert a newline.
+      (unless (bobp)
+	    (insert "\n"))
+      (mm-handle-set-undisplayer
+       handle
+       (let ((min (point-min-marker))
+             (max (point-max-marker)))
+         (lambda ()
+	       (let ((inhibit-read-only t))
+	         (delete-region min max))))))))
+
+;; (setq mm-text-html-renderer 'my/mm-raw-html)
+(setq mm-text-html-renderer 'shr)
+
+;; Handle attachments a bit better.
+;; Source: https://notmuchmail.org/emacstips/#index2h2
+(defun tor/mm-pipe-- (handle cmd)
+  ;; conveniently, '-' '-' a args to pdftotext and docx2txt.pl work fine
+  ;; fixme: naming inconsistency (fn name and buffer name)
+  (let ((buffer (get-buffer-create "*attachment-to-text*")))
+    (with-current-buffer buffer
+      (setq buffer-read-only nil)
+      (erase-buffer))
+    (with-temp-buffer
+      ;; "based on mm-pipe-part in mm-decode.el"
+      (mm-with-unibyte-buffer
+        (mm-insert-part handle)
+        (mm-add-meta-html-tag handle)
+        (let ((coding-system-for-write 'binary))
+          (call-process-region (point-min) (point-max)
+                               cmd nil buffer nil "-" "-"))))
+    (pop-to-buffer buffer)
+    (goto-char (point-min))
+    (text-mode)
+    (visual-line-mode)
+    (view-mode)))
+
+(defun tor/notmuch-show-pop-attachment-to-buffer ()
+  ;; "based on `notmuch-show-apply-to-current-part-handle'"
+  (interactive)
+  (let ((handle (notmuch-show-current-part-handle)))
+    (unwind-protect
+        (pcase (car (nth 1 handle))
+          ("application/pdf"
+           ;; Save and open.
+           ;; FIXME: Fails if we decide not to save the file, e.g.
+           ;; because it would override an existing one.
+           (find-file (notmuch-show-save-part))
+           ;; Alternative: convert to text and open that buffer instead.
+           ;; (tor/mm-pipe-- handle "pdftotext")
+           )
+          ("image/png"
+           ;; Save and open.
+           (find-file (notmuch-show-save-part))
+           )
+          ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+           (tor/mm-pipe-- handle "docx2txt.pl"))
+          (_ (notmuch-show-save-part)))
+      (kill-buffer (mm-handle-buffer handle)))))
+
+(setq notmuch-show-part-button-default-action
+      #'tor/notmuch-show-pop-attachment-to-buffer)
+
+;; Overrides `org-notmuch-open' which apparently expects 2 arguments, while `org-mode'
+;; (at least the one I've currently installed), expects 1 argument.
+;; The 2nd argument in `org-notmuch-open' isn't used for anything anyways, so we might
+;; as well just define one that ought to be compatible with either 1 or 2 args.
+(defun org-notmuch-open (path &rest)
+  "Follow a notmuch message link specified by PATH."
+  (funcall org-notmuch-open-function path))
+#+end_src
+
+** Copilot
+#+begin_src emacs-lisp 
+(use-package copilot
+  :straight (:host github
+             :repo "zerolfx/copilot.el"
+             :files ("dist" "*.el"))
+  :ensure t
+  :config
+  (progn
+    (add-hook 'prog-mode-hook 'copilot-mode)
+
+    (with-eval-after-load 'company
+      ;; disable inline previews
+      (delq 'company-preview-if-just-one-frontend company-frontends)))
+
+  (progn
+    ;; Unbind deprecated navigation bindings from `company'.
+    (require 'bind-key)
+    (unbind-key "M-p" company-active-map)
+    (unbind-key "M-n" company-active-map)
+
+    ;; Add bindings for `copilot'
+    (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+    (define-key copilot-completion-map (kbd "M-p") 'copilot-previous-completion)
+    (define-key copilot-completion-map (kbd "M-n") 'copilot-next-completion)
+    (define-key copilot-completion-map (kbd "M-RET") 'copilot-accept-completion-by-word)
+    (define-key copilot-completion-map (kbd "C-M-<return>") 'copilot-accept-completion-by-line)
+    ))
+#+end_src
+
 ** General stuff at the end
 *** Frame name
 #+begin_src emacs-lisp
@@ -1321,6 +2207,27 @@ used to limit the exported source code blocks by language."
                         (projectile-project-name)
                         (buffer-name)
                         )))
+#+end_src
+
+** =by-backend= to allow backend-specific header arguments
+#+begin_src emacs-lisp 
+(defmacro by-backend (&rest body)
+  "Evaluate BODY for the given backends.
+This uses `cl-case' to pick out the correct body for the current
+backend, i.e. each element in BODY needs to be of the form
+`(BACKEND BODY)'.
+
+An example of using this to specify, say, whether a src-block
+in Org-mode should be exported or not depending on the backend:
+
+,#+begin_src emacs-lisp :exports (by-backend (html \"both\") (t \"none\"))
+(+ 1 2)
+,#+end_src
+
+This will then export both code and result if the backend is HTML,
+and nothing for all other backends."
+  `(progn
+     (cl-case org-export-current-backend ,@body)))
 #+end_src
 
 * =init.el=
