@@ -491,7 +491,8 @@ Languages should then set the local variable =prettify-symbols-alist= on their o
   :bind ("M-[" . ace-window))
 
 ;; Only load `ace-window' upon frame-creation.
-(add-hook after-make-frame-functions (lambda () (when (display-graphic-p) (require 'ace-window)))
+(add-hook 'after-make-frame-functions
+          (lambda () (when (display-graphic-p) (require 'ace-window))))
 #+end_src
 
 **** Within-buffer navigation
@@ -2372,7 +2373,36 @@ and nothing for all other backends."
 #+end_src
 
 ** Themes & styling
+*** Theme-change hooks
+#+begin_src emacs-lisp 
+(defun tor/enable-theme-after (theme)
+  "Run after loading THEME."
+  ;; Ensures that the midnight mode has the correct colors set.
+  (when (my/straight-installed-p 'pdf-tools)
+    (setq pdf-view-midnight-colors `(,(face-attribute 'default :foreground) . ,(face-attribute 'default :background)))
+    )
+
+  ;; Change the directory for the latex preview fragments.
+  ;; Otherwise, you run into issues where org-mode tries to render
+  ;; cached versions of some latex which, because they were created in
+  ;; a different theme, has the wrong colors.
+  (setq org-preview-latex-image-directory (concat "~/.ltximg-" (symbol-name theme) "/"))
+  )
+
+(advice-add 'enable-theme :after #'tor/enable-theme-after)
+#+end_src
+
 *** Themes
+Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
+
+#+begin_src emacs-lisp
+(use-package doom-themes)
+;; (use-package spacegray-theme)
+
+;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
+(doom-themes-visual-bell-config)
+#+end_src
+
 /Usually/, our main theme will either be =solarized-dark= or =solarized-light= (if we're outside).
 
 #+begin_src emacs-lisp
@@ -2398,16 +2428,6 @@ and nothing for all other backends."
 (enable-theme 'doom-moonlight)  ;; ensures that fg-color and stuff is set correctly (I think)
 #+end_src
 
-Doom honestly has a bunch of nice features for their theme, so we might as well use some of them.
-
-#+begin_src emacs-lisp
-(use-package doom-themes)
-;; (use-package spacegray-theme)
-
-;; Adds red "alert" to modeline upon hitting `C-g` to interrupt a command, etc.
-(doom-themes-visual-bell-config)
-#+end_src
-
 #+begin_src emacs-lisp
 ;; You must run (all-the-icons-install-fonts) one time after
 ;; installing this package!
@@ -2415,23 +2435,6 @@ Doom honestly has a bunch of nice features for their theme, so we might as well 
   :if (display-graphic-p))
 #+end_src
 
-#+begin_src emacs-lisp 
-(defun tor/enable-theme-after (theme)
-  "Run after loading THEME."
-  ;; Ensures that the midnight mode has the correct colors set.
-  (when (my/straight-installed-p 'pdf-tools)
-    (setq pdf-view-midnight-colors `(,(face-attribute 'default :foreground) . ,(face-attribute 'default :background)))
-    )
-
-  ;; Change the directory for the latex preview fragments.
-  ;; Otherwise, you run into issues where org-mode tries to render
-  ;; cached versions of some latex which, because they were created in
-  ;; a different theme, has the wrong colors.
-  (setq org-preview-latex-image-directory (concat "~/.ltximg-" (symbol-name theme) "/"))
-  )
-
-(advice-add 'enable-theme :after #'tor/enable-theme-after)
-#+end_src
 *** Modeline
 #+begin_src emacs-lisp
 ;; diminish.el: Allows us to hide certain mini-modes, if we so desire.
