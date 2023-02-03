@@ -386,10 +386,9 @@ Personally I like =helm= as I find its discovery to be quite good.
 ;; helm.el: Provides a much more pleasant `M-x` experience. Alternative to `ido`.
 (use-package helm
   :diminish helm-mode  ;; removes the helm-mode from the mode-line
-  :init (progn
-          (require 'helm-config)
-          (helm-mode))
-  :bind (("M-x" . helm-M-x)))
+  :config (helm-mode)  ;; enable `helm' for everything by default
+  :bind (("M-x" . helm-M-x)
+         ("C-x b" . helm-buffers-list)))
 
 ;; helm-descbinds.el: Adds mode
 (use-package helm-descbinds
@@ -1259,7 +1258,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 **** Jupyter notebook
 #+begin_src emacs-lisp
 (use-package ox-ipynb
-  :straight (:type git :host github :repo "jkitchen/ox-ipynb")
+  :straight (:type git :host github :repo "jkitchin/ox-ipynb")
   :init
   ;; It doesn't respect the `(org-babel-jupyter-override-src-block "python")' statements
   ;; and so it won't recognize `python' blocks as `jupyter-python', and thus not export properly.
