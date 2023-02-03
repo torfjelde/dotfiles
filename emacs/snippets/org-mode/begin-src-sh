@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: begin-src-sh
+# key: begin-src-sh
+# binding: C-c y s
+# --
+#+begin_src shell
+$0
+#+end_src
