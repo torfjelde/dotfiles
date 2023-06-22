@@ -350,58 +350,425 @@ Let's keep the customization of, well, customizable variables in a separate file
 #+end_src
 * Org
 
-** =org=
+** Tor's reading list
+I have an agenda file that is, effectively, my reading list.
 
+This is a reading list which:
+- I can add to by using =org-capture=, and it automatically figures out the new index for the item.
+- Upon submitting a new item, the list will be sorted.
 
-** =org-ref=
+To achieve the above, I need to define some methods before I can define the =org-capture= templates, etc.
 
-*** Some utilities
-#+begin_src emacs-lisp
-(defun my/org-ref-copy-bibtex-of-key-at-point ()
+#+name: org--tors-reading-list
+#+begin_src emacs-lisp 
+;; Tor's reading list and stuff
+(defun tor/element--sort-elements-by-raw-value (el1 el2)
+  "Compare :raw-value of EL1 and EL2, returning true if EL2 > EL1."
+  (string-greaterp (org-element-property :raw-value el2)
+		   (org-element-property :raw-value el1)))
+
+(defun tor/element--get-begin (el)
+  "Get beginning of EL."
+  (org-element-property :begin el))
+
+(defun tor/element--get-end (el)
+  "Get end of EL."
+  (org-element-property :end el))
+
+(defun tor/reading-list-sort (&optional level)
+  "Sort reading list at LEVEL."
   (interactive)
-  (save-window-excursion
-    (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
-	   (bibtex-completion-show-entry (list (org-ref-get-bibtex-key-under-cursor)))
-	   (bibtex-copy-entry-as-kill)
-	   (kill-new (pop bibtex-entry-kill-ring)))))
+  (let* ((i 0)
+	 (headline-level (or level 1))
+	 (parsed (org-element-parse-buffer))
+	 (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
+			    (org-element-map parsed 'headline 'identity)))
+	 (start (-min (-map 'tor/element--get-begin headlines)))
+	 (end (-max (-map 'tor/element--get-end headlines))))
+    (delete-region start end)
+    (goto-char start)
+    (insert (string-join
+	     ;; TODO: update indices
+	     (-map
+	      (lambda (el)
+		(progn
+		  (setq i (+ i 1))
+		  (replace-regexp-in-string "* TODO [0-9]+\\."
+					    (format "* TODO %03d." i)
+					     el)))
+	      (-map 'org-element-interpret-data
+			 (sort headlines 'tor/element--sort-elements-by-raw-value)))
+	     ""))))
 
-(defun my/org-ref-used-citations-to-bibtex-buffer ()
-  (interactive)
-  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
-        (refs (my/org-ref-get-references-used)))
-    (with-current-buffer (get-buffer-create "*BibTex export*")
-      ;; Clear it.
-      (erase-buffer)
+(defun tor/reading-list--get-next-idx (&optional level category)
+  "Get index for reading list at LEVEL and ."
+  (let* ((headline-level (or level 1))
+	 (parsed (org-element-parse-buffer))
+	 (headlines (-filter (lambda (el) (and (= (org-element-property :level el) headline-level)
+					  ;; FIXME: BROKEN. Grab this from the property-drawer
+					  (if category
+					      (org-element-property :category el)
+					    t)))
+			     (org-element-map parsed 'headline 'identity))))
+    (+ 1 (-max
+	  (or (-filter
+	       (lambda (x) (not (= x 0)))
+	       (-map (lambda (el)
+		       (string-to-number
+			(car (split-string
+			      (org-element-property :raw-value el) "\\."))))
+		     headlines))
+	      '(0))))))
 
-      ;; Do the stuff.
-      (-map (lambda (ref)
-              (save-window-excursion
-                (bibtex-completion-show-entry (list ref))
-                (bibtex-copy-entry-as-kill))
-              ;; Check that we're back in the "*BibTex export*" buffer.
-              (when (not (string= (buffer-name) "*BibTex export*"))
-                (error "Something went wrong."))
-              ;; Insert (pop bibtex-entry-kill-ring) into the "*BibTex export*" buffer.
-              (insert (pop bibtex-entry-kill-ring)))
-            refs))
-
-    ;; Display the buffer.
-    (pop-to-buffer "*BibTex export*")
-    (bibtex-mode)))
-
-(defun my/org-ref-get-references-used ()
-  (save-match-data
-    (let ((links (org-ref-get-cite-links)))
-    ;; Now we extract the path and strip away the `&' symbol.
-    (mapcar (lambda (link)
-              (let ((path (org-element-property :path link)))
-                (if (string-match "&" path)
-                    (substring path 1 (length path))
-                  path)))
-            links))))
+(defun tor/reading-list-next-idx ()
+  (save-excursion
+    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+      (format "%03d" (tor/reading-list--get-next-idx)))))
 #+end_src
 
-** =org-reveal.el=
+** Agenda utilities
+#+name: org--agenda-utilities
+#+begin_src emacs-lisp 
+(defun my/org-skip-subtree-if-priority (priority)
+  "Skip an agenda subtree if it has a priority of PRIORITY.
+
+PRIORITY may be one of the characters ?A, ?B, or ?C."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+        (pri-value (* 1000 (- org-lowest-priority priority)))
+        (pri-current (org-get-priority (thing-at-point 'line t))))
+    (if (= pri-value pri-current)
+        subtree-end
+      nil)))
+
+(defun my/pop-to-org-agenda ()
+  "Visit the org agenda in the current window."
+  (interactive)
+  (let ((org-agenda-window-setup 'current-window))
+    (org-agenda nil "c")))
+#+end_src
+
+** =org=
+#+name: org--main
+#+begin_src emacs-lisp 
+(use-package org
+  ;; Ensures that we're using the version of `org` which comes with Emacs.
+  :straight (org :type built-in)
+  :hook  
+  ;; Use `visual-line-mode' as it gives word-wrapping, etc.
+  (org-mode . visual-line-mode)
+  :config
+  ;; TODO: Move many of these `setq' statements to `:custom' below.
+  ;; Customization for latex-preview in org-mode
+  (setq org-format-latex-options '(:foreground default
+                                               :background default
+                                               :scale 1.5
+                                               :html-foreground "steelblue"
+                                               :html-background "Transparent"
+                                               :html-scale 1.0
+                                               :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+  ;; During LaTeX export, try to preserve the labels defined by the user.
+  (setq org-latex-prefer-user-labels t)
+  ;; Hide emphasis markup.
+  (setq org-hide-emphasis-markers nil)
+  ;; Use bullets for lists.
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  ;; Don't query us every time we trying to evaluate code in buffers.
+  (setq org-confirm-babel-evaluate nil)
+  ;; Don't indent text in a section to align with section-level.
+  (setq org-adapt-indentation nil)
+  ;; Don't indent body of code-blocks at all.
+  (setq org-edit-src-content-indentation 0)
+  ;; Allow setting variables in setup-files.
+  (setq org-export-allow-bind-keywords t)
+  ;; Where to store the generated images from `org-latex-preivew'. This '/' at the end is VERY important.
+  (setq org-preview-latex-image-directory "~/.ltximg/")
+  ;; Make it so that the src block is opened in the current window when we open to edit.
+  (setq org-src-window-setup 'current-window)
+  ;; Necessary for header-arguments in src-blocks to take effect during export.
+  (setq org-export-use-babel t)
+  ;; Disable execution of code-blocks on export by default.
+  (add-to-list 'org-babel-default-header-args '(:eval . "never-export"))
+
+  ;; Don't use the actual width of an image when previewing.
+  ;; Allows us to specify the width of the image using something like `#+ATTR_ORG: :width 600'.
+  (setq org-image-actual-width nil)
+
+  ;; Make `org-goto' nice to work with.
+  ;; Source: https://emacs.stackexchange.com/a/32625
+  ;; Complete on outlines/headings.
+  ;; This uses `completing-read' behind the scenes, hence if you have something like
+  ;; `helm' or `ivy' activated, this will be used for the completion.
+  (setq org-goto-interface 'outline-path-completion)
+  ;; Don't try to complete headings in steps.
+  (setq org-outline-path-complete-in-steps nil)
+
+  (setq org-default-notes-file "~/Dropbox/org/gtd.org")
+  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)))
+
+  ;; Org-agenda / Org-capture related
+  (setq org-agenda-files
+        (append
+         '("~/Dropbox/org/gtd.org"
+           "~/Dropbox/org/school.org"
+           "~/Dropbox/org/reading.org"
+           "~/Dropbox/org/implement.org"
+           "~/Dropbox/org/random.org")
+         ;; Also add todos from consulting projects.
+         (directory-files-recursively "~/Dropbox/consulting/" "\\todos.org$")))
+
+  (require 'org-protocol)
+  ;; Adds some `private/*' variables that I don't want on my Github.
+  (load (expand-file-name "~/Dropbox/dotfiles/.emacs/agenda.el"))
+  (setq org-capture-templates
+        (append
+         '(("t"        ;; shortcut
+            "Todo"     ;; title
+            entry      ;; type of template
+            (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+            "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
+            :empty-lines 1 ;; property
+            )
+
+           ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+            "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
+
+           ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+           ("s" "School" entry
+            (file "~/Dropbox/org/school.org")
+            "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
+
+           ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+            "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+           ("R" "Research" entry (file "~/org-blog/notes/research.org")
+            "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
+
+           ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+            "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+           ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
+           ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
+           ;; we also get autocomplete for the tags.
+           ("a" "Anki basic"
+            entry
+            (file+headline org-my-anki-file "Dispatch Shelf")
+            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
+
+           ("A" "Anki cloze"
+            entry
+            (file+headline org-my-anki-file "Dispatch Shelf")
+            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
+
+           ("c" "Code"
+            entry
+            (file+headline "~/Dropbox/org/gtd.org" "Code")
+            "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
+            :prepend t	 ; properties
+            :empty-lines 1	 ; properties
+            :created t	 ; properties
+            :kill-buffer t)
+
+           ;; Template for different projects.
+           ;; NOTE: This is often extended by `private/org-capture-templates'.
+           ("P" "Projects")
+
+           ;; org-protocol.el
+           ;; TODO: Evaluate whether or not we want to keep this.
+           ("p" "Protocol" entry
+            (file "~/Dropbox/org/random.org")
+            "* %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
+            :empty-lines 1
+            :created t)
+
+           ("L" "Protocol Link" entry
+            (file "~/Dropbox/org/random.org")
+            "* %^{TITLE}\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n:END:\n%?"
+            :empty-lines 1
+            :created t)
+           )
+         ;; Some private capture templates.
+         private/org-capture-templates))
+
+  ;; Some custom views for `org-agenda'.
+  (setq org-agenda-custom-commands
+        '(("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
+          ("c" "My agenda view"
+           ((tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (agenda "" ((org-agenda-span 1)
+                        (org-habit-graph-column 60)))
+            ;; TODO: Do we need a weekly view too?
+            (agenda "")
+            (alltodo ""
+                     ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                      (org-agenda-overriding-header "Papers (top 5):")
+                      (org-agenda-max-entries 5)
+                      (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+            (alltodo ""
+                     ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                      (org-agenda-overriding-header "Readings (top 5):")
+                      (org-agenda-max-entries 5)))
+            (alltodo ""
+                     ((org-agenda-skip-function
+                       '(or (my/org-skip-subtree-if-priority ?A)
+                            (org-agenda-skip-if nil '(scheduled deadline))
+                            (org-agenda-skip-subtree-if 'regexp ":RECURRING:")))
+                      (org-agenda-files '("~/Dropbox/org/gtd.org")))))
+           ((org-agenda-compact-blocks nil)))))
+
+  ;; Hooks.
+  ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
+  ;; NOTE: This is maybe a bit "drastic". Could potentially just disable certain
+  ;; features of `flycheck`.
+  (when (my/straight-installed-p 'flycheck)
+    (require 'flycheck)
+    (defun disable-flycheck-in-org-src-block ()
+      (flycheck-mode -1))
+    (add-hook 'org-src-mode-hook 'disable-flycheck-in-org-src-block))
+
+  ;; https://emacs.stackexchange.com/a/18146
+  ;; I want this bindings for references, etc. + don't add files to agenda
+  ;; often enough to warrant having a binding for it.
+  (require 'bind-key)
+  ;; I use these keybindings for references, etc.
+  (unbind-key "C-c [" org-mode-map)
+  (unbind-key "C-c ]" org-mode-map)
+  ;; I like using these for partial completions, e.g. with copilot.
+  (unbind-key "<M-return>" org-mode-map)
+  (unbind-key "M-RET" org-mode-map)
+  ;; `C-c .' is used for `org-time-stamp-active', so this seems natural.
+  (unbind-key "C-c ," org-mode-map)
+  (bind-key "C-c ," 'org-time-stamp-inactive org-mode-map)
+
+  ;;;; Org-Babel ;;;;
+  ;; Specify which programming languages to support in code-blocks.
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp t)
+     (shell . t)
+     (C . t)
+     (latex . t)
+     (python . t)
+     ;; (jupyter . t)
+     ;; (julia-vterm . t)
+     ;; (julia . t)
+     (R . t)
+     (dot . t)
+     ))
+
+  :custom
+  ;; Now that we have `org-cite.el`, we can use stuff like CSL.
+  (org-cite-export-processors
+   '((latex biblatex)
+     (t csl)))
+  ;; TODO: Maybe just clone the repo from init if it doesn't exist?
+  (org-cite-csl-styles-dir "/home/tor/Projects/public/styles/")
+
+  ;; Latex stuff.
+  (org-format-latex-header
+   "\\documentclass{article}
+\\usepackage[usenames]{color}
+[PACKAGES]
+[DEFAULT-PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}")
+
+  (org-latex-default-packages-alist
+   '(("AUTO" "inputenc" t
+      ("pdflatex"))
+     ("T1" "fontenc" t
+      ("pdflatex"))
+     ("" "graphicx" t nil)
+     ("" "grffile" t nil)
+     ("" "longtable" nil nil)
+     ("" "wrapfig" nil nil)
+     ("" "rotating" nil nil)
+     ("normalem" "ulem" t nil)
+     ("" "amsmath" t nil)
+     ("" "textcomp" t nil)
+     ("" "amssymb" t nil)
+     ("" "capt-of" nil nil)
+     ("breaklinks=true" "hyperref" nil nil)
+     ("" "mathpazo" t nil)
+     ("" "eulervm" t nil)))
+
+  (org-preview-latex-process-alist
+   '((dvipng :programs
+             ("latex" "dvipng")
+             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+             (1.0 . 1.0)
+             :latex-compiler
+             ("latex -interaction nonstopmode -output-directory %o %f")
+             :image-converter
+             ("dvipng -D %D -T tight -bg 'Transparent' -o %O %f"))
+     (dvisvgm :programs
+              ("latex" "dvisvgm")
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :image-input-type "dvi" :image-output-type "svg" :image-size-adjust
+              (1.7 . 1.5)
+              :latex-compiler
+              ("latex -interaction nonstopmode -output-directory %o %f")
+              :image-converter
+              ("dvisvgm %f -n -b min -c %S -o %O"))
+     (imagemagick :programs
+                  ("latex" "convert")
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  (1.0 . 1.0)
+                  :latex-compiler
+                  ("pdflatex -interaction nonstopmode -output-directory %o %f")
+                  :image-converter
+                  ("convert -density %D -trim -antialias %f -quality 100 %O"))))
+  )
+#+end_src
+
+** Babel
+**** =ob-async=
+#+name: org--ob-async
+#+begin_src emacs-lisp 
+;; NOTE: Attempt at fixing issue with `ob-async'.
+;; Source: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+(use-package ob-async
+  ;; :straight (:type git :host github :repo "astahlman/ob-async")
+  ;; Handling of errors: https://github.com/astahlman/ob-async/issues/75#issuecomment-766783255
+  ;; + some of my changes.
+  :straight (:type git :host github :repo "torfjelde/ob-async" :branch "tor/develop")
+  :config
+  ;; NOTE: Fixes issue when interacting with `jupyter'.
+  ;; https://github.com/nnicandro/emacs-jupyter/issues/383#issuecomment-1020919685
+  (setq ob-async-no-async-languages-alist '("python" "julia" "jupyter-python" "jupyter-julia")))
+#+end_src
+
+*** =ob-julia=
+#+name: org--ob-julia
+#+begin_src emacs-lisp 
+;; HACK: Need to load this here to ensure that we don't end up installing `org' (which is likely
+;; to be a dependency of `ob-*' babel) using the wrong recipe.
+;; TODO: Shoud we just load this after `org', and then call `org-babel-do-load-languages' in
+;; that `use-package' block instead?
+(use-package ob-julia
+  :after org
+  :straight (:type git :host github :repo "torfjelde/ob-julia" :branch "master"))
+#+end_src
+
+** Exports
+
+** =org-reveal=
 #+begin_src emacs-lisp
 (use-package ox-reveal
   ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
@@ -423,9 +790,30 @@ Let's keep the customization of, well, customizable variables in a separate file
   )
 #+end_src
 
-** =org-contrib.el=
 
-*** =ox-extra.el=
+** Other stuff
+** =org-ref=
+*** Proper handling of ANSI color codes
+#+name: org--ansi-color-codes-handling
+#+begin_src emacs-lisp 
+;; Source: https://emacs.stackexchange.com/a/63562
+(defun ek/babel-ansi ()
+  "Properly handle ANSI color codes in the result for a SRC block."
+  ;; FIXME(torfjelde): I don't think this works if the result is a single line,
+  ;; i.e. NOT wrapped in a `#+begin_example'.
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+
+(add-hook 'org-babel-after-execute-hook 'ek/babel-ansi)
+#+end_src
+
+*** =org-contrib=
+#+name: org--contrib
 #+begin_src emacs-lisp
 (use-package org-contrib
   :config
@@ -436,10 +824,83 @@ Let's keep the customization of, well, customizable variables in a separate file
   )
 #+end_src
 
+*** =org-present=
+#+name: org--org-present
+#+begin_src emacs-lisp 
+;; `org-present'
+(use-package org-present
+  :after org
+  :ensure t
+  :config
+  
+  (defun my/org-present-prepare-slide (buffer-name heading)
+    ;; Show only top-level headlines
+    (org-overview)
+
+    ;; Unfold the current entry
+    (org-show-entry)
+
+    ;; Show only direct subheadings of the slide but don't expand them
+    (org-show-children))
+
+  (defun my/org-present-start ()
+    ;; Usually going to use `org-present-big' so we store the current settings and update.
+    (setq-local org-present--org-format-latex-options org-format-latex-options)
+    (setq-local org-format-latex-options '(:foreground default
+                                                       :background default
+                                                       :scale 3.0
+                                                       :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+
+    ;; Since the latex generated will be quite a different size, we use
+    ;; a different output folder.
+    (setq-local org-present--org-preview-latex-image-directory org-preview-latex-image-directory)
+    (setq-local org-preview-latex-image-directory "~/.ltximg-present/")
+
+    ;; Set a blank header line string to create blank space at the top
+    (setq header-line-format " ")
+
+    ;; Display inline images automatically
+    (org-display-inline-images)
+
+    ;; Center the presentation and wrap lines
+    (visual-line-mode 1))
+
+  (defun my/org-present-end ()
+    ;; (setq-local face-remapping-alist '((default default)))
+
+    ;; Reset the latex preview stuff.
+    (setq-local org-format-latex-options org-present--org-format-latex-options)
+    (setq-local org-preview-latex-image-directory org-present--org-preview-latex-image-directory)
+    
+    ;; Clear the header line string so that it isn't displayed
+    (setq header-line-format nil)
+
+    ;; Stop displaying inline images
+    (org-remove-inline-images)
+
+    ;; Stop centering the document
+    (visual-line-mode 0))
+  
+  ;; Register hooks with org-present
+  (add-hook 'org-present-mode-hook #'my/org-present-start)
+  (add-hook 'org-present-mode-quit-hook #'my/org-present-end)
+  (add-hook 'org-present-after-navigate-functions #'my/org-present-prepare-slide))
+#+end_src
 
 
+** Result
+#+name: org
+#+begin_src emacs-lisp
+<<org--tors-reading-list>>
+<<org--agenda-utilities>>
+<<org--main>>
 
+<<org--ob-async>>
+<<org--ob-julia>>
 
+<<org--contrib>>
+<<org--ansi-color-codes-handling>>
+#+end_src
 * Email
 ** Aim
 There are two needs:
@@ -1021,13 +1482,19 @@ https://github.com/zachcurry/emacs-anywhere
    - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
 
 
-* Resulting configs
+* Result
 
 ** Full config
 #+name: el-full-init
 #+begin_src emacs-lisp :comments noweb :tangle init-full.el :noweb yes
 <<pkg-management>>
 <<basics>>
+<<os-specifics>>
+
+<<programming>>
+
+<<org>>
+
 <<mail>>
 #+end_src
 
@@ -1037,6 +1504,7 @@ https://github.com/zachcurry/emacs-anywhere
 #+begin_src emacs-lisp :comments noweb :tangle init-minimal.el :noweb yes
 <<pkg-management>>
 <<basics>>
+<<os-specifics>>
 #+end_src
 
 
