@@ -321,6 +321,33 @@ Let's keep the customization of, well, customizable variables in a separate file
   - So this can be fixed by making sure that Python is indeed looking for shared libraries there, f.ex. by running =export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH=.
 - Also a useful resource if needed: https://www.masteringemacs.org/article/keeping-secrets-in-emacs-gnupg-auth-sources
 
+* Programming
+** Jupyter
+#+name: jupyter
+#+begin_src emacs-lisp
+;; This is awesome _but_ requires an Emacs version built with dynamic modules.
+;; See https://github.com/nnicandro/emacs-zmq for more information on this.
+;; But if this has been done, then you cna uncomment the line below.
+(use-package jupyter
+  :after org
+  :straight (jupyter :type git
+                     :host github
+                     :repo "torfjelde/emacs-jupyter"
+                     :branch "torfjelde/filename-extension-for-custom-file")
+  :bind (:map jupyter-repl-interaction-mode-map
+              ("C-<return>" . jupyter-eval-line-or-region)
+              ("C-M-<return>" . jupyter-eval-defun))
+  :config
+  ;; Evaluate python and julia blocks using jupyter.
+  (org-babel-jupyter-override-src-block "julia")
+  (org-babel-jupyter-override-src-block "python")
+  (setq org-babel-default-header-args:jupyter-julia '((:async . "yes")
+                                                      (:session . "jl")
+                                                      (:kernel . "julia-1.8")))
+  (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+                                                       (:session . "py")
+                                                       (:kernel . "python3"))))
+#+end_src
 * Org
 
 ** =org=
