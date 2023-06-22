@@ -1,6 +1,23 @@
 * General stuff
 
+** =~/.authinfo=
+- Effectively a very simple plain-text password manager with encryption (if used right)
+- Nicely supported in Emacs
+  - Also comes with Python bindings (though py3 requires a bit of fiddling)
+
+*** Python 3
+- Can be useful for other integrations, e.g. I'm already sending emails using Emacs so if I write a Python script, it's nice if I can also just use the auth-information already present in my =~/.authinfo=
+- Requires building =authinfo= from scratch
+  - Also requires a particular fork: https://github.com/torfjelde/authinfo
+- A simple =make install= copies the python package into =/usr/local/lib/python3.8/site-packages= which, unfortunately, isn't loaded (unless you're running the global python interpreter, which is rare these days).
+  - A simple fix: =mv= the above to =/usr/local/lib/python3.8/dist-packages= which is loaded by every python installation (this is consider the /global/ repository for packages)
+- Possible error: missing shared library =libauthinfo.so.0=
+  - The =libauthinfo.so.0= file /should/ be present in =/usr/local/lib= or something equivalent (look for =libauthinfo.so.0= in the output for of the =make install=).
+  - So this can be fixed by making sure that Python is indeed looking for shared libraries there, f.ex. by running =export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH=.
+- Also a useful resource if needed: https://www.masteringemacs.org/article/keeping-secrets-in-emacs-gnupg-auth-sources
+
 ** Email
+*** Aim
 There are two needs:
 1. Retrieving emails.
    - Which we'll solve using *internet message access protocol (IMAP)*.
@@ -24,28 +41,28 @@ less ~/.offlineimaprc
 #+RESULTS:
 #+begin_src conf
 [general]
-accounts = tor-erlend95,tef30,dcsa,tor-github
+accounts = account-1,account-2,account-3,account-4
 maxsyncaccounts = 4
 # Path to file with arbitrary Python code to load.
 pythonfile = ~/.offlineimap.py
 
-[Account tef30]
-localrepository = tef30-local
-remoterepository = tef30-exchange
+[Account account-2]
+localrepository = account-2-local
+remoterepository = account-2-exchange
 # postsynchook = $HOME/.local/bin/check-email
 
-[Repository tef30-local]
+[Repository account-2-local]
 type = Maildir
-localfolders = $HOME/mail/tef30@cam.ac.uk
+localfolders = $HOME/mail/account-2@cam.ac.uk
 # TODO: This is too aggressive.
 nametrans = lambda folder: folder.replace('sent', 'Sent Items')
 
-[Repository tef30-exchange]
+[Repository account-2-exchange]
 type = IMAP
 ssl = no
 remotehost = localhost
 remoteport = 1143
-remoteuser = tef30@cam.ac.uk
+remoteuser = account-2@cam.ac.uk
 remotepass = asdfas # it's not actually used
 # createFolders = False # don't create folders remotely
 # readonly = yes
@@ -53,64 +70,66 @@ remotepass = asdfas # it's not actually used
 nametrans = lambda folder: folder.replace('Sent Items', 'sent')
 folderfilter = lambda folder: "Hermes" not in folder
 
-[Account dcsa]
-localrepository = dcsa-local
-remoterepository = dcsa-exchange
+[Account account-3]
+localrepository = account-3-local
+remoterepository = account-3-exchange
 # postsynchook = $HOME/.local/bin/check-email
 
-[Repository dcsa-local]
+[Repository account-3-local]
 type = Maildir
-localfolders = $HOME/mail/dcsa_coms@darwin.cam.ac.uk
+localfolders = $HOME/mail/account-3_coms@darwin.cam.ac.uk
 # TODO: This is too aggressive.
 nametrans = lambda folder: folder.replace('sent', 'Sent Items')
 
-[Repository dcsa-exchange]
+[Repository account-3-exchange]
 type = IMAP
 ssl = no
 remotehost = localhost
 remoteport = 1143
-remoteuser = tef30@cam.ac.uk/dcsa_coms@darwin.cam.ac.uk
+remoteuser = account-@cam.ac.uk/account-3_coms@darwin.cam.ac.uk
 remotepass = asdfas # it's not actually used
 # This is really stupid.
-folderfilter = lambda folder: '/users/dcsa_coms@darwin/cam/ac/uk/' not in folder
+folderfilter = lambda folder: '/users/account-3_coms@darwin/cam/ac/uk/' not in folder
 # createFolders = False # don't create folders remotely
 # readonly = yes
 # TODO: This is too aggressive.
 nametrans = lambda folder: folder.replace('Sent Items', 'sent')
 
-[Account tor-erlend95]
-localrepository = tor-erlend95-local
-remoterepository = tor-erlend95-remote
+[Account account-1]
+localrepository = account-1-local
+remoterepository = account-1-remote
 # postsynchook = $HOME/.local/bin/check-email
 
-[Repository tor-erlend95-remote]
+[Repository account-1-remote]
 type = Gmail
-remoteuser = tor.erlend95@gmail.com
-remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.erlend95@gmail.com", 587)
+remoteuser = account-1@gmail.com
+remotepasseval = get_authinfo_password("smtp.gmail.com", "account-1@gmail.com", 587)
 ssl = yes
 sslcacertfile = OS-DEFAULT
 
-[Repository tor-erlend95-local]
+[Repository account-1-local]
 type = GmailMaildir
-localfolders = $HOME/mail/tor.erlend95@gmail.com
+localfolders = $HOME/mail/account-1@gmail.com
 
 
-[Account tor-github]
-localrepository = tor-github-local
-remoterepository = tor-github-remote
+[Account account-4]
+localrepository = account-4-local
+remoterepository = account-4-remote
 # postsynchook = $HOME/.local/bin/check-email
 
-[Repository tor-github-remote]
+[Repository account-4-remote]
 type = Gmail
-remoteuser = tor.github@gmail.com
-remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.github@gmail.com", 587)
+remoteuser = account-4@gmail.com
+remotepasseval = get_authinfo_password("smtp.gmail.com", "account-4@gmail.com", 587)
 ssl = yes
 sslcacertfile = OS-DEFAULT
 
-[Repository tor-github-local]
+[Repository account-4-local]
 type = GmailMaildir
-localfolders = $HOME/mail/tor.github@gmail.com
+localfolders = $HOME/mail/account-4@gmail.com
 #+end_src
+
+Note: the accounts in the above are anonymized so I can avoid a bit of spam, which is always nice.
 
 ******* Setup
 
@@ -161,7 +180,7 @@ Now we can use the =remotepasseval= setting for the remote repositories to extra
 #+begin_src conf :eval no :exports code
 # NOTE: Usually here we should be using `imap.gmail.com`, but we'll be needing the same auth info for SMTP so might as well just re-use
 # rather than having multiple entries with the same info in the `~/.authinfo`.
-remotepasseval = get_authinfo_password("smtp.gmail.com", "tor.github@gmail.com", 587)
+remotepasseval = get_authinfo_password("smtp.gmail.com", "account-4@gmail.com", 587)
 #+end_src
 
 #+begin_warning
@@ -172,6 +191,450 @@ Some sources on the interwebs says to use =remotepass= in the above, but that do
 - Provides a simple and powerful tagging system
 - Treats everything as a single big "inbox", allowing us to easily filter based on different tags.
   - Personally find this very useful due to all the different email accounts I manage.
+
+*** Setting up =cron= for periodic checking
+#+begin_example
+# Google won't be happy if we check the email too often, i.e. more frequently than ever 10 mins:
+# https://support.google.com/mail/answer/7126229?visit_id=638005640878107785-764406290&p=BadCredentials&rd=2#cantsignin&zippy=%2Ci-cant-sign-in-to-my-email-client
+*/10 *  * * *      offlineimap >> $HOME/.logs/offlineimap.log 2>&1
+*/1  *  * * *      DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus bash -lc check-email >> ~/.logs/check-mail.log 2>&1
+#+end_example
+
+This assumes that the script =check-email= is available in your =PATH=.
+There are a couple of things to note here:
+- =bash -lc= where
+  - =l= is to "Make bash act as if it had been invoked as a login shell", e.g. it will load =~/.profile= and so on.
+    - This is mucho importante if you want 
+- From https://askubuntu.com/a/1274272: we need the weird stuff before the comand to make sure the =notify-send= works.
+
+
+*** Writing messages
+When writing a message, we're in, well =message-mode=. So that's where you should look if you want to change how things are handled.
+
+**** Disabling automatic line-break
+I find the automatic breaking of lines a bit annoying, in particular in this day and age when most email clients I send to will have some automatic formatting when viewed.
+
+This can be "disabled"/controlled by setting the value of =message-fill-column= to whatever you desire, e.g. =999999=.
+
+**** Signature
+***** Old me
+This is handled by =message-signature=, but the generally best approach is probably just to have a =~/.signature= file, which is automatically detected.
+
+For example:
+
+#+begin_example
+All the best,
+Tor
+#+end_example
+
+One annoying thing is that the signature-seperator is /hard-coded/ (I know, crazy) to be "--":
+
+#+begin_src emacs-lisp :eval no
+(defun message-insert-signature (&optional force)
+  "Insert a signature.  See documentation for variable `message-signature'."
+  (interactive (list 0))
+  (let ((message-signature message-signature)
+	(message-signature-file message-signature-file))
+    ;; If called interactively and there's no signature to insert,
+    ;; consult the global values to see whether there's anything they
+    ;; have to say for themselves.  This can happen when using
+    ;; `gnus-posting-styles', for instance.
+    (when (and (null message-signature)
+	       (null message-signature-file)
+	       (eq force 0))
+      (setq message-signature (default-value 'message-signature)
+	    message-signature-file (default-value 'message-signature-file)))
+    (let* ((signature
+	    (cond
+	     ((and (null message-signature)
+		   (eq force 0))
+	      (save-excursion
+		(goto-char (point-max))
+		(not (re-search-backward message-signature-separator nil t))))
+	     ((and (null message-signature)
+		   force)
+	      t)
+	     ((functionp message-signature)
+	      (funcall message-signature))
+	     ((listp message-signature)
+	      (eval message-signature))
+	     (t message-signature)))
+	   signature-file)
+      (setq signature
+	    (cond ((stringp signature)
+		   signature)
+		  ((and (eq t signature) message-signature-file)
+		   (setq signature-file
+			 (if (and message-signature-directory
+				  ;; don't actually use the signature directory
+				  ;; if message-signature-file contains a path.
+				  (not (file-name-directory
+					message-signature-file)))
+			     (expand-file-name message-signature-file
+					       message-signature-directory)
+			   message-signature-file))
+		   (file-exists-p signature-file))))
+      (when signature
+	(goto-char (point-max))
+	;; Insert the signature.
+	(unless (bolp)
+	  (newline))
+	(when message-signature-insert-empty-line
+	  (newline))
+	(insert "-- ")  ;; FIXME: THIS GUY!
+	(newline)
+	(if (eq signature t)
+	    (insert-file-contents signature-file)
+	  (insert signature))
+	(goto-char (point-max))
+	(or (bolp) (newline))))))
+#+end_src
+
+#+RESULTS:
+
+It's not the worst thing in the world though I guess.
+***** [2023-05-23 Tue 12:20] Solution
+Just define your own function for inserting the signature and use this, e.g.
+
+#+begin_src emacs-lisp :eval no
+(defun my/message-signature ()
+  "Insert a signature."
+  ;; We want to insert the signature ABOVE the quoted text,
+  ;; so we first to go the message body.
+  ;; NOTE: This insertion happens prior to inserting the quoted text.
+  (message-goto-body)
+  (insert "\n\n")
+  (insert "All the best,\n")
+  (insert "Tor\n"))
+
+(setq message-signature 'my/message-signature)
+#+end_src
+
+*** Interacting with the outside of Emacs
+
+**** TODO Emacs anywhere
+
+**** =org-protocol.el= and [[https://github.com/sprig/org-capture-extension][org-capture-extension]] (for Firefox & Chrome)
+1. Follow the instructions in the README for the extension.
+2. Set up some capture templates (also described in the README).
+   - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
+
+*** Resulting config
+#+name: el-mail-v3
+#+begin_src emacs-lisp 
+;; Email
+;; Useful resources:
+;; - https://kkatsuyuki.github.io/notmuch-conf/
+;; - https://chrisdone.com/posts/emacs-mail/
+;; - Multiple email setup:
+;; - https://www.djcbsoftware.nl/code/mu/mu4e/Example-configurations.html#Example-configurations
+;;   Example configurations using =mu=, but also invovles some setting of general mail variables
+;;   and examples with `offlineimap'.
+;; - https://emacs.stackexchange.com/a/12932
+;;   Example using `smptmail-multi', which is _very_ useful.
+;; - https://protesilaos.com/codelog/2021-05-15-emacs-notmuch/
+;;   Demo of `notmuch'.
+;; - https://sqrtminusone.xyz/posts/2021-02-27-gmail/
+;;   Different approach to syncing with gmail using `lieer'. This also allows syncing tags with gmail.
+
+(setq mail-user-agent 'message-user-agent)
+
+;; Formatting in message-mode.
+(setq message-fill-column 999999)
+
+;; The quoted text is always below.
+(setq message-cite-reply-position 'above)
+
+;; Signature insertion.
+(defun my/message-signature ()
+  "Insert a signature."
+  ;; We want to insert the signature ABOVE the quoted text,
+  ;; so we first to go the message body.
+  ;; NOTE: This insertion happens prior to inserting the quoted text.
+  (message-goto-body)
+  (insert "\n\n")
+  (insert "All the best,\n")
+  (insert "Tor\n"))
+
+(setq message-signature 'my/message-signature)
+
+;; Replies
+(setq message-citation-line-function 'message-insert-formatted-citation-line)
+(setq message-citation-line-format "\n\nOn %a, %d/%m/%Y, %f wrote:\n")
+
+(use-package smtpmail-multi
+  :ensure t)
+
+;; Load the list of email accounts.
+(load (expand-file-name "~/Dropbox/dotfiles/.emacs/emails.el"))
+
+(require 'dash)
+(defun my/make-smtpmail-multi-accounts-alist (accounts)
+  "Make an alist of the form (NAME . (EMAIL BACKEND-CONFIG)) from ACCOUNTS."
+  (-map
+   (lambda (account)
+     ;; Concatenate the email and the backend config, and then make a alist with the name as the key.
+     (let ((email (plist-get account :email))
+           (backend (plist-get account :backend)))
+       `(,(plist-get account :name) . ,(cons email (alist-get backend my/email-backend-configs)))))
+   accounts))
+
+;; Define the different accounts and their corresponding settings.
+(setq smtpmail-multi-accounts (my/make-smtpmail-multi-accounts-alist my/email-accounts))
+;; Specify association rules for the different accounts.
+(setq smtpmail-multi-associations (-map (lambda (x) (list (plist-get x :email) (plist-get x :name))) my/email-accounts))
+
+;; Make the send mail function use `smtpmail-multi-send-it'.
+(setq message-send-mail-function 'smtpmail-multi-send-it)
+;; Useful for debugging purposes.
+(setq smtpmail-debug-info t)
+
+;; Allow usage of org-mode to compose emails.
+(use-package org-mime)
+(setq org-mime-library 'mml)
+
+;; `notmuch' and related.
+;; Docs: https://notmuchmail.org/doc/latest/notmuch-emacs.html
+(use-package notmuch
+  :custom
+  (notmuch-always-prompt-for-sender t)  ;; promt for sender since I have multiple accounts
+  (notmuch-search-oldest-first nil)     ;; sort by newest
+  (notmuch-saved-searches my/notmuch-saved-searches)
+  )
+
+;; Adds nice integration with `org-mode', e.g. storing of links.
+(use-package ol-notmuch
+  :ensure t)
+
+;; Usually have to have point at the HTML to show it,
+;; which is a bit annoying.
+(defun notmuch-show-view-html+ ()
+  "Open the text/html part of the current message using
+`notmuch-show-view-part'."
+  (interactive)
+  (save-excursion
+    (goto-char
+     (prop-match-beginning
+      (text-property-search-forward
+       :notmuch-part
+       "text/html"
+       (lambda (value notmuch-part)
+         (equal (plist-get notmuch-part :content-type)
+                value)))))
+    (notmuch-show-view-part)))
+
+;; Custom HTML renderer for email which simply converts into the source.
+;; Adapted version of `mm-shr'.
+;; FIXME: When activating the `web-mode', we end up disabling the `notmuch' keybindings.
+(defun my/mm-raw-html (handle)
+  (let (charset coding char document)
+    (mm-with-part (or handle (setq handle (mm-dissect-buffer t)))
+      ;; Identify encoding.
+      (setq case-fold-search t)
+      (or (setq charset
+		        (mail-content-type-get (mm-handle-type handle) 'charset))
+	      (progn
+	        (goto-char (point-min))
+	        (and (re-search-forward "\
+<meta\\s-+http-equiv=[\"']?content-type[\"']?\\s-+content=[\"']?\
+text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
+		         (setq coding (mm-charset-to-coding-system (match-string 1)
+							                               nil t))))
+	      (setq charset mail-parse-charset))
+      ;; Decode and insert contents if it's not ASCII.
+      (when (and (or coding
+		             (setq coding (mm-charset-to-coding-system charset nil t)))
+		         (not (eq coding 'ascii)))
+	    (insert (prog1
+		            (decode-coding-string (buffer-string) coding)
+		          (erase-buffer)
+		          (set-buffer-multibyte t))))
+      ;; Go back to start of the buffer.
+      (goto-char (point-min))
+      (while (re-search-forward
+	          "&#\\(?:x\\([89][0-9a-f]\\)\\|\\(1[2-5][0-9]\\)\\);" nil t)
+	    (when (setq char
+		            (cdr (assq (if (match-beginning 1)
+				                   (string-to-number (match-string 1) 16)
+				                 (string-to-number (match-string 2)))
+			                   mm-extra-numeric-entities)))
+	      (replace-match (char-to-string char))))
+      ;; Remove "soft hyphens".
+      (goto-char (point-min))
+      (while (search-forward "­" nil t)
+	    (replace-match "" t t))
+      ;; Set the `document' variable to the raw buffer contents.
+      (setq document (buffer-string))
+      )
+    ;; Display.
+    (save-restriction
+      (narrow-to-region (point) (point))
+      ;; Insert the HTML contents.
+      (insert document)
+      ;; Activate HTML mode.
+      (web-mode)
+      ;; Fontify so we get syntax highlighting and stuff.
+      (font-lock-fontify-buffer)
+      ;; Indent the buffer.
+      (save-excursion
+        (indent-region (point-min) (point-max) nil))
+      ;; If we're at the beginning of the buffer, i.e. it's empty,
+      ;; insert a newline.
+      (unless (bobp)
+	    (insert "\n"))
+      (mm-handle-set-undisplayer
+       handle
+       (let ((min (point-min-marker))
+             (max (point-max-marker)))
+         (lambda ()
+	       (let ((inhibit-read-only t))
+	         (delete-region min max))))))))
+
+;; (setq mm-text-html-renderer 'my/mm-raw-html)
+(setq mm-text-html-renderer 'shr)
+
+;; Handle attachments a bit better.
+;; Source: https://notmuchmail.org/emacstips/#index2h2
+(defun tor/mm-pipe-- (handle cmd)
+  ;; conveniently, '-' '-' a args to pdftotext and docx2txt.pl work fine
+  ;; fixme: naming inconsistency (fn name and buffer name)
+  (let ((buffer (get-buffer-create "*attachment-to-text*")))
+    (with-current-buffer buffer
+      (setq buffer-read-only nil)
+      (erase-buffer))
+    (with-temp-buffer
+      ;; "based on mm-pipe-part in mm-decode.el"
+      (mm-with-unibyte-buffer
+        (mm-insert-part handle)
+        (mm-add-meta-html-tag handle)
+        (let ((coding-system-for-write 'binary))
+          (call-process-region (point-min) (point-max)
+                               cmd nil buffer nil "-" "-"))))
+    (pop-to-buffer buffer)
+    (goto-char (point-min))
+    (text-mode)
+    (visual-line-mode)
+    (view-mode)))
+
+(defun tor/notmuch-show-pop-attachment-to-buffer ()
+  ;; "based on `notmuch-show-apply-to-current-part-handle'"
+  (interactive)
+  (let ((handle (notmuch-show-current-part-handle)))
+    (unwind-protect
+        (pcase (car (nth 1 handle))
+          ("application/pdf"
+           ;; Save and open.
+           ;; FIXME: Fails if we decide not to save the file, e.g.
+           ;; because it would override an existing one.
+           (find-file (notmuch-show-save-part))
+           ;; Alternative: convert to text and open that buffer instead.
+           ;; (tor/mm-pipe-- handle "pdftotext")
+           )
+          ("image/png"
+           ;; Save and open.
+           (find-file (notmuch-show-save-part))
+           )
+          ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+           (tor/mm-pipe-- handle "docx2txt"))
+          (_ (notmuch-show-save-part)))
+      (kill-buffer (mm-handle-buffer handle)))))
+
+(setq notmuch-show-part-button-default-action
+      #'tor/notmuch-show-pop-attachment-to-buffer)
+
+;; Overrides `org-notmuch-open' which apparently expects 2 arguments, while `org-mode'
+;; (at least the one I've currently installed), expects 1 argument.
+;; The 2nd argument in `org-notmuch-open' isn't used for anything anyways, so we might
+;; as well just define one that ought to be compatible with either 1 or 2 args.
+(defun org-notmuch-open (path &rest)
+  "Follow a notmuch message link specified by PATH."
+  (funcall org-notmuch-open-function path))
+#+end_src
+
+** Org
+
+*** =org-ref=
+
+**** Some utilities
+#+begin_src emacs-lisp
+(defun my/org-ref-copy-bibtex-of-key-at-point ()
+  (interactive)
+  (save-window-excursion
+    (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
+	   (bibtex-completion-show-entry (list (org-ref-get-bibtex-key-under-cursor)))
+	   (bibtex-copy-entry-as-kill)
+	   (kill-new (pop bibtex-entry-kill-ring)))))
+
+(defun my/org-ref-used-citations-to-bibtex-buffer ()
+  (interactive)
+  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+        (refs (my/org-ref-get-references-used)))
+    (with-current-buffer (get-buffer-create "*BibTex export*")
+      ;; Clear it.
+      (erase-buffer)
+
+      ;; Do the stuff.
+      (-map (lambda (ref)
+              (save-window-excursion
+                (bibtex-completion-show-entry (list ref))
+                (bibtex-copy-entry-as-kill))
+              ;; Check that we're back in the "*BibTex export*" buffer.
+              (when (not (string= (buffer-name) "*BibTex export*"))
+                (error "Something went wrong."))
+              ;; Insert (pop bibtex-entry-kill-ring) into the "*BibTex export*" buffer.
+              (insert (pop bibtex-entry-kill-ring)))
+            refs))
+
+    ;; Display the buffer.
+    (pop-to-buffer "*BibTex export*")
+    (bibtex-mode)))
+
+(defun my/org-ref-get-references-used ()
+  (save-match-data
+    (let ((links (org-ref-get-cite-links)))
+    ;; Now we extract the path and strip away the `&' symbol.
+    (mapcar (lambda (link)
+              (let ((path (org-element-property :path link)))
+                (if (string-match "&" path)
+                    (substring path 1 (length path))
+                  path)))
+            links))))
+#+end_src
+
+*** =org-reveal.el=
+#+begin_src emacs-lisp
+(use-package ox-reveal
+  ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
+  ;; which is actually not provided (despite the name of the project).
+  :straight (ox-reveal :host github :repo "torfjelde/org-reveal" :branch "torfjelde/develop")
+  :custom
+  (org-reveal-extract-mathjax-version-from-url t)
+  (org-reveal-mathjax3-version "3.2.2")
+  (org-reveal-mathjax3-config
+   (json-encode
+    '((loader (load . ["[tex]/physics" "[tex]/color"]))
+      (tex
+       (inlineMath ["$" "$"] ["\\(" "\\)"])
+       (packages ("[+]" . ["physics" "color"]))
+       (macros (ind . "\\unicode{x1D7D9}"))
+       ))))
+  (org-reveal-plugin-to-name '((chalkboard . RevealChalkboard)))
+  (org-reveal-external-plugins '((RevealChalkboard . ("%splugin/chalkboard/plugin.js" "%splugin/chalkboard/style.css"))))
+  )
+#+end_src
+
+*** =org-contrib.el=
+
+**** =ox-extra.el=
+#+begin_src emacs-lisp
+(use-package org-contrib
+  :config
+  (require 'ox-extra)
+  ;; Usage of `:ignore' tag on a headline means that this headline will be ignored
+  ;; upon export, _but_ its children will still be exported.
+  (ox-extras-activate '(ignore-headlines))
+  )
+#+end_src
 
 
 
@@ -809,6 +1272,21 @@ The default tab-bar name uses the buffer name."
             ;; (setq lsp-julia-package-dir nil)
             (setq lsp-julia-default-environment "~/.julia/environments/v1.8")))
 #+end_src
+
+
+**** Formatting
+#+begin_src emacs-lisp
+(use-package julia-formatter
+  :straight (julia-formatter :host nil
+                             :type git
+                             :repo "https://codeberg.org/FelipeLema/julia-formatter.el.git"
+                             :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
+  :hook
+  (julia-mode . julia-formatter-mode)
+  :custom
+  julia-formatter-should-compile-julia-image 'never-compile
+  )
+#+end_src
 *** Python
 #+begin_src emacs-lisp
 ;; Python
@@ -989,6 +1467,12 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :straight (org :type built-in)
   :hook (org-mode . my/prettify-symbols-alist-set--org)
   :config
+  ;; Unbind the M-RET keybinding for `org-meta-return'. I sometimes use this keybinding for
+  ;; copilot completetions, etc. + `org-meta-return' is functionality we already have bindings for.
+  (unbind "M-RET" org-mode-map)
+  (unbind "<M-return>" org-mode-map)
+  
+  
   ;; customization for latex-preview in org-mode
   (setq org-format-latex-options '(:foreground default
                                                :background default
@@ -2068,237 +2552,6 @@ used to limit the exported source code blocks by language."
 (add-hook 'ea-popup-hook 'popup-handler)
 #+end_src
 
-** Email
-#+begin_src emacs-lisp 
-;; Email
-;; Useful resources:
-;; - https://kkatsuyuki.github.io/notmuch-conf/
-;; - https://chrisdone.com/posts/emacs-mail/
-;; - Multiple email setup:
-;; - https://www.djcbsoftware.nl/code/mu/mu4e/Example-configurations.html#Example-configurations
-;;   Example configurations using =mu=, but also invovles some setting of general mail variables
-;;   and examples with `offlineimap'.
-;; - https://emacs.stackexchange.com/a/12932
-;;   Example using `smptmail-multi', which is _very_ useful.
-;; - https://protesilaos.com/codelog/2021-05-15-emacs-notmuch/
-;;   Demo of `notmuch'.
-;; - https://sqrtminusone.xyz/posts/2021-02-27-gmail/
-;;   Different approach to syncing with gmail using `lieer'. This also allows syncing tags with gmail.
-
-(setq mail-user-agent 'message-user-agent)
-
-;; Replies
-(setq message-citation-line-function 'message-insert-formatted-citation-line)
-(setq message-citation-line-format "\n\nOn %a, %d/%m/%Y, %f wrote:\n")
-
-(use-package smtpmail-multi
-  :ensure t)
-
-;; Define the different accounts and their corresponding settings.
-(setq smtpmail-multi-accounts
-      '((tor-erlend95 . (
-                         ;; `smtpmail-smtp-user'
-                         "tor.erlend95@gmail.com"
-                         ;; `smtpmail-smtp-server'
-                         "smtp.gmail.com"
-                         ;; `smtpmail-smtp-service'
-                         587
-                         ;; `mail-specify-envelope-from' will be set to `t', and `mail-envelope-from' will be set to the value
-                         header
-                         ;; `smptmail-stream-type'
-                         starttls
-                         ;; STARTTLS key (used to set `smptmail-starttls-credentials')
-                         nil ;; TODO: is this correct?
-                         ;; STARTTLS certificate (used to set `smtpmail-startttls-credentials')
-                         nil ;; TODO: is this correct?
-                         ;; `smtpmail-local-domain'
-                         nil
-                         ))
-        (tor-github . ("tor.github@gmail.com" "smtp.gmail.com" 587 header starttls nil nil nil))
-
-        ;; Set up to send email through local `davmail' instance.
-        (tef30 . ("tef30@cam.ac.uk" "localhost" 1025 header nil))
-        (dcsa-coms . ("dcsa_coms@darwin.cam.ac.uk" "localhost" 1025 header nil))))
-
-;; Specify association rules for the different accounts.
-(setq smtpmail-multi-associations '(("tor.erlend95@gmail.com" tor-erlend95)
-                                    ("tor.github@gmail.com" tor-github)
-                                    ("tef30@cam.ac.uk" tef30)
-                                    ("dcsa_coms@darwin.cam.ac.uk" dcsa-coms)))
-
-;; Make the send mail function use `smtpmail-multi-send-it'.
-(setq message-send-mail-function 'smtpmail-multi-send-it)
-;; Useful for debugging purposes.
-(setq smtpmail-debug-info t)
-
-;; Allow usage of org-mode to compose emails.
-(use-package org-mime)
-(setq org-mime-library 'mml)
-
-;; `notmuch' and related.
-;; Docs: https://notmuchmail.org/doc/latest/notmuch-emacs.html
-(use-package notmuch
-  :config
-  (setq notmuch-always-prompt-for-sender t)
-  (setq notmuch-saved-searches '((:name "inbox" :query "tag:inbox" :key "i")
-                                 (:name "unread" :query "tag:unread" :sort-order newest-first :key "u")
-                                 (:name "flagged" :query "tag:flagged" :sort-order newest-first :key "f")
-                                 (:name "all mail" :query "*" :key "a")
-                                 (:name "tor.erlend95" :query "tag:tor.erlend95" :sort-order newest-first :key "t")
-                                 (:name "tef30" :query "tag:tef30" :sort-order newest-first :key "o")
-                                 (:name "dcsa_coms" :query "tag:dcsa_coms" :sort-order newest-first :key "d")
-                                 (:name "tor.github" :query "tag:tor.github" :sort-order newest-first :key "g")))
-  )
-
-;; Adds nice integration with `org-mode', e.g. storing of links.
-(use-package ol-notmuch
-  :ensure t)
-
-;; Usually have to have point at the HTML to show it,
-;; which is a bit annoying.
-(defun notmuch-show-view-html+ ()
-  "Open the text/html part of the current message using
-`notmuch-show-view-part'."
-  (interactive)
-  (save-excursion
-    (goto-char
-     (prop-match-beginning
-      (text-property-search-forward
-       :notmuch-part
-       "text/html"
-       (lambda (value notmuch-part)
-         (equal (plist-get notmuch-part :content-type)
-                value)))))
-    (notmuch-show-view-part)))
-
-;; Custom HTML renderer for email which simply converts into the source.
-;; Adapted version of `mm-shr'.
-;; FIXME: When activating the `web-mode', we end up disabling the `notmuch' keybindings.
-(defun my/mm-raw-html (handle)
-  (let (charset coding char document)
-    (mm-with-part (or handle (setq handle (mm-dissect-buffer t)))
-      ;; Identify encoding.
-      (setq case-fold-search t)
-      (or (setq charset
-		        (mail-content-type-get (mm-handle-type handle) 'charset))
-	      (progn
-	        (goto-char (point-min))
-	        (and (re-search-forward "\
-<meta\\s-+http-equiv=[\"']?content-type[\"']?\\s-+content=[\"']?\
-text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
-		         (setq coding (mm-charset-to-coding-system (match-string 1)
-							                               nil t))))
-	      (setq charset mail-parse-charset))
-      ;; Decode and insert contents if it's not ASCII.
-      (when (and (or coding
-		             (setq coding (mm-charset-to-coding-system charset nil t)))
-		         (not (eq coding 'ascii)))
-	    (insert (prog1
-		            (decode-coding-string (buffer-string) coding)
-		          (erase-buffer)
-		          (set-buffer-multibyte t))))
-      ;; Go back to start of the buffer.
-      (goto-char (point-min))
-      (while (re-search-forward
-	          "&#\\(?:x\\([89][0-9a-f]\\)\\|\\(1[2-5][0-9]\\)\\);" nil t)
-	    (when (setq char
-		            (cdr (assq (if (match-beginning 1)
-				                   (string-to-number (match-string 1) 16)
-				                 (string-to-number (match-string 2)))
-			                   mm-extra-numeric-entities)))
-	      (replace-match (char-to-string char))))
-      ;; Remove "soft hyphens".
-      (goto-char (point-min))
-      (while (search-forward "­" nil t)
-	    (replace-match "" t t))
-      ;; Set the `document' variable to the raw buffer contents.
-      (setq document (buffer-string))
-      )
-    ;; Display.
-    (save-restriction
-      (narrow-to-region (point) (point))
-      ;; Insert the HTML contents.
-      (insert document)
-      ;; Activate HTML mode.
-      (web-mode)
-      ;; Fontify so we get syntax highlighting and stuff.
-      (font-lock-fontify-buffer)
-      ;; Indent the buffer.
-      (save-excursion
-        (indent-region (point-min) (point-max) nil))
-      ;; If we're at the beginning of the buffer, i.e. it's empty,
-      ;; insert a newline.
-      (unless (bobp)
-	    (insert "\n"))
-      (mm-handle-set-undisplayer
-       handle
-       (let ((min (point-min-marker))
-             (max (point-max-marker)))
-         (lambda ()
-	       (let ((inhibit-read-only t))
-	         (delete-region min max))))))))
-
-;; (setq mm-text-html-renderer 'my/mm-raw-html)
-(setq mm-text-html-renderer 'shr)
-
-;; Handle attachments a bit better.
-;; Source: https://notmuchmail.org/emacstips/#index2h2
-(defun tor/mm-pipe-- (handle cmd)
-  ;; conveniently, '-' '-' a args to pdftotext and docx2txt.pl work fine
-  ;; fixme: naming inconsistency (fn name and buffer name)
-  (let ((buffer (get-buffer-create "*attachment-to-text*")))
-    (with-current-buffer buffer
-      (setq buffer-read-only nil)
-      (erase-buffer))
-    (with-temp-buffer
-      ;; "based on mm-pipe-part in mm-decode.el"
-      (mm-with-unibyte-buffer
-        (mm-insert-part handle)
-        (mm-add-meta-html-tag handle)
-        (let ((coding-system-for-write 'binary))
-          (call-process-region (point-min) (point-max)
-                               cmd nil buffer nil "-" "-"))))
-    (pop-to-buffer buffer)
-    (goto-char (point-min))
-    (text-mode)
-    (visual-line-mode)
-    (view-mode)))
-
-(defun tor/notmuch-show-pop-attachment-to-buffer ()
-  ;; "based on `notmuch-show-apply-to-current-part-handle'"
-  (interactive)
-  (let ((handle (notmuch-show-current-part-handle)))
-    (unwind-protect
-        (pcase (car (nth 1 handle))
-          ("application/pdf"
-           ;; Save and open.
-           ;; FIXME: Fails if we decide not to save the file, e.g.
-           ;; because it would override an existing one.
-           (find-file (notmuch-show-save-part))
-           ;; Alternative: convert to text and open that buffer instead.
-           ;; (tor/mm-pipe-- handle "pdftotext")
-           )
-          ("image/png"
-           ;; Save and open.
-           (find-file (notmuch-show-save-part))
-           )
-          ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-           (tor/mm-pipe-- handle "docx2txt.pl"))
-          (_ (notmuch-show-save-part)))
-      (kill-buffer (mm-handle-buffer handle)))))
-
-(setq notmuch-show-part-button-default-action
-      #'tor/notmuch-show-pop-attachment-to-buffer)
-
-;; Overrides `org-notmuch-open' which apparently expects 2 arguments, while `org-mode'
-;; (at least the one I've currently installed), expects 1 argument.
-;; The 2nd argument in `org-notmuch-open' isn't used for anything anyways, so we might
-;; as well just define one that ought to be compatible with either 1 or 2 args.
-(defun org-notmuch-open (path &rest)
-  "Follow a notmuch message link specified by PATH."
-  (funcall org-notmuch-open-function path))
-#+end_src
-
 ** Copilot
 #+begin_src emacs-lisp 
 (use-package company-box
@@ -2376,10 +2629,11 @@ and nothing for all other backends."
 #+begin_src emacs-lisp 
 (defun tor/enable-theme-after (theme)
   "Run after loading THEME."
+  ;; NOTE: you stupid boy. You can just use `pdf-view-themed-minor-mode'...
   ;; Ensures that the midnight mode has the correct colors set.
-  (when (my/straight-installed-p 'pdf-tools)
-    (setq pdf-view-midnight-colors `(,(face-attribute 'default :foreground) . ,(face-attribute 'default :background)))
-    )
+  ;; (when (my/straight-installed-p 'pdf-tools)
+  ;;   (setq pdf-view-midnight-colors `(,(face-attribute 'default :foreground) . ,(face-attribute 'default :background)))
+  ;;   )
 
   ;; Change the directory for the latex preview fragments.
   ;; Otherwise, you run into issues where org-mode tries to render
