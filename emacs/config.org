@@ -616,15 +616,6 @@ Just define your own function for inserting the signature and use this, e.g.
 (setq message-signature 'my/message-signature)
 #+end_src
 
-** Interacting with the outside of Emacs
-
-*** TODO Emacs anywhere
-
-*** =org-protocol.el= and [[https://github.com/sprig/org-capture-extension][org-capture-extension]] (for Firefox & Chrome)
-1. Follow the instructions in the README for the extension.
-2. Set up some capture templates (also described in the README).
-   - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
-
 ** Resulting config
 #+name: mail
 #+begin_src emacs-lisp 
@@ -900,6 +891,18 @@ I do this just to hide some details regarding my email accounts (mainly just to 
    (:name "account-4" :query "tag:account-4" :sort-order newest-first :key "g")))
 #+end_src
 
+* Interacting with the outside of Emacs
+
+** TODO Emacs anywhere
+
+https://github.com/zachcurry/emacs-anywhere
+
+** =org-protocol.el= and [[https://github.com/sprig/org-capture-extension][org-capture-extension]] (for Firefox & Chrome)
+1. Follow the instructions in the README for the extension.
+2. Set up some capture templates (also described in the README).
+   - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
+
+
 * Resulting configs
 
 ** Full config
@@ -914,7 +917,8 @@ I do this just to hide some details regarding my email accounts (mainly just to 
 ** Minimalist config
 #+name: el-minimal-init
 #+begin_src emacs-lisp :comments noweb :tangle init-minimal.el :noweb yes
-
+<<pkg-management>>
+<<basics>>
 #+end_src
 
 
