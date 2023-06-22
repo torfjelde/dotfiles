@@ -25,20 +25,6 @@ Some other significant changes:
 1. Replace the beloved =helm= with =vertico= + =marginalia= + =consult= + =embark=.
 2. Repalce =org-ref= with =citar= and =org-cite.el=.
 
-** Full config
-#+name: el-full-init
-#+begin_src emacs-lisp :comments noweb :tangle init-full.el
-
-#+end_src
-
-
-** Minimalist config
-#+name: el-minimal-init
-#+begin_src emacs-lisp :comments noweb :tangle init-minimal.el
-
-#+end_src
-
-
 * General stuff
 
 ** =~/.authinfo=
@@ -678,5 +664,23 @@ text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
   )
 #+end_src
 
+
+
+
+
+* Resulting configs
+
+** Full config
+#+name: el-full-init
+#+begin_src emacs-lisp :comments noweb :tangle init-full.el
+
+#+end_src
+
+
+** Minimalist config
+#+name: el-minimal-init
+#+begin_src emacs-lisp :comments noweb :tangle init-minimal.el
+
+#+end_src
 
 
