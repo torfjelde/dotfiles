@@ -1,3 +1,4 @@
+#+PROPERTY: header-args :tangle no :noweb yes :results no :eval no :comments noweb
 #+TITLE: Tor's init
 
 * Overview
@@ -29,10 +30,9 @@ Some other significant changes:
 1. Replace the beloved =helm= with =vertico= + =marginalia= + =consult= + =embark=.
 2. Repalce =org-ref= with =citar= and =org-cite.el=.
 
-* General stuff
-** Loading the config
+* Loading the config
 As mentioned in the overview, we're going to take the following approach in main init file:
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle init.el
 (require 'org)
 
 ;; A copy-paste from https://github.com/bzg/org-mode/blob/bd468136dd1a2172302b3ec980c5e6b6e327d683/lisp/org.el#L249-L279
@@ -70,22 +70,156 @@ byte-compiled before it is loaded."
 	      (message "Compiled and loaded %s" tangled-file))
       (load-file tangled-file)
       (message "Loaded %s" tangled-file))))
+
+;; Actually load the file we're interested in.
+(my/org-babel-load-file
+ (expand-file-name "config.org" user-emacs-directory)    ;; <= this file
+ (expand-file-name "init-full.el" user-emacs-directory)) ;; <= the tangled file
 #+end_src
 
-Then, we simply add one more line to define which of the configs defined in this file we want. For example, if we want the minimal config:
+If we instead wanted to load the minimalist file, we would just replace the last part in the above by
+
 #+begin_src emacs-lisp
 ;; Actually load the file we're interested in.
 (my/org-babel-load-file
-     (expand-file-name "config.org" user-emacs-directory)       ;; <= this file
-     (expand-file-name "init-minimal.el" user-emacs-directory)) ;; <= the tangled file
+ (expand-file-name "config.org" user-emacs-directory)       ;; <= this file
+ (expand-file-name "init-minimal.el" user-emacs-directory)) ;; <= the tangled file
 #+end_src
 
-** =~/.authinfo=
+* Package management: =straight.el= and =use-package=
+#+name: pkg-management
+#+begin_src emacs-lisp
+;; straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(defun my/straight-installed-p (package)
+  "Check if PACKAGE is installed (according to `straight.el')."
+  (straight--installed-and-buildable-p
+   ;; `format' allows us to handle both strings and symbols.
+   (gethash (format "%s" package) straight--recipe-cache)))
+
+;; use-package.el: Makes configuring the packages much easier.
+(straight-use-package 'use-package)
+
+;; Use `straight.el` by default when calling `use-package`.
+(setq straight-use-package-by-default t)
+
+;; Allow us to "require" system packages to be present using `:ensure-system-package'
+;; in `use-package' blocks.
+(use-package use-package-ensure-system-package)
+#+end_src
+
+* General utilities
+** Basic variables
+#+name: basics--variables
+#+begin_src emacs-lisp 
+;; Customize user interface.
+(menu-bar-mode 0)
+(tool-bar-mode 0)
+(scroll-bar-mode 0)
+
+(setq inhibit-startup-screen t)
+(column-number-mode)
+
+;; Don't show trailing whitespace _always_. It's annoying.
+(setq-default show-trailing-whitespace nil)
+(setq-default indicate-empty-lines t)
+(setq-default indicate-buffer-boundaries 'left)
+
+;; Consider a period followed by a single space to be end of sentence.
+(setq sentence-end-double-space nil)
+
+;; Use spaces, not tabs, for indentation.
+(setq-default indent-tabs-mode nil)
+
+;; Display the distance between two tab stops as 4 characters wide.
+(setq-default tab-width 4)
+
+;; Indentation setting for various languages.
+(setq c-basic-offset 4)
+(setq js-indent-level 2)
+(setq css-indent-offset 2)
+
+;; Highlight matching pairs of parentheses.
+(setq show-paren-delay 0)
+(show-paren-mode)
+
+;; Move the point to bottom/top when using `C-v' and `M-v', respectively,
+;; rather than just trying to scroll.
+(setq scroll-error-top-bottom t)
+
+;; Disable blinking cursor.
+(setq-default visible-cursor nil)
+;; (blink-cursor-mode 0) ;; Should be unnecessary on Emacs >24?
+#+end_src
+
+** Utility functions
+#+name: basics--utility-functions
+#+begin_src emacs-lisp
+(defun not-nil-p (x)
+  "Return `t` if X is not nil."
+  (not (not x)))
+#+end_src
+
+** Make =format-time-string= consistent across OS time settings
+#+name: basics--format-time-string-consistency
+#+begin_src emacs-lisp
+;; Ensures that we're always going to format the string according to EN locale.
+;; Setting `system-time-locale' to `"C"' or something doesn't work for daemon-mode.
+;; This is copy-paste from https://kisaragi-hiu.com/blog/2019-10-09-format-time-string-today.html.
+(require 'calendar)
+(defun kisaragi/english-dow (&optional time zone abbreviated)
+  "Return ABBREVIATED name of the day of week at TIME and ZONE.
+
+If TIME or ZONE is nil, use `current-time' or `current-time-zone'."
+  (unless time (setq time (current-time)))
+  (unless zone (setq zone (current-time-zone)))
+  (calendar-day-name
+   (pcase-let ((`(,_ ,_ ,_ ,d ,m ,y . ,_)
+                (decode-time time zone)))
+     (list m d y))
+   abbreviated))
+
+(defun kisaragi/advice-format-time-string (func format &optional time zone)
+  "Pass FORMAT, TIME, and ZONE to FUNC.
+
+Replace \"%A\" in FORMAT with English day of week of today,
+\"%a\" with the abbreviated version."
+  (let* ((format (replace-regexp-in-string "%a" (kisaragi/english-dow time zone t)
+                                           format))
+         (format (replace-regexp-in-string "%A" (kisaragi/english-dow time zone nil)
+                                           format)))
+    (funcall func format time zone)))
+
+
+(advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
+#+end_src
+
+** Result
+#+name: basics
+#+begin_src emacs-lisp 
+<<basics--variables>>
+<<basics--utility-functions>>
+<<basics--format-time-string-consistency>>
+#+end_src
+
+* =~/.authinfo=
 - Effectively a very simple plain-text password manager with encryption (if used right)
 - Nicely supported in Emacs
   - Also comes with Python bindings (though py3 requires a bit of fiddling)
 
-*** Python 3
+** Python 3
 - Can be useful for other integrations, e.g. I'm already sending emails using Emacs so if I write a Python script, it's nice if I can also just use the auth-information already present in my =~/.authinfo=
 - Requires building =authinfo= from scratch
   - Also requires a particular fork: https://github.com/torfjelde/authinfo
@@ -96,8 +230,100 @@ Then, we simply add one more line to define which of the configs defined in this
   - So this can be fixed by making sure that Python is indeed looking for shared libraries there, f.ex. by running =export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH=.
 - Also a useful resource if needed: https://www.masteringemacs.org/article/keeping-secrets-in-emacs-gnupg-auth-sources
 
-** Email
-*** Aim
+* Org
+
+** =org=
+
+
+** =org-ref=
+
+*** Some utilities
+#+begin_src emacs-lisp
+(defun my/org-ref-copy-bibtex-of-key-at-point ()
+  (interactive)
+  (save-window-excursion
+    (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
+	   (bibtex-completion-show-entry (list (org-ref-get-bibtex-key-under-cursor)))
+	   (bibtex-copy-entry-as-kill)
+	   (kill-new (pop bibtex-entry-kill-ring)))))
+
+(defun my/org-ref-used-citations-to-bibtex-buffer ()
+  (interactive)
+  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+        (refs (my/org-ref-get-references-used)))
+    (with-current-buffer (get-buffer-create "*BibTex export*")
+      ;; Clear it.
+      (erase-buffer)
+
+      ;; Do the stuff.
+      (-map (lambda (ref)
+              (save-window-excursion
+                (bibtex-completion-show-entry (list ref))
+                (bibtex-copy-entry-as-kill))
+              ;; Check that we're back in the "*BibTex export*" buffer.
+              (when (not (string= (buffer-name) "*BibTex export*"))
+                (error "Something went wrong."))
+              ;; Insert (pop bibtex-entry-kill-ring) into the "*BibTex export*" buffer.
+              (insert (pop bibtex-entry-kill-ring)))
+            refs))
+
+    ;; Display the buffer.
+    (pop-to-buffer "*BibTex export*")
+    (bibtex-mode)))
+
+(defun my/org-ref-get-references-used ()
+  (save-match-data
+    (let ((links (org-ref-get-cite-links)))
+    ;; Now we extract the path and strip away the `&' symbol.
+    (mapcar (lambda (link)
+              (let ((path (org-element-property :path link)))
+                (if (string-match "&" path)
+                    (substring path 1 (length path))
+                  path)))
+            links))))
+#+end_src
+
+** =org-reveal.el=
+#+begin_src emacs-lisp
+(use-package ox-reveal
+  ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
+  ;; which is actually not provided (despite the name of the project).
+  :straight (ox-reveal :host github :repo "torfjelde/org-reveal" :branch "torfjelde/develop")
+  :custom
+  (org-reveal-extract-mathjax-version-from-url t)
+  (org-reveal-mathjax3-version "3.2.2")
+  (org-reveal-mathjax3-config
+   (json-encode
+    '((loader (load . ["[tex]/physics" "[tex]/color"]))
+      (tex
+       (inlineMath ["$" "$"] ["\\(" "\\)"])
+       (packages ("[+]" . ["physics" "color"]))
+       (macros (ind . "\\unicode{x1D7D9}"))
+       ))))
+  (org-reveal-plugin-to-name '((chalkboard . RevealChalkboard)))
+  (org-reveal-external-plugins '((RevealChalkboard . ("%splugin/chalkboard/plugin.js" "%splugin/chalkboard/style.css"))))
+  )
+#+end_src
+
+** =org-contrib.el=
+
+*** =ox-extra.el=
+#+begin_src emacs-lisp
+(use-package org-contrib
+  :config
+  (require 'ox-extra)
+  ;; Usage of `:ignore' tag on a headline means that this headline will be ignored
+  ;; upon export, _but_ its children will still be exported.
+  (ox-extras-activate '(ignore-headlines))
+  )
+#+end_src
+
+
+
+
+
+* Email
+** Aim
 There are two needs:
 1. Retrieving emails.
    - Which we'll solve using *internet message access protocol (IMAP)*.
@@ -105,14 +331,13 @@ There are two needs:
    - Which we'll solve using *simple mail transport protocol (SMTP)*.
 3. An interface (in Emacs) that unifies the two.
 
-*** Retrieving emails using =offlineimap=
+** Retrieving emails using =offlineimap=
 
-**** Integration with different providers
+*** Integration with different providers
 
-***** Outlook
+**** Outlook
 
-
-****** =davmail=
+***** =davmail=
 - Effectively functions as a local email server, handling everything between you and Outlook, e.g. authentication.
 
 #+begin_src shell :results output :wrap "src conf" :eval no
@@ -212,15 +437,15 @@ localfolders = $HOME/mail/account-4@gmail.com
 
 Note: the accounts in the above are anonymized so I can avoid a bit of spam, which is always nice.
 
-******* Setup
+****** Setup
 
-***** Gmail
+**** TODO Gmail
 
-**** Authentication
+*** Authentication
 - Using =~/.authinfo= to store the passwords (this is also used by Emacs' SMTP functionality)
 - Need some setup to make =offlineimap= work nicely with this.
 
-#+begin_src python :tangle ~/.offlineimap.py
+#+begin_src python
 #!/usr/bin/env python2
 import re, os, sys
 
@@ -268,12 +493,12 @@ remotepasseval = get_authinfo_password("smtp.gmail.com", "account-4@gmail.com", 
 Some sources on the interwebs says to use =remotepass= in the above, but that doesn't seem to work. 
 #+end_warning
 
-*** Interfacing with emails using =notmuch=
+** Interfacing with emails using =notmuch=
 - Provides a simple and powerful tagging system
 - Treats everything as a single big "inbox", allowing us to easily filter based on different tags.
   - Personally find this very useful due to all the different email accounts I manage.
 
-*** Setting up =cron= for periodic checking
+** Setting up =cron= for periodic checking
 #+begin_example
 # Google won't be happy if we check the email too often, i.e. more frequently than ever 10 mins:
 # https://support.google.com/mail/answer/7126229?visit_id=638005640878107785-764406290&p=BadCredentials&rd=2#cantsignin&zippy=%2Ci-cant-sign-in-to-my-email-client
@@ -289,16 +514,16 @@ There are a couple of things to note here:
 - From https://askubuntu.com/a/1274272: we need the weird stuff before the comand to make sure the =notify-send= works.
 
 
-*** Writing messages
+** Writing messages
 When writing a message, we're in, well =message-mode=. So that's where you should look if you want to change how things are handled.
 
-**** Disabling automatic line-break
+*** Disabling automatic line-break
 I find the automatic breaking of lines a bit annoying, in particular in this day and age when most email clients I send to will have some automatic formatting when viewed.
 
 This can be "disabled"/controlled by setting the value of =message-fill-column= to whatever you desire, e.g. =999999=.
 
-**** Signature
-***** Old me
+*** Signature
+**** Old me
 This is handled by =message-signature=, but the generally best approach is probably just to have a =~/.signature= file, which is automatically detected.
 
 For example:
@@ -374,7 +599,7 @@ One annoying thing is that the signature-seperator is /hard-coded/ (I know, craz
 #+RESULTS:
 
 It's not the worst thing in the world though I guess.
-***** [2023-05-23 Tue 12:20] Solution
+**** [2023-05-23 Tue 12:20] Solution
 Just define your own function for inserting the signature and use this, e.g.
 
 #+begin_src emacs-lisp :eval no
@@ -391,17 +616,17 @@ Just define your own function for inserting the signature and use this, e.g.
 (setq message-signature 'my/message-signature)
 #+end_src
 
-*** Interacting with the outside of Emacs
+** Interacting with the outside of Emacs
 
-**** TODO Emacs anywhere
+*** TODO Emacs anywhere
 
-**** =org-protocol.el= and [[https://github.com/sprig/org-capture-extension][org-capture-extension]] (for Firefox & Chrome)
+*** =org-protocol.el= and [[https://github.com/sprig/org-capture-extension][org-capture-extension]] (for Firefox & Chrome)
 1. Follow the instructions in the README for the extension.
 2. Set up some capture templates (also described in the README).
    - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
 
-*** Resulting config
-#+name: el-mail-v3
+** Resulting config
+#+name: mail
 #+begin_src emacs-lisp 
 ;; Email
 ;; Useful resources:
@@ -450,6 +675,26 @@ Just define your own function for inserting the signature and use this, e.g.
 (load (expand-file-name "~/Dropbox/dotfiles/.emacs/emails.el"))
 
 (require 'dash)
+
+(setq my/email-backend-configs
+      '((gmail . (
+                  ;; `smtpmail-smtp-server'
+                  "smtp.gmail.com"
+                  ;; `smtpmail-smtp-service'
+                  587
+                  ;; `mail-specify-envelope-from' will be set to `t', and `mail-envelope-from' will be set to the value
+                  header
+                  ;; `smptmail-stream-type'
+                  starttls
+                  ;; STARTTLS key (used to set `smptmail-starttls-credentials')
+                  nil ;; TODO: is this correct?
+                  ;; STARTTLS certificate (used to set `smtpmail-startttls-credentials')
+                  nil ;; TODO: is this correct?
+                  ;; `smtpmail-local-domain'
+                  nil
+                  ))
+        (outlook . ("localhost" 1025 header nil))))
+
 (defun my/make-smtpmail-multi-accounts-alist (accounts)
   "Make an alist of the form (NAME . (EMAIL BACKEND-CONFIG)) from ACCOUNTS."
   (-map
@@ -632,110 +877,43 @@ text/html;\\s-*charset=\\([^\t\n\r \"'>]+\\)[^>]*>" nil t)
   (funcall org-notmuch-open-function path))
 #+end_src
 
-** Org
+Note that in the above file I also load this =emails.el= file of mine.
+I do this just to hide some details regarding my email accounts (mainly just to avoid spam); the format of the file is something like
 
-*** =org=
-
-
-*** =org-ref=
-
-**** Some utilities
 #+begin_src emacs-lisp
-(defun my/org-ref-copy-bibtex-of-key-at-point ()
-  (interactive)
-  (save-window-excursion
-    (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
-	   (bibtex-completion-show-entry (list (org-ref-get-bibtex-key-under-cursor)))
-	   (bibtex-copy-entry-as-kill)
-	   (kill-new (pop bibtex-entry-kill-ring)))))
+;; Configs for the different email accounts.
+(setq my/email-accounts '((:name account-1 :email "account-1@gmail.com" :backend gmail)
+                          (:name account-2 :email "account-2@gmail.com" :backend gmail)
+                          (:name account-3 :email "account-3@cam.ac.uk" :backend outlook)
+                          (:name account-4 :email "acocunt-4@darwin.cam.ac.uk" :backend outlook)))
 
-(defun my/org-ref-used-citations-to-bibtex-buffer ()
-  (interactive)
-  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
-        (refs (my/org-ref-get-references-used)))
-    (with-current-buffer (get-buffer-create "*BibTex export*")
-      ;; Clear it.
-      (erase-buffer)
-
-      ;; Do the stuff.
-      (-map (lambda (ref)
-              (save-window-excursion
-                (bibtex-completion-show-entry (list ref))
-                (bibtex-copy-entry-as-kill))
-              ;; Check that we're back in the "*BibTex export*" buffer.
-              (when (not (string= (buffer-name) "*BibTex export*"))
-                (error "Something went wrong."))
-              ;; Insert (pop bibtex-entry-kill-ring) into the "*BibTex export*" buffer.
-              (insert (pop bibtex-entry-kill-ring)))
-            refs))
-
-    ;; Display the buffer.
-    (pop-to-buffer "*BibTex export*")
-    (bibtex-mode)))
-
-(defun my/org-ref-get-references-used ()
-  (save-match-data
-    (let ((links (org-ref-get-cite-links)))
-    ;; Now we extract the path and strip away the `&' symbol.
-    (mapcar (lambda (link)
-              (let ((path (org-element-property :path link)))
-                (if (string-match "&" path)
-                    (substring path 1 (length path))
-                  path)))
-            links))))
+;; Saved notmuch searches.
+(setq
+ my/notmuch-saved-searches
+ '((:name "inbox" :query "tag:inbox" :sort-order newest-first :key "i")
+   (:name "unread" :query "tag:unread" :sort-order newest-first :key "u")
+   (:name "flagged" :query "tag:flagged" :sort-order newest-first :key "f")
+   (:name "all mail" :query "*" :sort-order newest-first :key "a")
+   (:name "account-1" :query "tag:account1" :sort-order newest-first :key "t")
+   (:name "account-2" :query "tag:account-2" :sort-order newest-first :key "o")
+   (:name "account-3" :query "tag:account-3" :sort-order newest-first :key "d")
+   (:name "account-4" :query "tag:account-4" :sort-order newest-first :key "g")))
 #+end_src
-
-*** =org-reveal.el=
-#+begin_src emacs-lisp
-(use-package ox-reveal
-  ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
-  ;; which is actually not provided (despite the name of the project).
-  :straight (ox-reveal :host github :repo "torfjelde/org-reveal" :branch "torfjelde/develop")
-  :custom
-  (org-reveal-extract-mathjax-version-from-url t)
-  (org-reveal-mathjax3-version "3.2.2")
-  (org-reveal-mathjax3-config
-   (json-encode
-    '((loader (load . ["[tex]/physics" "[tex]/color"]))
-      (tex
-       (inlineMath ["$" "$"] ["\\(" "\\)"])
-       (packages ("[+]" . ["physics" "color"]))
-       (macros (ind . "\\unicode{x1D7D9}"))
-       ))))
-  (org-reveal-plugin-to-name '((chalkboard . RevealChalkboard)))
-  (org-reveal-external-plugins '((RevealChalkboard . ("%splugin/chalkboard/plugin.js" "%splugin/chalkboard/style.css"))))
-  )
-#+end_src
-
-*** =org-contrib.el=
-
-**** =ox-extra.el=
-#+begin_src emacs-lisp
-(use-package org-contrib
-  :config
-  (require 'ox-extra)
-  ;; Usage of `:ignore' tag on a headline means that this headline will be ignored
-  ;; upon export, _but_ its children will still be exported.
-  (ox-extras-activate '(ignore-headlines))
-  )
-#+end_src
-
-
-
-
 
 * Resulting configs
 
 ** Full config
 #+name: el-full-init
-#+begin_src emacs-lisp :comments noweb :tangle init-full.el
-
+#+begin_src emacs-lisp :comments noweb :tangle init-full.el :noweb yes
+<<pkg-management>>
+<<basics>>
+<<mail>>
 #+end_src
 
 
 ** Minimalist config
 #+name: el-minimal-init
-#+begin_src emacs-lisp :comments noweb :tangle init-minimal.el
+#+begin_src emacs-lisp :comments noweb :tangle init-minimal.el :noweb yes
 
 #+end_src
 
