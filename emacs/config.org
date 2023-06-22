@@ -206,13 +206,104 @@ Replace \"%A\" in FORMAT with English day of week of today,
 (advice-add 'format-time-string :around #'kisaragi/advice-format-time-string)
 #+end_src
 
+** File backup
+#+name: basics--file-backup
+#+begin_src emacs-lisp
+;; Write auto-saves and backups to separate directory.
+(make-directory "~/.emacs.d/file-backups/auto-save/" t)
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/file-backups/auto-save/" t)))
+(setq backup-directory-alist '(("." . "~/.emacs.d/file-backups/backup/")))
+
+;; Do not move the current file while creating backup.
+(setq backup-by-copying t)
+
+;; Disable lockfiles.
+(setq create-lockfiles nil)
+#+end_src
+
+** Custom settings in seperate file
+Let's keep the customization of, well, customizable variables in a separate file so as to avoid it cluttering the =init.el=.
+
+#+name: basics--custom-file
+#+begin_src emacs-lisp
+;; Write customizations to a separate file instead of this file.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file t)
+#+end_src
+
 ** Result
 #+name: basics
 #+begin_src emacs-lisp 
 <<basics--variables>>
 <<basics--utility-functions>>
 <<basics--format-time-string-consistency>>
+<<basics--file-backup>>
+<<basics--custom-file>>
 #+end_src
+
+* OS specific setup
+
+** Linux
+#+name: os-specifics--linux
+#+begin_src emacs-lisp
+;; Linux
+(defmacro when-linux (body)
+  "Evaluate BODY if the system type is `gnu/linux'."
+  `(when (eq system-type 'gnu/linux)
+     ,body))
+
+(when-linux
+  ;; NOTE: this will also be hit in WSL.
+  (use-package exec-path-from-shell)
+  (exec-path-from-shell-initialize)
+
+  ;; use xclip to yank, allowing you to yank in terminal to the GLOBAL clipboard
+  (use-package xclip
+    :init (xclip-mode)))
+#+end_src
+
+** Windows Linux Subsystem
+#+name: os-specifics--wsl-copy
+#+begin_src emacs-lisp
+(defun tor/is-wsl-p ()
+  ;; WSL: WSL1 has "-Microsoft", WSL2 has "-microsoft-standard"
+  (not-nil (string-match "-[Mm]icrosoft" operating-system-release)))
+
+(defmacro when-wsl (body)
+  "Evaluate BODY if running in WSL."
+  `(when (tor/is-wsl-p)
+     ,body))
+
+(when-wsl
+  ;; Source: https://www.emacswiki.org/emacs/Emacs_and_the_Windows_Subsystem_for_Linux
+  (defun wsl-copy-region-to-clipboard (start end)
+    "Copy region to Windows clipboard."
+    (interactive "r")
+    (call-process-region start end "clip.exe" nil 0))
+
+  (defun wsl-clipboard-to-string ()
+    "Return Windows clipboard as string."
+    (let ((coding-system-for-read 'dos))
+      (substring				; remove added trailing \n
+       (shell-command-to-string
+        "powershell.exe -Command Get-Clipboard") 0 -1)))
+
+  (defun wsl-paste-from-clipboard (arg)
+    "Insert Windows clipboard at point. With prefix ARG, also add to kill-ring"
+    (interactive "P")
+    (let ((clip (wsl-clipboard-to-string)))
+      (insert clip)
+      (if arg (kill-new clip)))))
+#+end_src
+
+** Result
+#+name: os-specifics
+#+begin_src emacs-lisp 
+<<basics--linux-specific>>
+<<basics--wsl-specific>>
+#+end_src
+
+
 
 * =~/.authinfo=
 - Effectively a very simple plain-text password manager with encryption (if used right)
