@@ -2180,6 +2180,8 @@ Example: ':/path/to/test.pdf:PDF'."
   :custom
   (citar-bibliography '("~/Dropbox/bibliography/references.bib"))
   (citar-library-paths '("~/Dropbox/bibliography/pdfs/"))
+  ;; FIXME: For some reason this doesn't work; it then complains that
+  ;; it's not actually a list of functions. Instead we have to set it in `custom.el`.
   ;; (citar-file-parser-functions (my/citar--file-parser))
   :bind
   ("C-c ]" . citar-open)
