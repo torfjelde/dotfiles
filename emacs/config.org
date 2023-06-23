@@ -1154,7 +1154,7 @@ highlight color.  With a double prefix argument, prompt for a color."
 #+end_src
 
 ** Emacs lisp
-#+name: programmin--emacs-lisp
+#+name: programming--emacs-lisp
 #+begin_src emacs-lisp 
 (use-package rainbow-delimiters
   :hook ((emacs-lisp-mode . rainbow-delimiters-mode)
@@ -1192,7 +1192,7 @@ highlight color.  With a double prefix argument, prompt for a color."
 
 ** Ein
 This is different from the =jupyter=, since this actually allows us to work with Jupyter notebooks directly in Emacs.
-#+name: programming-ein
+#+name: programming--ein
 #+begin_src emacs-lisp 
 (use-package ein
   :custom
@@ -2144,12 +2144,11 @@ If the region is not active, use the current line."
 <<org--by-backend>>
 
 <<org--org-sidebar>>
-<<org--navigation-custom>>
 
 <<org--ansi-color-codes-handling>>
 <<org--org-download>>
 <<org--contrib>>
-<<org-present>>
+<<org--org-present>>
 
 <<org--custom>>
 #+end_src
