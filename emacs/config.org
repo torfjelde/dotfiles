@@ -906,6 +906,7 @@ highlight color.  With a double prefix argument, prompt for a color."
   (pdf-annot-add-highlight-markup-annotation list-of-edges color))
 
 (use-package pdf-tools
+  :ensure t
   :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
   :bind (:map pdf-annot-minor-mode-map
               ("C-c C-a h" . my/pdf-annot-add-highlight-markup-annotation))
@@ -1048,6 +1049,12 @@ highlight color.  With a double prefix argument, prompt for a color."
 (use-package edit-indirect
   :config (progn
             (define-key edit-indirect-mode-map (kbd "C-c C-c") nil)))
+#+end_src
+
+** YAML
+#+name: programming--yaml
+#+begin_src emacs-lisp 
+(use-package yaml-mode)
 #+end_src
 
 ** eglot
@@ -1209,6 +1216,7 @@ This is different from the =jupyter=, since this actually allows us to work with
 <<programming--latex>>
 <<programming--markdown>>
 <<programming--polymode>>
+<<programming--yaml>>
 <<programming--ess>>
 <<programming--julia>>
 <<programming--python>>
