@@ -326,6 +326,10 @@ Then we'll insert the following at the very end of our init-file:
 
 
 * The Holy Quaternity: =vertico= + =orderless= + =marginalia= + =consult=
+I used to use =helm= to make my =M-x= experience dopey, but now I've moved to this thing.
+
+The config is very "raw"; I effectively just copy-pasted from the respective packages to get something up and running, but I'm pretty happy with it this far.
+
 #+name: the-holy-quaternity
 #+begin_src emacs-lisp 
 ;; Enable vertico
