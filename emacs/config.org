@@ -692,6 +692,8 @@ highlight color.  With a double prefix argument, prompt for a color."
   ;; Otherwise we get complaints on every `(require ...)'.
   ;; https://github.com/flycheck/flycheck/issues/1559#issuecomment-478569550
   (setq flycheck-emacs-lisp-load-path 'inherit))
+#+end_src
+
 ** LaTeX
 #+name: programming--latex
 #+begin_src emacs-lisp 
