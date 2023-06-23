@@ -1,3 +1,4 @@
+#+OPTIONS: toc:4
 #+PROPERTY: header-args :tangle no :noweb yes :results no :eval no :comments noweb
 #+TITLE: Tor's init
 
@@ -28,7 +29,7 @@ So. The strategy will be as follows.
 
 Some other significant changes:
 1. Replace the beloved =helm= with =vertico= + =marginalia= + =consult= + =embark=.
-2. Repalce =org-ref= with =citar= and =org-cite.el=.
+2. Replace =org-ref= with =citar= and =org-cite.el=.
 
 * Loading the config
 As mentioned in the overview, we're going to take the following approach in main init file:
