@@ -817,7 +817,7 @@ The default tab-bar name uses the buffer name."
 <<terminal-emulation--vterm>>
 #+end_src
 
-* Completion
+* Completion & assistants
 ** =yasnippet=
 #+name: completion--yasnippet
 #+begin_src emacs-lisp
@@ -879,12 +879,23 @@ The default tab-bar name uses the buffer name."
   )
 #+end_src
 
+** =chatgpt.el=
+#+name: completion--chatgpt
+#+begin_src emacs-lisp 
+(use-package chatgpt
+  :straight (:type git :host github :repo "torfjelde/ChatGPT.el" :branch "joshcho-dev" :files ("dist" "*.el"))
+  :custom
+  (chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
+  :bind ("C-c q" . chatgpt-query))
+#+end_src
+
 ** Result
 #+name: completion
 #+begin_src emacs-lisp
 <<completion--yasnippet>>
 <<completion--company>>
 <<completion--copilot>>
+<<completion--chatgpt>>
 #+end_src
 
 * Viewing non-text files
