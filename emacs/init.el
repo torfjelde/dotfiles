@@ -1,6 +1,9 @@
 ;; [[file:config.org::*Loading the config][Loading the config:1]]
 (require 'org)
 
+;; Raises an error if a noweb reference cannot be resolved.
+(setq org-babel-noweb-error-all-langs t)
+
 ;; A copy-paste from https://github.com/bzg/org-mode/blob/bd468136dd1a2172302b3ec980c5e6b6e327d683/lisp/org.el#L249-L279
 ;; but with the option of specifying the tangled file `file-out'.
 ;; Note that if blocks have specified a `:tangle' header, only those matching `file-out'
