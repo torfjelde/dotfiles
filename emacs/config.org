@@ -1130,16 +1130,15 @@ highlight color.  With a double prefix argument, prompt for a color."
 ;; Currently only need this for latex symbols.
 (use-package julia-mode)
 
-;; (use-package julia-formatter
-;;   :straight (julia-formatter :host nil
-;;                              :type git
-;;                              :repo "https://codeberg.org/FelipeLema/julia-formatter.el.git"
-;;                              :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
-;;   ;; :hook
-;;   ;; (julia-mode . julia-formatter-mode)s
-;;   :custom
-;;   julia-formatter-should-compile-julia-image 'never-compile
-;;   )
+(use-package julia-formatter
+  :straight (julia-formatter :type git
+                             :host github
+                             :repo "torfjelde/julia-formatter.el"
+                             :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
+  :hook
+  (julia-mode . julia-formatter-mode)
+  :custom
+  (julia-formatter-should-compile-julia-image 'never-compile))
 
 (use-package eglot-jl
   :after (eglot julia-ts-mode))
