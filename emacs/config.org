@@ -240,10 +240,9 @@ Then we'll insert the following at the very end of our init-file:
 ** =compat.el=
 #+name: basics--compat
 #+begin_src emacs-lisp 
-(use-package compat
-  ;; :straight (compat :type git :host github :repo "emacs-compat/compat" :branch "28.1.2.2")
-  )
+(use-package compat)
 #+end_src
+
 ** =dash.el=
 #+name: basics--dash
 #+begin_src emacs-lisp 
