@@ -2794,6 +2794,7 @@ I do this just to hide some details regarding my email accounts (mainly just to 
 #+name: themes--doom-modeline
 #+begin_src emacs-lisp 
 (use-package doom-modeline
+  :ensure t
   :custom
   (doom-modeline-height 15)
   (doom-modeline-bar-width 6)
@@ -2804,7 +2805,9 @@ I do this just to hide some details regarding my email accounts (mainly just to 
   (doom-modeline-minor-modes t)
   (doom-modeline-persp-name nil)
   (doom-modeline-buffer-file-name-style 'truncate-except-project)
-  (doom-modeline-major-mode-icon nil))
+  (doom-modeline-major-mode-icon nil)
+  :config
+  (doom-modeline-mode t))
 #+end_src
 
 ** Custom hooks
