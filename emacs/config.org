@@ -776,10 +776,10 @@ The default tab-bar name uses the buffer name."
 #+begin_src emacs-lisp
 ;; smartparens.el: Automatic insertion of pairs of characters.
 (use-package smartparens
-  :config (progn
-            (require 'smartparens-config)
-            (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
-            (add-hook 'prog-mode-hook 'show-paren-mode t)))
+  :config
+  (require 'smartparens-config)
+  (add-hook 'prog-mode-hook 'turn-on-smartparens-mode)
+  (add-hook 'prog-mode-hook 'show-paren-mode t))
 #+end_src
 
 ** Undo & redo
@@ -795,7 +795,7 @@ The default tab-bar name uses the buffer name."
 ** Result
 #+name: editing
 #+begin_src emacs-lisp 
-<<editing--smarparens>>
+<<editing--smartparens>>
 <<editing--undo-tree>>
 #+end_src
 
