@@ -926,11 +926,12 @@ highlight color.  With a double prefix argument, prompt for a color."
   :bind (:map pdf-annot-minor-mode-map
               ("C-c C-a h" . my/pdf-annot-add-highlight-markup-annotation))
   :config
-  (pdf-tools-install)
-  (require 'pdf-annot)
+(require 'pdf-annot)
   ;; NOTE: This is just a convenient way to make the initial color selection more convenient.
   (setq-default pdf-annot-color-history '("hot pink" "cyan" "pale turquoise" "plum" "thistle" "light sky blue" "deep sky blue" "lemon chiffon" "yellow" "light salmon" "lawn green"))
   )
+
+(pdf-loader-install)
 #+end_src
 
 ** Result
@@ -1387,6 +1388,9 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; Allows us to specify the width of the image using something like `#+ATTR_ORG: :width 600'.
   (setq org-image-actual-width nil)
 
+  ;; Use `minted'.
+  (setq org-latex-listings 'minted)
+
   ;; Make `org-goto' nice to work with.
   ;; Source: https://emacs.stackexchange.com/a/32625
   ;; Complete on outlines/headings.
@@ -1601,7 +1605,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      ("" "capt-of" nil nil)
      ("breaklinks=true" "hyperref" nil nil)
      ("" "mathpazo" t nil)
-     ("" "eulervm" t nil)))
+     ("" "eulervm" t nil)
+     ("" "minted" t nil)))
 
   (org-preview-latex-process-alist
    '((dvipng :programs
