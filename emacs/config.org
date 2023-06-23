@@ -72,6 +72,7 @@ byte-compiled before it is loaded."
       (message "Loaded %s" tangled-file))))
 
 ;; Actually load the file we're interested in.
+;; TODO: Handle symlinks.
 (my/org-babel-load-file
  (expand-file-name "config.org" user-emacs-directory)    ;; <= this file
  (expand-file-name "init-full.el" user-emacs-directory)) ;; <= the tangled file
@@ -244,6 +245,12 @@ Then we'll insert the following at the very end of our init-file:
   ;; :straight (compat :type git :host github :repo "emacs-compat/compat" :branch "28.1.2.2")
   )
 #+end_src
+** =dash.el=
+#+name: basics--dash
+#+begin_src emacs-lisp 
+(use-package dash)
+#+end_src
+
 ** Result
 #+name: basics
 #+begin_src emacs-lisp 
@@ -253,6 +260,7 @@ Then we'll insert the following at the very end of our init-file:
 <<basics--file-backup>>
 <<basics--custom-file>>
 <<basics--compat>>
+<<basics--dash>>
 #+end_src
 
 * OS specific setup
