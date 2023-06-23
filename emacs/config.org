@@ -2902,7 +2902,7 @@ https://github.com/zachcurry/emacs-anywhere
 <<editing>>
 <<terminal-emulation>>
 <<completion>>
-<<file-viewing>>
+<<file-viewers>>
 <<programming>>
 <<org>>
 <<citations>>
