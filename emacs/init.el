@@ -39,6 +39,7 @@ byte-compiled before it is loaded."
 
 ;; Actually load the file we're interested in.
 (my/org-babel-load-file
- (expand-file-name "config.org" user-emacs-directory)    ;; <= this file
- (expand-file-name "init-full.el" user-emacs-directory)) ;; <= the tangled file
+ ;; Use `file-truename' to handle symbolic links.
+ (file-truename (expand-file-name "config.org" user-emacs-directory))    ;; <= this file
+ (file-truename (expand-file-name "init-full.el" user-emacs-directory))) ;; <= the tangled file
 ;; Loading the config:1 ends here

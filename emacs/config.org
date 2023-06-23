@@ -72,19 +72,18 @@ byte-compiled before it is loaded."
       (message "Loaded %s" tangled-file))))
 
 ;; Actually load the file we're interested in.
-;; TODO: Handle symlinks.
 (my/org-babel-load-file
- (expand-file-name "config.org" user-emacs-directory)    ;; <= this file
- (expand-file-name "init-full.el" user-emacs-directory)) ;; <= the tangled file
+ ;; Use `file-truename' to handle symbolic links.
+ (file-truename (expand-file-name "config.org" user-emacs-directory))    ;; <= this file
+ (file-truename (expand-file-name "init-full.el" user-emacs-directory))) ;; <= the tangled file
 #+end_src
 
 If we instead wanted to load the minimalist file, we would just replace the last part in the above by
 
 #+begin_src emacs-lisp
-;; Actually load the file we're interested in.
 (my/org-babel-load-file
- (expand-file-name "config.org" user-emacs-directory)       ;; <= this file
- (expand-file-name "init-minimal.el" user-emacs-directory)) ;; <= the tangled file
+ (file-truename (expand-file-name "config.org" user-emacs-directory))
+ (file-truename (expand-file-name "init-minimal.el" user-emacs-directory)))
 #+end_src
 
 * Package management: =straight.el= and =use-package=
