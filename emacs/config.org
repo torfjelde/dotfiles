@@ -917,6 +917,14 @@ highlight color.  With a double prefix argument, prompt for a color."
 #+end_src
 
 * Programming & Markup
+** prog-mode
+#+name: programming--prog-mode
+#+begin_src emacs-lisp
+(use-package prog-mode
+  :straight (prog-mode :type built-in)
+  :hook
+  (prog-mode . display-line-numbers-mode))
+#+end_src
 ** Flycheck
 #+name: programming--flycheck
 #+begin_src emacs-lisp
@@ -1035,6 +1043,42 @@ highlight color.  With a double prefix argument, prompt for a color."
             (define-key edit-indirect-mode-map (kbd "C-c C-c") nil)))
 #+end_src
 
+** eglot
+#+name: programming--eglot
+#+begin_src emacs-lisp
+;;; <EGLOT> configuration, pick this or the LSP configuration but not both.
+;; Using Eglot with Pyright, a language server for Python.
+;; See: https://github.com/joaotavora/eglot.
+(use-package eglot
+  :straight (eglot :type built-in)
+  :ensure t
+  :defer t
+  :hook
+  (python-mode . eglot-ensure)
+  (julia-mode . eglot-ensure))
+#+end_src
+
+** treesitter
+#+name: programming--treesitter
+#+begin_src emacs-lisp 
+(setq treesit-language-source-alist
+      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+        (cmake "https://github.com/uyha/tree-sitter-cmake")
+        (css "https://github.com/tree-sitter/tree-sitter-css")
+        (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+        (go "https://github.com/tree-sitter/tree-sitter-go")
+        (html "https://github.com/tree-sitter/tree-sitter-html")
+        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+        (json "https://github.com/tree-sitter/tree-sitter-json")
+        (make "https://github.com/alemuller/tree-sitter-make")
+        (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+        (python "https://github.com/tree-sitter/tree-sitter-python")
+        (toml "https://github.com/tree-sitter/tree-sitter-toml")
+        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+        (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+        (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+        (julia "https://github.com/tree-sitter/tree-sitter-julia")))
+#+end_src
 ** R (or =ess=)
 #+name: programming--ess
 #+begin_src emacs-lisp 
@@ -1057,21 +1101,30 @@ highlight color.  With a double prefix argument, prompt for a color."
   ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
   (prettify-symbols-mode 1))
 
-(use-package julia-mode
+(use-package julia-ts-mode
+  :hook
+  (julia-ts-mode . eglot-mode)
+  (julia-ts-mode . my/set-julia-prettify-symbols-alist)
   :config
-  (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
+  ;; (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
   )
 
-(use-package julia-formatter
-  :straight (julia-formatter :host nil
-                             :type git
-                             :repo "https://codeberg.org/FelipeLema/julia-formatter.el.git"
-                             :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
-  ;; :hook
-  ;; (julia-mode . julia-formatter-mode)s
-  :custom
-  julia-formatter-should-compile-julia-image 'never-compile
-  )
+;; Currently only need this for latex symbols.
+(use-package julia-mode)
+
+;; (use-package julia-formatter
+;;   :straight (julia-formatter :host nil
+;;                              :type git
+;;                              :repo "https://codeberg.org/FelipeLema/julia-formatter.el.git"
+;;                              :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
+;;   ;; :hook
+;;   ;; (julia-mode . julia-formatter-mode)s
+;;   :custom
+;;   julia-formatter-should-compile-julia-image 'never-compile
+;;   )
+
+(use-package eglot-jl
+  :after (eglot julia-ts-mode))
 #+end_src
 
 ** Python
@@ -1143,6 +1196,8 @@ This is different from the =jupyter=, since this actually allows us to work with
 ** Result
 #+name: programming
 #+begin_src emacs-lisp
+<<programming--prog-mode>>
+<<programming--eglot>>
 <<programming--flycheck>>
 <<programming--latex>>
 <<programming--markdown>>
@@ -2131,6 +2186,23 @@ There are two needs:
 2. Sending emails.
    - Which we'll solve using *simple mail transport protocol (SMTP)*.
 3. An interface (in Emacs) that unifies the two.
+
+** =~/.authinfo=
+- Effectively a very simple plain-text password manager with encryption (if used right)
+- Nicely supported in Emacs
+  - Also comes with Python bindings (though py3 requires a bit of fiddling)
+
+** Python 3
+- Can be useful for other integrations, e.g. I'm already sending emails using Emacs so if I write a Python script, it's nice if I can also just use the auth-information already present in my =~/.authinfo=
+- Requires building =authinfo= from scratch
+  - Also requires a particular fork: https://github.com/torfjelde/authinfo
+- A simple =make install= copies the python package into =/usr/local/lib/python3.8/site-packages= which, unfortunately, isn't loaded (unless you're running the global python interpreter, which is rare these days).
+  - A simple fix: =mv= the above to =/usr/local/lib/python3.8/dist-packages= which is loaded by every python installation (this is consider the /global/ repository for packages)
+- Possible error: missing shared library =libauthinfo.so.0=
+  - The =libauthinfo.so.0= file /should/ be present in =/usr/local/lib= or something equivalent (look for =libauthinfo.so.0= in the output for of the =make install=).
+  - So this can be fixed by making sure that Python is indeed looking for shared libraries there, f.ex. by running =export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH=.
+- Also a useful resource if needed: https://www.masteringemacs.org/article/keeping-secrets-in-emacs-gnupg-auth-sources
+
 
 ** Retrieving emails using =offlineimap=
 
