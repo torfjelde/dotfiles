@@ -1014,7 +1014,7 @@ The default tab-bar name uses the buffer name."
 #+name: completion--chatgpt
 #+begin_src emacs-lisp 
 (use-package chatgpt
-  :straight (:type git :host github :repo "torfjelde/ChatGPT.el" :branch "joshcho-dev" :files ("dist" "*.el"))
+  :straight (:type git :host github :repo "torfjelde/ChatGPT.el" :branch "torfjelde/develop" :files ("dist" "*.el"))
   :custom
   (chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
   :bind ("C-c q" . chatgpt-query))
