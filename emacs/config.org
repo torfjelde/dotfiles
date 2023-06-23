@@ -1660,6 +1660,29 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :straight (:type git :host github :repo "torfjelde/ob-julia" :branch "master"))
 #+end_src
 
+*** =ob-chatgpt=
+#+name: org--ob-chatgpt
+#+begin_src emacs-lisp 
+(use-package ob-chatgpt
+  :after (org chatgpt)
+  :straight (:host github :repo "suonlight/ob-chatgpt" :files ("dist" "*.el"))
+  :config
+  ;; Load it.
+  (org-babel-do-load-languages 'org-babel-load-languages (append org-babel-load-languages '((chatgpt . t))))
+
+  ;; We'll use markdown formatting, because:
+  ;; a) With `polymode' we get the correct fontification in the block in the org buffer.
+  ;; b) We cann tell ChatGPT to use \(...\) and $$...$$ for mats, which is also valid in org,
+  ;;    i.e. we can just do `org-preview-latex-fragment' to see the rendered math.
+
+  ;; Wrap the result in markdown instead.
+  (setq org-babel-default-header-args:chatgpt '((:wrap . "markdown")))
+  ;; Delete the current element in `org-src-lang-modes'.
+  (delq (assoc "chatgpt" org-src-lang-modes) org-src-lang-modes)
+  ;; Add it back with the new value.
+  (add-to-list 'org-src-lang-modes '("chatgpt" . markdown)))
+#+end_src
+
 ** Exports
 
 *** =org-reveal=
@@ -2150,6 +2173,7 @@ If the region is not active, use the current line."
 
 <<org--ob-async>>
 <<org--ob-julia>>
+<<org--ob-chatgpt>>
 
 <<org--ox-reveal>>
 <<org--by-backend>>
