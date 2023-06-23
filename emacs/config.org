@@ -1135,7 +1135,7 @@ This is different from the =jupyter=, since this actually allows us to work with
 (use-package graphviz-dot-mode
   :ensure t
   :hook
-  (company-mode . graphviz-dot-mode)
+  (graphviz-dot-mode . company-mode)
   :config
   (setq graphviz-dot-indent-width 2))
 #+end_src
@@ -2705,8 +2705,6 @@ I do this just to hide some details regarding my email accounts (mainly just to 
 #+name: themes--doom-modeline
 #+begin_src emacs-lisp 
 (use-package doom-modeline
-  ;; :after eshell     ;; Make sure it gets hooked after eshell
-  :hook (after-init . doom-modeline-init)
   :custom
   (doom-modeline-height 15)
   (doom-modeline-bar-width 6)
