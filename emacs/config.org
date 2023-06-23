@@ -1014,6 +1014,9 @@ The default tab-bar name uses the buffer name."
 #+name: completion--chatgpt
 #+begin_src emacs-lisp 
 (use-package chatgpt
+  ;; We use a custom branch for a few reasons:
+  ;; - Allows specification of a config, as per `chatgpt-wrapper'.
+  ;; - I've made some bugfixes to make things work on newer versions of `chatgpt-wrapper'.
   :straight (:type git :host github :repo "torfjelde/ChatGPT.el" :branch "torfjelde/develop" :files ("dist" "*.el"))
   :custom
   (chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
@@ -1057,7 +1060,7 @@ highlight color.  With a double prefix argument, prompt for a color."
   :bind (:map pdf-annot-minor-mode-map
               ("C-c C-a h" . my/pdf-annot-add-highlight-markup-annotation))
   :config
-(require 'pdf-annot)
+  (require 'pdf-annot)
   ;; NOTE: This is just a convenient way to make the initial color selection more convenient.
   (setq-default pdf-annot-color-history '("hot pink" "cyan" "pale turquoise" "plum" "thistle" "light sky blue" "deep sky blue" "lemon chiffon" "yellow" "light salmon" "lawn green"))
   )
