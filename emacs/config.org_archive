@@ -2868,10 +2868,6 @@ Replace \"%A\" in FORMAT with English day of week of today,
 #+end_src
 
 ** User interface
-*** Themes & styling
-/Usually/, our main theme will either be =solarized-dark= or =solarized-light= (if we're outside).
-
-** User interface
 *** =M-x=
 Personally I like =helm= as I find its discovery to be quite good.
 
