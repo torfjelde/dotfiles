@@ -270,10 +270,10 @@ Then we'll insert the following at the very end of our init-file:
 #+name: os-specifics--linux
 #+begin_src emacs-lisp
 ;; Linux
-(defmacro when-linux (body)
+(defmacro when-linux (&rest body)
   "Evaluate BODY if the system type is `gnu/linux'."
   `(when (eq system-type 'gnu/linux)
-     ,body))
+     ,@body))
 
 (when-linux
   ;; NOTE: this will also be hit in WSL.
@@ -286,16 +286,16 @@ Then we'll insert the following at the very end of our init-file:
 #+end_src
 
 ** Windows Linux Subsystem
-#+name: os-specifics--wsl-copy
+#+name: os-specifics--wsl
 #+begin_src emacs-lisp
 (defun tor/is-wsl-p ()
   ;; WSL: WSL1 has "-Microsoft", WSL2 has "-microsoft-standard"
-  (not-nil (string-match "-[Mm]icrosoft" operating-system-release)))
+  (not-nil-p (string-match "-[Mm]icrosoft" operating-system-release)))
 
-(defmacro when-wsl (body)
+(defmacro when-wsl (&rest body)
   "Evaluate BODY if running in WSL."
   `(when (tor/is-wsl-p)
-     ,body))
+     ,@body))
 
 (when-wsl
   ;; Source: https://www.emacswiki.org/emacs/Emacs_and_the_Windows_Subsystem_for_Linux
@@ -322,11 +322,9 @@ Then we'll insert the following at the very end of our init-file:
 ** Result
 #+name: os-specifics
 #+begin_src emacs-lisp 
-<<basics--linux-specific>>
-<<basics--wsl-specific>>
+<<os-specifics--linux>>
+<<os-specifics--wsl>>
 #+end_src
-
-
 
 * The Holy Quaternity: =vertico= + =orderless= + =marginalia= + =consult=
 I used to use =helm= to make my =M-x= experience dopey, but now I've moved to this thing.
