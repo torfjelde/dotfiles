@@ -995,6 +995,9 @@ The default tab-bar name uses the buffer name."
   ;; disable inline previews
   (delq 'company-preview-if-just-one-frontend company-frontends)
 
+  ;; make `julia-ts-mode` point to `julia`.
+  (add-to-list 'copilot-major-mode-alist '("julia-ts" . "julia"))
+
   ;; Unbind deprecated navigation bindings from `company'.
   (require 'bind-key)
   (unbind-key "M-p" company-active-map)
@@ -1260,7 +1263,12 @@ highlight color.  With a double prefix argument, prompt for a color."
   ;; HACK: It seems like we need to "re-enable" the mode to load the updated `prettify-symbols-alist'.
   (prettify-symbols-mode 1))
 
+;; Currently only need this for latex symbols.
+(use-package julia-mode
+  :ensure t)
+
 (use-package julia-ts-mode
+  :after (julia-mode)
   :hook
   (julia-ts-mode . eglot-ensure)
   (julia-ts-mode . my/set-julia-prettify-symbols-alist)
@@ -1268,16 +1276,14 @@ highlight color.  With a double prefix argument, prompt for a color."
   ;; (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
   )
 
-;; Currently only need this for latex symbols.
-(use-package julia-mode)
-
 (use-package julia-formatter
+  :after (julia-ts-mode)
   :straight (julia-formatter :type git
                              :host github
                              :repo "torfjelde/julia-formatter.el"
                              :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
   :hook
-  (julia-mode . julia-formatter-mode)
+  (julia-ts-mode . julia-formatter-mode)
   :custom
   (julia-formatter-should-compile-julia-image 'never-compile))
 
@@ -1313,7 +1319,9 @@ highlight color.  With a double prefix argument, prompt for a color."
 ;; See https://github.com/nnicandro/emacs-zmq for more information on this.
 ;; But if this has been done, then you cna uncomment the line below.
 (use-package jupyter
-  :after org
+  ;; Add after `ob-julia', because this might change `org-src-lang-modes',
+  ;; which subsequently affects which mode to use for `ob-jupyter'.
+  :after (org ob-julia)
   :straight (jupyter :type git
                      :host github
                      :repo "torfjelde/emacs-jupyter"
@@ -1330,7 +1338,13 @@ highlight color.  With a double prefix argument, prompt for a color."
                                                       (:kernel . "julia-1.8")))
   (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
                                                        (:session . "py")
-                                                       (:kernel . "python3"))))
+                                                       (:kernel . "python3")))
+  :hook (org-mode . (lambda () (require 'jupyter)))
+  :init
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   (append org-babel-load-languages '((jupyter . t))))
+  )
 #+end_src
 
 ** Ein
@@ -1675,7 +1689,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; Specify which programming languages to support in code-blocks.
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '((emacs-lisp t)
+   '((emacs-lisp . t)
      (shell . t)
      (C . t)
      (latex . t)
@@ -1793,7 +1807,17 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 ;; that `use-package' block instead?
 (use-package ob-julia
   :after org
-  :straight (:type git :host github :repo "torfjelde/ob-julia" :branch "master"))
+  :straight (:type git :host github :repo "torfjelde/ob-julia" :branch "master")
+  ;; :hook (org-mode . (lambda () (require 'ob-julia)))
+  :config
+  ;; Delete the current element in `org-src-lang-modes', if exists.
+  (setq org-src-lang-modes (delq (assoc "julia" org-src-lang-modes) org-src-lang-modes))
+  ;; Add `julia-ts` as the current mode to use.
+  (add-to-list 'org-src-lang-modes '("julia" . julia-ts))
+
+  (org-babel-do-load-languages
+     'org-babel-load-languages
+     (append org-babel-load-languages '((julia . t)))))
 #+end_src
 
 *** =ob-chatgpt=
@@ -1814,7 +1838,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; Wrap the result in markdown instead.
   (setq org-babel-default-header-args:chatgpt '((:wrap . "markdown")))
   ;; Delete the current element in `org-src-lang-modes'.
-  (delq (assoc "chatgpt" org-src-lang-modes) org-src-lang-modes)
+  (setq org-src-lang-modes (delq (assoc "chatgpt" org-src-lang-modes) org-src-lang-modes))
   ;; Add it back with the new value.
   (add-to-list 'org-src-lang-modes '("chatgpt" . markdown)))
 #+end_src
