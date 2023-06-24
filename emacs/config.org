@@ -296,6 +296,9 @@ If we instead wanted to load the minimalist file, we would just replace the last
 ;; Disable blinking cursor.
 (setq-default visible-cursor nil)
 ;; (blink-cursor-mode 0) ;; Should be unnecessary on Emacs >24?
+
+;; Use `y' and `n' instead of `yes' and `no'.
+(defalias 'yes-or-no-p 'y-or-n-p)
 #+end_src
 
 ** Utility functions
