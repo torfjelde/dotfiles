@@ -1317,7 +1317,7 @@ highlight color.  With a double prefix argument, prompt for a color."
   :straight (jupyter :type git
                      :host github
                      :repo "torfjelde/emacs-jupyter"
-                     :branch "torfjelde/filename-extension-for-custom-file")
+                     :branch "torfjelde/develop-v2")
   :bind (:map jupyter-repl-interaction-mode-map
               ("C-<return>" . jupyter-eval-line-or-region)
               ("C-M-<return>" . jupyter-eval-defun))
