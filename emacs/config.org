@@ -1214,12 +1214,7 @@ highlight color.  With a double prefix argument, prompt for a color."
 ;; Using Eglot with Pyright, a language server for Python.
 ;; See: https://github.com/joaotavora/eglot.
 (use-package eglot
-  :straight (eglot :type built-in)
-  :ensure t
-  :defer t
-  :hook
-  (python-mode . eglot-ensure)
-  (julia-mode . eglot-ensure))
+  :straight (eglot :type built-in))
 #+end_src
 
 ** treesitter
@@ -1267,7 +1262,7 @@ highlight color.  With a double prefix argument, prompt for a color."
 
 (use-package julia-ts-mode
   :hook
-  (julia-ts-mode . eglot-mode)
+  (julia-ts-mode . eglot-ensure)
   (julia-ts-mode . my/set-julia-prettify-symbols-alist)
   :config
   ;; (add-hook 'julia-mode-hook 'my/set-julia-prettify-symbols-alist)
@@ -1296,6 +1291,8 @@ highlight color.  With a double prefix argument, prompt for a color."
 ;; Python
 (use-package python
   ;; TODO: use `eglot' and `pyright'.
+  :hook
+  (python-mode . eglot-ensure)
   )
 #+end_src
 
