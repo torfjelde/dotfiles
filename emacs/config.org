@@ -1285,6 +1285,7 @@ highlight color.  With a double prefix argument, prompt for a color."
   :straight (julia-formatter :type git
                              :host github
                              :repo "torfjelde/julia-formatter.el"
+                             :branch "torfjelde/develop"
                              :files ("julia-formatter.el" "formatter_service.jl" "Project.toml" "Manifest.toml"))
   :hook
   (julia-ts-mode . julia-formatter-mode)
