@@ -2021,6 +2021,25 @@ This package makes it trivial to paste and drag-and-drop images into a Org buffe
   (add-hook 'org-present-after-navigate-functions #'my/org-present-prepare-slide))
 #+end_src
 
+*** =org-noter=
+#+name: org--org-noter
+#+begin_src emacs-lisp 
+(use-package org-noter
+  :straight (:type git :host github :repo "torfjelde/org-noter" :branch "torfjelde/develop")
+  :custom
+  ;; Don't hide the other sections when we scroll to a new page.
+  (org-noter-hide-other nil)
+
+  (org-noter-doc-property-in-notes t)
+
+  (org-noter-notes-search-path '("~/org-blog/papers/"))
+  (org-noter-default-notes-file-names '("notes.org"))
+  ;; NOTE: stuff I've introduced myself.
+  (org-noter-one-file-per-doc t)
+  (org-noter-default-file-header "#+SETUPFILE: ../setup-level-1.org")
+  )
+#+end_src
+
 *** Anki
 #+name: org--anki-editor
 #+begin_src emacs-lisp 
@@ -2373,6 +2392,7 @@ If the region is not active, use the current line."
 <<org--org-download>>
 <<org--contrib>>
 <<org--org-present>>
+<<org--org-noter>>
 
 <<org--custom>>
 #+end_src
