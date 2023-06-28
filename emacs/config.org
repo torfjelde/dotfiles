@@ -2040,6 +2040,16 @@ This package makes it trivial to paste and drag-and-drop images into a Org buffe
   )
 #+end_src
 
+*** =helm-org-named=
+#+name: org--helm-org-named
+#+begin_src emacs-lisp 
+(use-package helm-org-named
+  :straight (:type git :host github :repo "torfjelde/helm-org-named")
+  :bind ("C-c [" . helm-org-named)
+  :config
+  (setq helm-org-named-directories '("/home/tor/org-blog/notes")))
+#+end_src
+
 *** Anki
 #+name: org--anki-editor
 #+begin_src emacs-lisp 
