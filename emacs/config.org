@@ -1952,6 +1952,54 @@ This package makes it trivial to paste and drag-and-drop images into a Org buffe
 #+end_src
 
 *** TODO =org-ref=
+The below is overkill for what we want. We really just want the functionality for downloading and automatic reference naming that =org-ref= provideds, but this then also currently requires =helm=, etc.
+
+#+name: org--org-ref
+#+begin_src emacs-lisp 
+(use-package helm-bibtex
+  ;; :bind ("C-c ]" . helm-bibtex)
+  :config
+  (setq bibtex-completion-library-path '("~/Dropbox/bibliography/pdfs/"))
+  (setq bibtex-completion-bibliography '("~/Dropbox/bibliography/references.bib"))
+  (setq bibtex-completion-additional-search-fields '(keywords))
+  (setq bibtex-completion-pdf-field "file")
+  (setq bibtex-completion-notes-path "~/org-blog/papers/")
+  (setq bibtex-completion-notes-template-multiple-files "#+TITLE: Notes on: ${author-or-editor} (${year}): ${title}\n#+SETUPFILE: ../setup-level-1.org\n\n")
+
+  ;; Same as old `org-ref'
+  (setq bibtex-completion-display-formats 
+        '((t . "${author:36} ${title:*} ${year:4} ${=has-pdf=:1}${=has-note=:1} ${=type=:7} ${keywords:40}")))
+
+  ;; Use `org-ref-insert-cite-keys' for citation formatting when in `org-mode'.
+  (setq bibtex-completion-format-citation-functions
+        ;; TODO: Actually, functions used here are expected to _return_ the formatted string, _not_ insert
+        ;; it directly into the buffer (which is what `org-ref-insert-cite-keys' does).
+        '((org-mode . org-ref-insert-cite-keys)
+          (latex-mode . bibtex-completion-format-citation-cite)
+          (markdown-mode . bibtex-completion-format-citation-pandoc-citeproc)
+          (python-mode . bibtex-completion-format-citation-sphinxcontrib-bibtex)
+          (rst-mode . bibtex-completion-format-citation-sphinxcontrib-bibtex)
+          (default . bibtex-completion-format-citation-default)))
+  )
+
+(use-package org-ref
+  :config
+  ;; Use `helm-bibtex' for completion etc.
+  ;; Need to add some methods to `doi-utils' so we can easily download PDFs from DOI.
+  (defun my/projecteuclid-journal-pdf-url (*doi-utils-redirect*)
+    (when (string-match "^http\\(s?\\)://projecteuclid.org/journals" *doi-utils-redirect*)
+      ;; Extract the DOI from the URL.
+      ;; Example URL: https://projecteuclid.org/journals/annals-of-statistics/volume-44/issue-2/Bayesian-manifold-regression/10.1214/15-AOS1390.full
+      (let ((doi (replace-regexp-in-string ".*?\\(10\\..*?\\)\\.full" "\\1" *doi-utils-redirect*)))
+        ;; The `doi' needs to be URL encoded.
+        (let ((pdf (format "https://projecteuclid.org/journalArticle/Download?urlId=%s" (url-hexify-string doi))))
+          (when (url-http-file-exists-p pdf)
+            pdf))
+        )))
+  (add-to-list 'doi-utils-pdf-url-functions 'my/projecteuclid-journal-pdf-url)
+  )
+#+end_src
+
 *** =org-contrib=
 #+name: org--contrib
 #+begin_src emacs-lisp
