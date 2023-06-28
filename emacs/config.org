@@ -926,6 +926,7 @@ The default tab-bar name uses the buffer name."
 ;; undo-tree.el: Tree-based undo-mechanism.
 ;; NOTE: To install, see https://github.com/zachcurry/emacs-anywhere.
 (use-package undo-tree
+  :straight (undo-tree :build (:not native-compile))
   :diminish undo-tree-mode
   :init (global-undo-tree-mode))
 #+end_src
