@@ -1934,15 +1934,21 @@ This package makes it trivial to paste and drag-and-drop images into a Org buffe
 
 #+name: org--org-download
 #+begin_src emacs-lisp 
+(defun my/org-download--dir-1 ()
+  (let ((dir (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments"))))
+    ;; If the path doesn't exist, create it.
+    (unless (file-exists-p dir)
+      (make-directory dir t))
+    dir))
+
 (use-package org-download
   :custom
   (org-download-heading-lvl nil "Don't use the sub-headings for the folder names")
   (org-download-image-org-width 600)
   (org-download-display-inline-images nil "Don't display inline images after download")
-  :config (progn
-            ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
-            (defun org-download--dir-1 ()
-              (or org-download-image-dir (concat (file-name-as-directory ".") "." (file-name-base) "/attachments")))))
+  :config
+  ;; HACK: overload this method so we fall back to using "./.filename/assets/" for the downloaded stuff
+  (advice-add 'org-download--dir :override #'my/org-download--dir-1))
 #+end_src
 
 *** TODO =org-ref=
