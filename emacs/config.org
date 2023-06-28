@@ -3112,6 +3112,25 @@ https://github.com/zachcurry/emacs-anywhere
 2. Set up some capture templates (also described in the README).
    - NOTE: Example in the README uses =%c=, assuming the link passed to Emacs is added to the kill-ring. This seems to no longer be the case (if you look at the implementation =org-protocol-capture=); instead the link is added to =org-stored-links=, which means that we can include it in the capture template using =%a= or similar (see =org-capture-templates= for more info on alternatives).
 
+* Additional neateties
+
+** Name of Emacs window
+#+name: frame-title
+#+begin_src emacs-lisp 
+;; Format the application/window name as "USER [PROJECT NAME]: FILE"
+(setq-default frame-title-format
+              '(:eval
+                (format "%s [%s]: %s"
+                        "Persp"
+                        ;; (or (file-remote-p default-directory 'user)
+                        ;;     user-real-login-name)
+                        ;; (or (file-remote-p default-directory 'host)
+                        ;;     system-name)
+                        ;; (projectile-project-name)
+                        (persp-current-name)
+                        (buffer-name)
+                        )))
+#+end_src
 
 * Result
 
@@ -3134,6 +3153,7 @@ https://github.com/zachcurry/emacs-anywhere
 <<citations>>
 <<mail>>
 <<themes>>
+<<frame-title>>
 <<load-custom-file>>
 #+end_src
 
