@@ -1556,6 +1556,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (setq org-default-notes-file "~/Dropbox/org/gtd.org")
   (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)))
 
+  (setq org-my-anki-file "~/Dropbox/org/anki.org")
+
   ;; Org-agenda / Org-capture related
   (setq org-agenda-files
         (append
@@ -2017,6 +2019,25 @@ This package makes it trivial to paste and drag-and-drop images into a Org buffe
   (add-hook 'org-present-mode-hook #'my/org-present-start)
   (add-hook 'org-present-mode-quit-hook #'my/org-present-end)
   (add-hook 'org-present-after-navigate-functions #'my/org-present-prepare-slide))
+#+end_src
+
+*** Anki
+#+name: org--anki-editor
+#+begin_src emacs-lisp 
+(use-package anki-editor
+  ;; Fork of `anki-editor.el' that seems to be working with the most recent version of AnkiConnect.
+  :straight (:type git :host github :repo "orgtre/anki-editor")
+  :hook
+  (org-capture-mode . (lambda ()
+                        (when (string-equal (buffer-name) "CAPTURE-anki.org")
+                          (save-restriction
+                            (message "setting tags")
+                            (with-current-buffer "anki.org"
+                              (setq-local org-tag-alist (-map (lambda (el) (cons el nil)) (anki-editor-all-tags))))
+                            ))
+                        ))
+  :init 
+  (setq anki-editor-break-consecutive-braces-in-latex t))
 #+end_src
 
 ** Personal customization
