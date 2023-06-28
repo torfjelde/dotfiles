@@ -1495,6 +1495,9 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (use-package org
   ;; Ensures that we're using the version of `org` which comes with Emacs.
   :straight (org :type built-in)
+  :bind
+  ("C-c c" . org-capture)
+  ("C-c l" . org-store-link)
   :hook  
   ;; Use `visual-line-mode' as it gives word-wrapping, etc.
   (org-mode . visual-line-mode)
