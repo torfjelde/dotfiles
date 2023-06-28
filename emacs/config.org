@@ -2487,6 +2487,9 @@ If the region is not active, use the current line."
 <<org--contrib>>
 <<org--org-present>>
 <<org--org-noter>>
+<<org--anki-editor>>
+<<org--org-ref>>
+<<org--org-roam>>
 
 <<org--custom>>
 #+end_src
