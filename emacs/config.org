@@ -1020,6 +1020,14 @@ The default tab-bar name uses the buffer name."
 ** =chatgpt.el=
 #+name: completion--chatgpt
 #+begin_src emacs-lisp 
+"Can you generate a sensible front for an Anki flashcard from the information below? Please follow the following guidelines:
+- No multiple choice questions.
+- Format your reply using Emacs' Org-mode format.
+- If the information involves definitions or similar, use highlighting such as boldface or italics the first time your reference these.
+- The card should be self-contained, i.e. it should not require any external information to answer beyond what a undergraduate mathematics student would know.
+
+%s"
+
 (use-package chatgpt
   ;; We use a custom branch for a few reasons:
   ;; - Allows specification of a config, as per `chatgpt-wrapper'.
@@ -1027,6 +1035,33 @@ The default tab-bar name uses the buffer name."
   :straight (:type git :host github :repo "torfjelde/ChatGPT.el" :branch "torfjelde/develop" :files ("dist" "*.el"))
   :custom
   (chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
+  (chatgpt-query-format-string-map '(("doc" . "Please write the documentation for the following function.
+
+%s")
+                                    ("bug" . "There is a bug in the following function, please help me fix it.
+
+%s")
+                                    ("understand" . "What is the following?
+
+%s")
+                                    ("improve" . "Please improve the following.
+
+%s")
+                                    ("anki" . "Can you generate a few sensible Anki basic flashcards from the information below? Please follow the following guidelines:
+- No multiple choice questions.
+- Format your reply using Emacs' Org-mode format.
+- If the information involves definitions or similar, use highlighting such as boldface or italics the first time your reference these.
+- The card should be self-contained, i.e. it should not require any external information to answer beyond what a undergraduate mathematics student would know.
+
+%s")
+                                    ("anki cloze" . "Can you generate a sensible Anki cloze flashcard from the information below (this card only has one side)? Please follow the following guidelines:
+- No multiple choice questions.
+- Format your reply using Emacs' Org-mode format.
+- Cloze deletions, i.e. the answers, should be hidden using double curly-braces,e.g. {{c1::this will be hidden}}.
+- If the information involves definitions or similar, use highlighting such as boldface or italics the first time your reference these.
+- The card should be self-contained, i.e. it should not require any external information to answer beyond what a undergraduate mathematics student would know.
+
+%s")))
   :bind ("C-c q" . chatgpt-query))
 #+end_src
 
@@ -2162,19 +2197,34 @@ The below is overkill for what we want. We really just want the functionality fo
 *** Anki
 #+name: org--anki-editor
 #+begin_src emacs-lisp 
+(defun my/anki-editor--set-local-tags-to-anki-tags ()
+  "Set `org-current-tag-alist' to the tags defined in Anki."
+  (setq-local org-current-tag-alist
+              (-map (lambda (el) (cons el nil)) (anki-editor-all-tags))))
+
+(defun my/anki-editor--invalid-tags ()
+  "Return a list of tags which are not valid Org tags."
+  (-filter (lambda (el) (not (anki-editor-is-valid-org-tag el))) (anki-editor-all-tags)))
+
+(defun my/anki-editor--push-capture-if-successful ()
+  "Push the current entry to Anki if it is valid."
+  (when (not org-note-abort)
+    (anki-editor-push-note-at-point)))
+
 (use-package anki-editor
   ;; Fork of `anki-editor.el' that seems to be working with the most recent version of AnkiConnect.
   :straight (:type git :host github :repo "orgtre/anki-editor")
   :hook
+  ;; Update the list of tags in the capture buffer.
   (org-capture-mode . (lambda ()
                         (when (string-equal (buffer-name) "CAPTURE-anki.org")
                           (save-restriction
-                            (message "setting tags")
                             (with-current-buffer "anki.org"
-                              (setq-local org-tag-alist (-map (lambda (el) (cons el nil)) (anki-editor-all-tags))))
-                            ))
-                        ))
-  :init 
+                              (my/anki-editor--set-local-tags-to-anki-tags)))))
+                    )
+  ;; Push the current entry to Anki if it is valid.
+  (org-capture-before-finalize-hook . my/anki-editor--push-capture-if-successful)
+  :init
   (setq anki-editor-break-consecutive-braces-in-latex t))
 #+end_src
 
