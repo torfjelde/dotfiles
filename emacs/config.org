@@ -924,7 +924,6 @@ The default tab-bar name uses the buffer name."
 #+name: editing--undo-tree
 #+begin_src emacs-lisp
 ;; undo-tree.el: Tree-based undo-mechanism.
-;; NOTE: To install, see https://github.com/zachcurry/emacs-anywhere.
 (use-package undo-tree
   :straight (undo-tree :build (:not native-compile))
   :diminish undo-tree-mode
@@ -1230,6 +1229,7 @@ highlight color.  With a double prefix argument, prompt for a color."
 ;; poly-markdown.el: Implementation of `polymode` for markdown, allowing other modes
 ;; to be used within buffers with `markdown-mode` enabled.
 (use-package poly-markdown
+  :ensure t
   :mode ("\\.[jJ]md" . poly-markdown-mode) ;; Also enable for .jmd files.
   :bind (:map poly-markdown-mode-map
               ("C-c '" . markdown-edit-code-block)))
@@ -3307,10 +3307,10 @@ https://github.com/zachcurry/emacs-anywhere
   (set-frame-height (selected-frame) 50)
   ;; set major mode
   (cond
-   ((github-conversation-p app-name window-title) (poly-markdown-mode))
+   ((github-conversation-p app-name window-title) (poly-gfm-mode))
    ((plutojl-p app-name window-title) (julia-mode))
    ;; ...
-   (t (poly-markdown-mode)) ; default major mode
+   (t (poly-gfm-mode)) ; default major mode
    ))
 
 ;; NOTE: `ea-popup-hook' is used by `emacs-anywhere'.
@@ -3365,6 +3365,7 @@ https://github.com/zachcurry/emacs-anywhere
 <<mail>>
 <<themes>>
 <<frame-title>>
+<<emacs-anywhere>>
 <<load-custom-file>>
 #+end_src
 
