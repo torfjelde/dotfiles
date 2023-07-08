@@ -1738,9 +1738,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      (dot . t)
      ))
 
-  ;; Show images after execution.
-  (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)   
-
   :custom
   ;; Now that we have `org-cite.el`, we can use stuff like CSL.
   (org-cite-export-processors
@@ -2247,8 +2244,8 @@ Throw an error if no block is found."
 (define-key org-mode-map (kbd "C-c C-v C-n") 'org-next-src-block-or-inline-call)
 #+end_src
 
-*** Display inline images in subtree only
-#+name: org--custom--display-inline-images-subtree
+*** Display inline images other than just the entire buffer
+#+name: org--custom--display-inline-images
 #+begin_src emacs-lisp 
 ;; Call `org-display-inline-images' on the current subtree.
 (defun org-display-inline-images-in-subtree ()
@@ -2261,7 +2258,26 @@ Throw an error if no block is found."
     (when (called-interactively-p 'interactive)
       (message "Displayed %d inline images"
                (- (length org-inline-image-overlays) current-num-inline-images)))))
+
+;; Call `org-display-inline-images' on the current subtree.
+(defun org-display-inline-image-at-point ()
+  "Display inline image at point."
+  (interactive)
+  (let ((el (org-element-at-point))
+        (start (org-element-property :begin (org-element-at-point)))
+        (end (org-element-property :end (org-element-at-point))))
+    (org-display-inline-images nil t start end)))
+
+(defun org-display-inline-image-in-results ()
+  "Display inline image in results of a code block."
+  (interactive)
+  (save-excursion
+    (goto-char (org-babel-where-is-src-block-result))
+    (org-display-inline-image-at-point)))
+
+(add-hook 'org-babel-after-execute-hook #'org-display-inline-image-in-results)
 #+end_src
+
 
 *** Command for inserting src block below
 #+name: org--custom--insert-src-block-below
@@ -2489,7 +2505,7 @@ If the region is not active, use the current line."
 #+name: org--custom
 #+begin_src emacs-lisp
 <<org--custom--to-src-block-or-inline-call>>
-<<org--custom--display-inline-images-subtree>>
+<<org--custom--display-inline-images>>
 <<org--custom--insert-src-block-below>>
 <<org--custom--include-include>>
 #+end_src
