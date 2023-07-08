@@ -2584,6 +2584,7 @@ If the region is not active, use the current line."
 <<org--anki-editor>>
 <<org--org-ref>>
 <<org--org-roam>>
+<<org--helm-org-named>>
 
 <<org--custom>>
 #+end_src
