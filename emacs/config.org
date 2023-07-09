@@ -3300,7 +3300,7 @@ https://github.com/zachcurry/emacs-anywhere
   (and
    (string-match-p "google-chrome" (downcase app-name))
    ;; Last part of the window name should be `Pluto.jl'
-   (string-match-p "Pluto\\.jl$" window-title)))
+   (string-match-p "Pluto\\.jl" window-title)))
 
 (defun popup-handler (app-name window-title x y w h)
   ;; Resize
