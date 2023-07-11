@@ -1355,6 +1355,13 @@ highlight color.  With a double prefix argument, prompt for a color."
 
 ;; (use-package eglot-jl
 ;;   :after (eglot julia-ts-mode))
+
+(use-package plutojl-mode
+  :straight (plutojl-mode :type git :host github :repo "torfjelde/plutojl-mode.el")
+  :hook
+  (julia-mode . plutojl-maybe-enable-plutojl-mode)
+  (plutojl-mode . auto-revert-mode)
+  )
 #+end_src
 
 ** Python
