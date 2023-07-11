@@ -158,7 +158,7 @@ Here's a TOC (because github can't render it), curtosy =org-make-toc=.
   - [[#doom-modelineel][doom-modeline.el]]
   - [[#custom-hooks][Custom hooks]]
   - [[#night-and-day-themes][Night and day themes]]
-    - [[#darkman]]
+    - [[#darkman][darkman]]
   - [[#result][Result]]
 - [[#interacting-with-the-outside-of-emacs][Interacting with the outside of Emacs]]
   - [[#emacs-anywhere][Emacs anywhere]]
@@ -3322,8 +3322,8 @@ This is particularly nice when combined with something like [[https://gitlab.com
     (setq tor/theme-current 'day))))
 #+end_src
 
-*** [[https://gitlab.com/WhyNotHugo/darkman][=darkman=]]
-With the above functionality, we can use =darkman= with the following scripts to automatically switch between day and night themes.
+*** darkman
+With the above functionality, we can use [[https://gitlab.com/WhyNotHugo/darkman][=darkman=]] with the following scripts to automatically switch between day and night themes.
 
 #+begin_src shell :eval no :tangle no
 #!/bin/sh
