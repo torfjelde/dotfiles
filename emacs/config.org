@@ -3326,7 +3326,7 @@ This is particularly nice when combined with something like [[https://gitlab.com
 With the above functionality, we can use [[https://gitlab.com/WhyNotHugo/darkman][=darkman=]] with the following scripts to automatically switch between day and night themes.
 
 #+begin_src shell :eval no :tangle no
-#!/bin/sh
+#!/usr/bin/env bash
 emacsclient -e "(tor/enable-night-theme)"
 #+end_src
 
