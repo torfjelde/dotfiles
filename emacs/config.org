@@ -3277,6 +3277,8 @@ I do this just to hide some details regarding my email accounts (mainly just to 
 #+end_src
 
 ** Night and day themes
+This is particularly nice when combined with something like [[https://gitlab.com/WhyNotHugo/darkman][darkman]] which automatically executes a collection of scripts when the sun sets and rises.
+
 #+name: themes--night-and-day
 #+begin_src emacs-lisp 
 (setq tor/theme-night 'doom-moonlight)
@@ -3309,6 +3311,19 @@ I do this just to hide some details regarding my email accounts (mainly just to 
     (tor/disable-all-themes)
     (load-theme tor/theme-day t)
     (setq tor/theme-current 'day))))
+#+end_src
+
+*** [[https://gitlab.com/WhyNotHugo/darkman][=darkman=]]
+With the above functionality, we can use =darkman= with the following scripts to automatically switch between day and night themes.
+
+#+begin_src shell :eval no :tangle no
+#!/bin/sh
+emacsclient -e "(tor/enable-night-theme)"
+#+end_src
+
+#+begin_src shell :eval no :tangle no
+#!/usr/bin/env bash
+emacsclient -e "(tor/enable-day-theme)"
 #+end_src
 
 ** Result
