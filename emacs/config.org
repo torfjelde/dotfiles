@@ -3268,16 +3268,52 @@ I do this just to hide some details regarding my email accounts (mainly just to 
 
 (advice-add 'enable-theme :after #'tor/enable-theme-after)
 #+end_src
+
+** Night and day themes
+#+name: themes--night-and-day
+#+begin_src emacs-lisp 
+(setq tor/theme-night 'doom-moonlight)
+(setq tor/theme-day 'leuven)
+(setq tor/theme-current 'night)
+
+(defun tor/disable-all-themes ()
+  (mapc #'disable-theme custom-enabled-themes))
+
+(defun tor/enable-day-theme ()
+  (interactive)
+  (tor/disable-all-themes)
+  (load-theme tor/theme-day t)
+  (setq tor/theme-current 'day))
+
+(defun tor/enable-night-theme ()
+  (interactive)
+  (tor/disable-all-themes)
+  (load-theme tor/theme-night t)
+  (setq tor/theme-current 'night))
+
+(defun tor/toggle-day-night-theme()
+  (interactive)
+  (cond
+   ((eq tor/theme-current 'day)
+    (tor/disable-all-themes)
+    (load-theme tor/theme-night t)
+    (setq tor/theme-current 'night))
+   ((eq tor/theme-current 'night)
+    (tor/disable-all-themes)
+    (load-theme tor/theme-day t)
+    (setq tor/theme-current 'day))))
+#+end_src
+
 ** Result
 #+name: themes
 #+begin_src emacs-lisp
 <<themes--doom-themes>>
 <<themes--doom-modeline>>
 <<themes--custom-hooks>>
+<<themes--night-and-day>>
 
 ;; Load desired theme.
-(load-theme 'doom-moonlight t)
-(enable-theme 'doom-moonlight)  ;; ensures that fg-color and stuff is set correctly (I think)
+(tor/enable-night-theme)
 #+end_src
 
 * Interacting with the outside of Emacs
