@@ -1002,7 +1002,7 @@ The default tab-bar name uses the buffer name."
              :files ("dist" "*.el"))
   :ensure t
   :hook
-  (prog-mode . copilot-mode)
+  (company-mode . copilot-mode)
   :config
   ;; disable inline previews
   (delq 'company-preview-if-just-one-frontend company-frontends)
@@ -1579,6 +1579,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :hook  
   ;; Use `visual-line-mode' as it gives word-wrapping, etc.
   (org-mode . visual-line-mode)
+  (org-mode . company-mode)
   :config
   ;; TODO: Move many of these `setq' statements to `:custom' below.
   ;; Customization for latex-preview in org-mode
