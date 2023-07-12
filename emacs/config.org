@@ -3339,6 +3339,28 @@ emacsclient -e "(tor/enable-night-theme)"
 emacsclient -e "(tor/enable-day-theme)"
 #+end_src
 
+#+name: themes--darkman
+#+begin_src emacs-lisp 
+;; A method to check what whether dark or light mode is currently enabled
+;; by `darkman`.
+(defun tor/darkman-active-mode ()
+  (let ((result (shell-command-to-string "darkman get")))
+    (cond
+     ((string-match-p "light" result) 'light)
+     ((string-match-p "dark" result) 'dark)
+     (t nil))))
+
+(defun tor/darkman-light-mode-p ()
+  (eq (tor/darkman-active-mode) 'light))
+
+(defun tor/enable-theme-after-darkman ()
+  ;; NOTE: This works even if `darkman` is not available on the system.
+  (if (tor/darkman-light-mode-p)
+      (tor/enable-day-theme)
+    ;; Default is night theme since this is easier on the eyes.
+    (tor/enable-night-theme)))
+#+end_src
+
 ** Result
 #+name: themes
 #+begin_src emacs-lisp
@@ -3346,9 +3368,10 @@ emacsclient -e "(tor/enable-day-theme)"
 <<themes--doom-modeline>>
 <<themes--custom-hooks>>
 <<themes--night-and-day>>
+<<themes--darkman>>
 
 ;; Load desired theme.
-(tor/enable-night-theme)
+(tor/enable-theme-after-darkman)
 #+end_src
 
 * Interacting with the outside of Emacs
