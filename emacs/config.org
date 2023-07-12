@@ -1107,6 +1107,9 @@ highlight color.  With a double prefix argument, prompt for a color."
 (use-package pdf-tools
   :ensure t
   :mode ("\\.vpdf\\.?$" . pdf-virtual-edit-mode)
+  ;; NOTE: The `:bind' and `:config' below doesn't seem to work until the
+  ;; first time we've run `pdf-tools-install'. It complains that `pdf-annot'
+  ;; is not a thing yet. A bit uncertain how to handle this.
   :bind (:map pdf-annot-minor-mode-map
               ("C-c C-a h" . my/pdf-annot-add-highlight-markup-annotation))
   :config
