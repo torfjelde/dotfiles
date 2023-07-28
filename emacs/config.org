@@ -407,8 +407,8 @@ Currently [2023-07-28 Fri 12:04] I'm mainly using =ace-window= for navigating be
 (require 'windmove)
 (global-set-key (kbd "C-s-j")  'windmove-left)
 (global-set-key (kbd "C-s-;") 'windmove-right)
-(global-set-key (kbd "C-s-k")    'windmove-up)
-(global-set-key (kbd "C-s-l")  'windmove-down)
+(global-set-key (kbd "C-s-l")    'windmove-up)
+(global-set-key (kbd "C-s-k")  'windmove-down)
 #+end_src
 
 ** Result
