@@ -2227,6 +2227,9 @@ The below is overkill for what we want. We really just want the functionality fo
   (setq helm-org-named-directories '("/home/tor/org-blog/notes")))
 #+end_src
 
+**** TODO Replace with =consult-notes= maybe?
+https://github.com/mclear-tools/consult-notes
+
 *** =org-roam=
 #+name: org--org-roam
 #+begin_src emacs-lisp 
