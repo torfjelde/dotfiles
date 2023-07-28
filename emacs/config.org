@@ -3404,6 +3404,23 @@ emacsclient -e "(tor/enable-day-theme)"
     (tor/enable-night-theme)))
 #+end_src
 
+** Transparent background
+#+name: themes--transparent-background
+#+begin_src emacs-lisp 
+;; Set the transparency of the current frame.
+(set-frame-parameter nil 'alpha-background 100)
+;; And make it default for future frames.
+(add-to-list 'default-frame-alist '(alpha-background . 100))
+
+(defun tor/toggle-window-transparency ()
+  "Toggle transparency."
+  (interactive)
+  (let ((alpha-transparency 90))
+    (if (= (frame-parameter nil 'alpha-background) alpha-transparency)
+        (set-frame-parameter nil 'alpha-background 100)
+      (set-frame-parameter nil 'alpha-background alpha-transparency))))
+#+end_src
+
 ** Result
 #+name: themes
 #+begin_src emacs-lisp
@@ -3412,6 +3429,7 @@ emacsclient -e "(tor/enable-day-theme)"
 <<themes--custom-hooks>>
 <<themes--night-and-day>>
 <<themes--darkman>>
+<<themes--transparent-background>>
 
 ;; Load desired theme.
 (tor/enable-theme-after-darkman)
