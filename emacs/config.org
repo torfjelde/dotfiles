@@ -395,6 +395,22 @@ Then we'll insert the following at the very end of our init-file:
 (use-package dash)
 #+end_src
 
+** =windmove=
+I've recently started using i3 with keybindings =Super+{h,j,k,l}= to move between windows.
+Currently [2023-07-28 Fri 12:04] I'm mainly using =ace-window= for navigating between Emacs windows, but this can be a bit annoying in combination with i3 since I have to move my hands away from the i3-keybindings to then navigate the windows within an Emacs instance.
+
+=windmove= lets us replicate a similar behavir to i3 within Emacs, and so with a few keybindings the transition from "outside of Emacs" to "inside of Emacs" becomes a bit smoother:
+
+#+name: basics--windmove
+#+begin_src emacs-lisp
+;; TODO: `use-package`?
+(require 'windmove)
+(global-set-key (kbd "C-s-j")  'windmove-left)
+(global-set-key (kbd "C-s-;") 'windmove-right)
+(global-set-key (kbd "C-s-k")    'windmove-up)
+(global-set-key (kbd "C-s-l")  'windmove-down)
+#+end_src
+
 ** Result
 #+name: basics
 #+begin_src emacs-lisp 
@@ -405,6 +421,7 @@ Then we'll insert the following at the very end of our init-file:
 <<basics--custom-file>>
 <<basics--compat>>
 <<basics--dash>>
+<<basics--windmove>>
 #+end_src
 
 * OS specific setup
