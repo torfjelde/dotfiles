@@ -2032,6 +2032,13 @@ and nothing for all other backends."
   :custom (org-sidebar-tree-jump-fn 'org-sidebar-tree-jump-source))
 #+end_src
 
+** Visuals
+#+name: org--org-modern
+#+begin_src emacs-lisp 
+(use-package org-modern
+  :ensure t
+  :config (global-org-modern-mode 1))
+#+end_src
 ** Other stuff
 *** Proper handling of ANSI color codes
 #+name: org--ansi-color-codes-handling
