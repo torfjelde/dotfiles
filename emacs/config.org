@@ -3509,6 +3509,54 @@ https://github.com/zachcurry/emacs-anywhere
                         )))
 #+end_src
 
+* Screencast
+
+** =keycast=
+#+name: screencast--keycast
+#+begin_src emacs-lisp 
+(use-package keycast
+  :custom
+  (keycast-log-frame-alist
+   '((minibuffer . nil)
+     (no-other-frame . t)
+     (no-other-window . t)
+     (no-delete-other-windows . t)
+     ;; Allow focus of the window so we can easily close it in case something fails.
+     (no-accept-focus . nil)
+     (no-focus-on-map . nil)
+     (desktop-dont-save . t)
+     (menu-bar-lines . 0)
+     (tool-bar-lines . 0)
+     (tab-bar-lines . 0)
+     (vertical-scroll-bars . nil)
+     (horizontal-scroll-bars . nil))))
+#+end_src
+
+** emacs-gif-screencast
+#+name: screencast--emacs-gif-screencast
+#+begin_src emacs-lisp 
+(use-package gif-screencast
+  :straight (gif-screencast
+             :type git
+             :host gitlab
+             :repo "torfjelde/emacs-gif-screencast"
+             :branch "torfjelde/allow-other-output-formats")  
+  :bind (:map gif-screencast-mode-map
+              ("C-c g s" . gif-screencast-start-or-stop)
+              ("C-c g p" . gif-screencast-stop))
+  :custom
+  (gif-screencast-output-format "mp4")
+  (gif-screencast-want-optimized nil)
+  )
+#+end_src
+
+** Result
+#+name: screencast
+#+begin_src emacs-lisp
+<<screencast--keycast>>
+<<screencast--emacs-gif-screencast>>
+#+end_src 
+
 * Result
 
 ** Full config
@@ -3532,6 +3580,7 @@ https://github.com/zachcurry/emacs-anywhere
 <<themes>>
 <<frame-title>>
 <<emacs-anywhere>>
+<<screencast>>
 <<load-custom-file>>
 #+end_src
 
