@@ -1797,6 +1797,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                       (org-agenda-files '("~/Dropbox/org/gtd.org")))))
            ((org-agenda-compact-blocks nil)))))
 
+  ;; `org-agenda-date-later' allows us to move an entry to a later date.
+  ;; Adding it to `org-agenda-bulk-custom-functions' so we can apply it to multiple entries at the same time.
+  ;; Ref: https://stackoverflow.com/a/57829278
+  (add-to-list 'org-agenda-bulk-custom-functions '(?D (lambda () (call-interactively 'org-agenda-date-later)))
+
   ;; Hooks.
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
   ;; NOTE: This is maybe a bit "drastic". Could potentially just disable certain
