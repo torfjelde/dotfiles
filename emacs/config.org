@@ -1690,7 +1690,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
            "~/Dropbox/org/school.org"
            "~/Dropbox/org/reading.org"
            "~/Dropbox/org/implement.org"
-           "~/Dropbox/org/from-the-web.org")
+           "~/Dropbox/org/interwebs.org")
          ;; Also add todos from consulting projects.
          (directory-files-recursively "~/Dropbox/consulting/" "\\todos.org$")))
 
@@ -1754,13 +1754,13 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
            ;; org-protocol.el
            ;; TODO: Evaluate whether or not we want to keep this.
            ("p" "Protocol" entry
-            (file "~/Dropbox/org/from-the-web.org")
+            (file "~/Dropbox/org/interwebs.org")
             "* %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
             :empty-lines 1
             :created t)
 
            ("L" "Protocol Link" entry
-            (file "~/Dropbox/org/from-the-web.org")
+            (file "~/Dropbox/org/interwebs.org")
             ;; "* %^{TITLE}\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n:END:\n%?"
             "* %:description\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%:description]]\n:END:\n%?"
             :empty-lines 1
