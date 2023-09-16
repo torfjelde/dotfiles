@@ -1770,6 +1770,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
          private/org-capture-templates))
 
   ;; Some custom views for `org-agenda'.
+  (require 'org-agenda)
   (setq org-agenda-custom-commands
         '(("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
           ("c" "My agenda view"
@@ -1800,7 +1801,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; `org-agenda-date-later' allows us to move an entry to a later date.
   ;; Adding it to `org-agenda-bulk-custom-functions' so we can apply it to multiple entries at the same time.
   ;; Ref: https://stackoverflow.com/a/57829278
-  (add-to-list 'org-agenda-bulk-custom-functions '(?D (lambda () (call-interactively 'org-agenda-date-later)))
+  (add-to-list 'org-agenda-bulk-custom-functions '(?D (lambda () (call-interactively 'org-agenda-date-later))))
 
   ;; Hooks.
   ;; If `flycheck` is installed, disable `flycheck` in src-blocks.
