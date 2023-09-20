@@ -2,7 +2,7 @@ function template(interactive=false)
     @eval begin
         using PkgTemplates
         plugins = [
-            ProjectFile(),
+            ProjectFile(version=v"0.1.0"),
             SrcDir(),  # template file for the `src/<module>.jl` file
             Tests(project=true),  # create a separate project for tests
             Readme(),
@@ -15,6 +15,6 @@ function template(interactive=false)
             Citation(),
             RegisterAction(),
         ]
-        Template(; plugins=plugins, interactive=$(interactive))
+        Template(; julia=v"1.6", plugins=plugins, interactive=$(interactive))
     end
 end
