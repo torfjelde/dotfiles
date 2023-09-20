@@ -970,11 +970,20 @@ The default tab-bar name uses the buffer name."
 (use-package vterm
   :config (setq vterm-buffer-name-string "*vterm [%s]*"))
 #+end_src
+** =isend.el=
+#+name: terminal-emulation--isend-mode
+#+begin_src emacs-lisp
+;; isend.el: Send code to a terminal emulator.
+(use-package isend-mode
+  :hook
+  (isend-mode . isend-default-julia-setup))
+#+end_src
 
 ** Result
 #+name: terminal-emulation
 #+begin_src emacs-lisp
 <<terminal-emulation--vterm>>
+<<terminal-emulation--isend-mode>>
 #+end_src
 
 * Completion & assistants
