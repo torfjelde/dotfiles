@@ -1997,10 +1997,29 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 *** =org-reveal=
 #+name: org--ox-reveal
 #+begin_src emacs-lisp
+;; TODO: Bind these or something.
+(defun my/org-reveal-insert-split ()
+  (interactive)
+  (insert "#+REVEAL: split\n"))
+
+(defun my/org-reveal-make-region-fragment ()
+  (interactive)
+  (let ((start (region-beginning))
+        (end (region-end)))
+    ;; Insert at the end first, so we don't change the
+    ;; end position by inserting text before it.
+    (goto-char end)
+    (insert "\n#+HTML: </div>")
+    (goto-char start)
+    (insert "#+HTML: <div class=\"fragment (appear)>\"\n")))
+
 (use-package ox-reveal
   ;; NOTE: Necessary because otherwise we end up trying to load `org-reveal'
   ;; which is actually not provided (despite the name of the project).
   :straight (ox-reveal :host github :repo "torfjelde/org-reveal" :branch "torfjelde/develop")
+  :bind (:map org-mode-map
+              ("C-c r f" . my/org-reveal-make-region-fragment)
+              ("C-c r s" . my/org-reveal-insert-split))
   :custom
   (org-reveal-extract-mathjax-version-from-url t)
   (org-reveal-mathjax3-version "3.2.2")
