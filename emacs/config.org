@@ -409,6 +409,12 @@ Currently [2023-07-28 Fri 12:04] I'm mainly using =ace-window= for navigating be
 (global-set-key (kbd "C-s-;") 'windmove-right)
 (global-set-key (kbd "C-s-l")    'windmove-up)
 (global-set-key (kbd "C-s-k")  'windmove-down)
+
+;; Increase the size of windows.
+(global-set-key (kbd "C-s-<left>")  'enlarge-window-horizontally)
+(global-set-key (kbd "C-s-<right>") 'shrink-window-horizontally)
+(global-set-key (kbd "C-s-<up>")    'enlarge-window)
+(global-set-key (kbd "C-s-<down>")  'shrink-window)
 #+end_src
 
 ** Result
