@@ -2728,44 +2728,8 @@ Example: ':/path/to/test.pdf:PDF'."
               (push escaped filenames))))))
     (nreverse filenames)))
 
-;; Similar to `citar--shorten-name' and `citar--shorten-names'
-;; but using the full name instead of just the last name.
-(defun citar--full-name (name)
-  "Return full NAME in `family, given' string.
-
-Otherwise, return as is."
-  (let ((split-names (split-string name ", ")))
-    (if (> (length split-names) 1)
-        (concat (cadr split-names) " " (car split-names))
-      name)))
-
-(defun citar--full-names (namestr &optional truncate andstr)
-  "Return a list of full names from a list of full NAMESTR.
-
-With an integer TRUNCATE, will shorten the list, and ANDSTR will
-replace last comma."
-  (let* ((namelist (split-string (or namestr "") " and "))
-         (namelength (length namelist))
-         (tnamelist (seq-take namelist (or truncate namelength)))
-         (tnamelength (length tnamelist)))
-    (mapconcat
-     (lambda (n)
-       (let* ((shortname (citar--full-name n))
-              (pos (citar--shorten-name-position tnamelist n))
-              (suffix
-               (cond
-                ;; if last name in the list and we're truncating add et al.; otherwise, no suffix
-                ((equal pos tnamelength)
-                 (if (< tnamelength namelength) " et al." ""))
-                ;; if second to last in the list, and ANDSTR, use that
-                ((and andstr (equal pos (- tnamelength 1)))
-                 (concat " " andstr " "))
-                ;; otherwise, use a comma
-                (t ", "))))
-         (concat shortname suffix)))
-     tnamelist "")))
-
 (use-package citar
+  :straight (:type git :host github :repo "torfjelde/citar" :branch "torfjelde/full-names-rendering")
   :custom
   (citar-bibliography '("~/Dropbox/bibliography/references.bib"))
   (citar-library-paths '("~/Dropbox/bibliography/pdfs/"))
@@ -2783,12 +2747,6 @@ replace last comma."
      (preview . "${author editor:%etal} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
      (note . "Notes on ${author editor:%etal}, ${title}")))
 
-  ;; Add our own display transform function for full names `fn`.
-  (citar-display-transform-functions
-   `((sn . (citar--shorten-names))
-     (etal . (citar--shorten-names 3 "&"))
-     (fn . (citar--full-names))))
-  
   :bind
   ("C-c ]" . citar-open)
   :hook
