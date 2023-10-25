@@ -3557,6 +3557,22 @@ https://github.com/zachcurry/emacs-anywhere
    (t (poly-gfm-mode)) ; default major mode
    ))
 
+;; When submitting Github issues, etc. it's useful to add some information about
+;; my environment as a `<details>...</details>` tag; this just simplifies this process.
+(defun tor/wrap-in-details-tag (start end)
+  "Wrap the region from START to END in a <details> HTML tag."
+  (interactive "r")
+  (let ((summary (read-string "Enter summary: "))
+        (region-text (buffer-substring-no-properties start end)))
+    ;; Insert the "footer".
+    (goto-char end)
+    (insert "\n\n</details>\n")
+    ;; Insert the "heaer".
+    (goto-char start)
+    (insert "<details>\n\n<summary>")
+    (insert summary)
+    (insert "</summary>\n\n")))
+
 ;; NOTE: `ea-popup-hook' is used by `emacs-anywhere'.
 ;; (remove-hook 'ea-popup-hook 'popup-handler)
 (add-hook 'ea-popup-hook 'popup-handler)
