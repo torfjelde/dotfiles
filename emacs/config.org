@@ -1132,6 +1132,9 @@ highlight color.  With a double prefix argument, prompt for a color."
     (prefix-numeric-value current-prefix-arg)
     (pdf-view-active-region t)))
   (cond
+   ((= arg 1) (setq color "lemon chiffon"))
+   ((= arg 2) (setq color "PaleGreen"))
+   ((= arg 3) (setq color "pink"))
    ((= arg 4) (setq color (car pdf-annot-color-history)))
    ((= arg 16) (setq color (pdf-annot-read-color))))
   (pdf-annot-add-highlight-markup-annotation list-of-edges color))
