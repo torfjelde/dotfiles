@@ -1137,8 +1137,12 @@ highlight color.  With a double prefix argument, prompt for a color."
    ((= arg 1) (setq color "lemon chiffon"))
    ((= arg 2) (setq color "PaleGreen"))
    ((= arg 3) (setq color "pink"))
-   ((= arg 4) (setq color (car pdf-annot-color-history)))
-   ((= arg 16) (setq color (pdf-annot-read-color))))
+   ((= arg 4) (setq color "pale turquoise"))
+   ((= arg 5) (setq color "light sky blue"))
+   ((= arg 6) (setq color "thistle"))
+   ((= arg 7) (setq color "wheat"))
+   ((= arg 16) (setq color (car pdf-annot-color-history)))
+   ((= arg 64) (setq color (pdf-annot-read-color))))
   (pdf-annot-add-highlight-markup-annotation list-of-edges color))
 
 (use-package pdf-tools
