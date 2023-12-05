@@ -1641,19 +1641,30 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 #+name: org--main
 #+begin_src emacs-lisp 
 ;; Used for my custom `quick-and-dirty' capture template.
-(defun my/capture-report-datetime-file (path)
-  (let ((name (read-string "Name: ")))
-    (expand-file-name (format "%s-%s.org"
-                              (format-time-string "%Y-%m-%d-%H-%M")
-                              name)
-                      path)))
+(defun my/capture-report-datetime-file ()
+  (let ((name (read-string "Filename: ")))
+    (format
+     "%s-%s"
+     (format-time-string "%Y-%m-%d-%H-%M")
+     name)))
 
 (defun my/org-capture-quick-and-dirty ()
-  (let ((path (my/capture-report-datetime-file "~/org-blog/notes/quick-and-dirty")))
+  (let* ((name (my/capture-report-datetime-file))
+         (base-dir "~/org-blog/notes/quick-and-dirty")
+         (path (expand-file-name (concat name ".org") base-dir))
+         (asset-dir (f-expand (concat "." name) base-dir)))
     ;; Create a buffer with the file.
     (find-file path)
-    ;; Insert the header.
-    (insert "#+SETUPFILE: ../../setup-level-2.org\n\n")))
+    ;; Create the directory for attachments, exports, etc.
+    (make-directory asset-dir)
+    ;; Setup file header.
+    (insert "#+SETUPFILE: ../../setup-level-2.org\n")
+    ;; Add some other options.
+    (insert "#+OPTIONS: toc:nil num:nil date:nil\n")
+    ;; Export file name header.
+    (insert "#+EXPORT_FILE_NAME: ")
+    (insert (expand-file-name name asset-dir))
+    (insert "\n\n")))
 
 (use-package org
   ;; Ensures that we're using the version of `org` which comes with Emacs.
