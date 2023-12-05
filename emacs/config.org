@@ -1801,15 +1801,27 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
            ((tags "PRIORITY=\"A\""
                   ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
                    (org-agenda-overriding-header "High-priority unfinished tasks:")))
-            (agenda "" ((org-agenda-span 1)
-                        (org-habit-graph-column 60)))
-            ;; TODO: Do we need a weekly view too?
+            ;; NOTE: Don't need daily view when we have weekly
+            ;; (agenda "" ((org-agenda-span 1)
+            ;;             (org-habit-graph-column 60)))
+            ;; weekly view
             (agenda "")
-            (alltodo ""
+            ;; readings
+            (todo "FIRST"
                      ((org-agenda-files '("~/Dropbox/org/reading.org"))
-                      (org-agenda-overriding-header "Papers (top 5):")
+                      (org-agenda-overriding-header "Papers (1st pass):")
                       (org-agenda-max-entries 5)
                       (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+            (todo "SECOND"
+                  ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                   (org-agenda-overriding-header "Papers (2nd pass):")
+                   (org-agenda-max-entries 5)
+                   (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+            (todo "THIRD"
+                  ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                   (org-agenda-overriding-header "Papers (3rd pass):")
+                   (org-agenda-max-entries 5)
+                   (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
             (alltodo ""
                      ((org-agenda-files '("~/Dropbox/org/reading.org"))
                       (org-agenda-overriding-header "Readings (top 5):")
