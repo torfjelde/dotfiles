@@ -1779,7 +1779,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
            ;; TODO: Evaluate whether or not we want to keep this.
            ("p" "Protocol" entry
             (file "~/Dropbox/org/interwebs.org")
-            "* %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
+            "* %U %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
             :empty-lines 1
             :created t)
 
