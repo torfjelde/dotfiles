@@ -3,6 +3,6 @@
 # key: begin-def
 # --
 #+name: def:$1
-#+begin_definition :title "$2"
+#+begin_definition
 $3
 #+end_definition
