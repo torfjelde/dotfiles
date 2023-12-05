@@ -1640,6 +1640,21 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 ** =org=
 #+name: org--main
 #+begin_src emacs-lisp 
+;; Used for my custom `quick-and-dirty' capture template.
+(defun my/capture-report-datetime-file (path)
+  (let ((name (read-string "Name: ")))
+    (expand-file-name (format "%s-%s.org"
+                              (format-time-string "%Y-%m-%d-%H-%M")
+                              name)
+                      path)))
+
+(defun my/org-capture-quick-and-dirty ()
+  (let ((path (my/capture-report-datetime-file "~/org-blog/notes/quick-and-dirty")))
+    ;; Create a buffer with the file.
+    (find-file path)
+    ;; Insert the header.
+    (insert "#+SETUPFILE: ../../setup-level-2.org\n\n")))
+
 (use-package org
   ;; Ensures that we're using the version of `org` which comes with Emacs.
   :straight (org :type built-in)
@@ -1771,6 +1786,10 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
             :created t	 ; properties
             :kill-buffer t)
 
+           ("q" "Quick and dirty"
+            plain
+            (function my/org-capture-quick-and-dirty))
+
            ;; Template for different projects.
            ;; NOTE: This is often extended by `private/org-capture-templates'.
            ("P" "Projects")
@@ -1786,7 +1805,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
            ("L" "Protocol Link" entry
             (file "~/Dropbox/org/interwebs.org")
             ;; "* %^{TITLE}\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n:END:\n%?"
-            "* %:description\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%:description]]\n:END:\n%?"
+            "* %U %:description\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%:description]]\n:END:\n%?"
             :empty-lines 1
             :created t)
            )
