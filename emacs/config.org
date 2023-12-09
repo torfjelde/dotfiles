@@ -3240,6 +3240,39 @@ Just define your own function for inserting the signature and use this, e.g.
                  (add-to-list 'minor-mode-overriding-map-alist new-ro-bind))
     (goto-char (point-min))))
 
+(defun my/notmuch-tag-as-sent-and-read ()
+  "Tag the messages sent by any of my email accounts as sent and read."
+  (let* ((emails (-map (lambda (x) (plist-get x :email)) my/email-accounts))
+         (query (concat
+                 "tag:new AND tag:unread AND ("
+                 (s-join
+                  " OR "
+                  (-map (lambda (x) (concat "from:" x)) emails))
+                 ")"
+                 )))
+    ;; Add the sent tag.
+    (notmuch-call-notmuch-process
+     "tag"
+     "+sent"
+     query)
+    ;; Remove the unread tag.
+    (notmuch-call-notmuch-process
+     "tag"
+     "-unread"
+     "tag:new AND tag:sent AND tag:unread")
+
+    ;; Remove the new tag.
+    (notmuch-call-notmuch-process
+     "tag"
+     "-new"
+     "tag:new AND tag:sent")
+
+    (message "Tagged as sent and read using query %s" query)
+    ))
+
+;; Add the hook to tag as sent and read.
+(add-hook 'message-sent-hook 'my/notmuch-tag-as-sent-and-read)
+
 ;; Docs: https://notmuchmail.org/doc/latest/notmuch-emacs.html
 (use-package notmuch
   :bind (:map notmuch-show-part-map ("d" . my/notmuch-show-view-as-patch))
