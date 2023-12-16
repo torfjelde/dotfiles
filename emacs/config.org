@@ -1729,7 +1729,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (setq org-outline-path-complete-in-steps nil)
 
   (setq org-default-notes-file "~/Dropbox/org/gtd.org")
-  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)))
+  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)
+                             ("~/Dropbox/org/reading.org" :maxlevel . 1)))
+  ;; Make it so that we can use refile to insert into a file as the top-level heading too,
+  ;; and not just as a sub-heading.
+  (setq org-refile-use-outline-path 'file)
 
   (setq org-my-anki-file "~/Dropbox/org/anki.org")
 
