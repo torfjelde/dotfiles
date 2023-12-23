@@ -1616,6 +1616,160 @@ To achieve the above, I need to define some methods before I can define the =org
       (format "%03d" (tor/reading-list--get-next-idx)))))
 #+end_src
 
+** Tor's publishing
+
+#+name: org--publishing
+#+begin_src emacs-lisp 
+(defmacro tor/with-local (var val &rest body)
+  "Utility temporarily setting setting VAR to VAL and exectuting BODY in this context, then restoring the value of the variable."
+  `(let ((prev ,var)
+	 (res nil))
+     (setq ,var ,val)
+     (setq res (progn ,@body))
+     (setq ,var prev)
+     res))
+
+(defvar tor/latex-publish-directory "./.latex/")
+
+(defun tor/blog-dir-as-relative (dir filename)
+  (file-relative-name dir (file-name-directory filename)))
+
+(defun tor/blog-get-latex-directory (plist filename pub-dir)
+  (cond
+   ((plist-member plist :latex-directory) (file-relative-name (plist-get plist :latex-directory) (file-name-directory filename)))
+   ;; ((plist-member plist :assets-directory) (file-relative-name (concat (plist-get plist :assets-directory) "latex/") (file-name-directory filename)))
+   ((plist-member plist :project-directory) (file-relative-name (concat (plist-get plist :project-directory) "assets/latex/") (file-name-directory filename)))))
+
+;; TODO: create a customized publishing function
+(defun tor/org-html-publish-to-html (plist filename pub-dir)
+  "My customized HTML publishing function. Publish an org file to HTML.
+
+PLIST is the property list of the given object.
+FILENAME is the filename of the Org file to be published. 
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  ;; TODO: need to update/republish "local" index if it exists
+  (tor/with-local org-preview-latex-image-directory
+		  (or (tor/blog-get-latex-directory plist filename pub-dir)
+		      tor/latex-publish-directory)
+		  (org-html-publish-to-html plist filename pub-dir)))
+
+(defun tor/publish-html (plist filename pub-dir)
+  (message "%s" plist)
+  (message "%s" filename)
+  (message "%s" pub-dir)
+  (copy-file filename (concat pub-dir (file-name-nondirectory filename)) t)
+  (concat pub-dir (file-name-nondirectory filename)))
+
+;; TODO: format paths properly to avoid recursion and so on.
+(defun tor/org-publish-attachment (plist filename pub-dir)
+  "Publish a file with no transformation of any kind.
+
+PLIST is the property list for the given project.
+FILENAME is the filename of the Org file to be published.  
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  (org-publish-attachment plist filename pub-dir))
+
+(defun tor/org-publish-attachment-local (plist)
+  "Use PLIST to copy the entire base-directory to publishing-directory."
+  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
+
+(defun tor/filename-to-title (filename)
+  "Transform FILENAME into title by splitting on _ and concatenating."
+  (string-join
+   (mapcar #'capitalize
+	   (split-string (string-remove-suffix ".org" filename) "\[-_ \]" t))
+   " "))
+
+(use-package mustache
+  :config (require 'ht))
+
+(defun tor/directory-p (d)
+  (string-match-p "\\." d))
+
+(defun tor/dir-has-index-file-p (d)
+  (let* ((subdirs (directory-files (concat "~/org-blog/notes/" d)))
+        (result (-find (lambda (x) (string-equal x "index.org")) subdirs)))
+    (not (equal result nil))))
+
+(defun tor/org-file-p (p)
+  (string-match-p "\\.org" p))
+
+(defun tor/not-org-file-p (p)
+  (not (tor/org-file-p p)))
+
+(defun tor/posts-render-front-page (files)
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+	(base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (mustache-render "{{> posts }}"
+		     (ht ("posts"
+			  (-map
+			   (lambda (c) (ht ("title" (tor/filename-to-title c))
+				      ("link" (concat base-dir c))))
+			   (cl-remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/"))))))))
+
+(defun tor/prepare-blog-post-publish (export-options)
+  (let ((files (cl-remove-if #'tor/not-org-file-p (directory-files "~/org-blog/posts/")))
+	(mustache-partial-paths '("~/org-blog/templates/"))
+	(base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (with-temp-buffer
+      (insert (mustache-render "{{> posts }}"
+			       (ht ("posts"
+				    (-map
+				     (lambda (c) (ht ("title" (tor/filename-to-title c))
+						("link" (replace-regexp-in-string "\\.org" ".html" c))))
+				     files)))))
+      (write-region nil nil "~/org-blog/posts/index.html"))))
+
+(defun tor/render-html-preamble (export-options)
+  "Renders the HTML preamble. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+	(base-dir (file-truename (plist-get export-options :base-directory)))
+	(input-file (file-truename (plist-get export-options :input-file))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+		     (ht ("categories"
+			  (-map
+			   (lambda (c) (ht ("category" (tor/filename-to-title c))
+				      ("link" (concat (file-relative-name
+						       (concat base-dir "/" c)
+						       (file-name-directory input-file))
+						      "/index.html"))))
+			   (-filter #'tor/dir-has-index-file-p
+                                    (cl-remove-if #'tor/directory-p (directory-files "~/org-blog/notes/")))))))))
+
+(defun tor/render-html-postamble (export-options)
+  "Renders the HTML post-amble. EXPORT-OPTIONS refers to the export options passed by org."
+  (require 'mustache)
+  ;; (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/")))
+    (mustache-render "{{> footer}}" (ht ("" nil)))))
+
+(defun tor/render-html-preamble--posts (export-options)
+  "Renders the HTML preamble for blog-posts. EXPORT-OPTIONS refers to the export options passed by org."
+  ;; FIXME: figure out a better way to load this on demand
+  (require 'mustache)
+  (require 'ht)
+
+  (let ((mustache-partial-paths '("~/org-blog/templates/"))
+	(base-dir (file-truename (plist-get export-options :publishing-directory))))
+    (message base-dir)
+    (mustache-render "{{> base }}"
+		     (ht ("categories"
+			  `(,(ht ("category" "Posts") ("link" "index.html"))
+			    ,(ht ("category" "Wiki") ("link" "../notes/index.html"))
+			    ,(ht ("category" "Notes from papers") ("link" "../papers/index.html"))
+			    ,(ht ("category" "About me") ("link" "../about.html"))))))))
+#+end_src
+
 ** Agenda utilities
 #+name: org--agenda-utilities
 #+begin_src emacs-lisp 
@@ -1912,6 +2066,115 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      (R . t)
      (dot . t)
      ))
+
+  ;; ox-publish
+  (require 'ox-publish)
+  (setq org-publish-project-alist
+	    '(
+	      ;; ... add all the components here (see below)...
+	      ("blog-latex"
+	       :base-directory "~/org-blog/assets/latex"
+	       :publishing-directory "~/org-blog/public_html/assets/latex"
+	       :recursive t
+	       :publishing-function tor/org-publish-attachment
+	       :base-extension "png\\|jpg\\|gif\\\\|ogg\\|swf")
+
+	      ;; ;; TODO: somehow allow us to simply copy the files in one go instead of going through
+	      ;; ;; all files to check if modified
+	      ("blog-latex-local"
+	       :base-directory "~/org-blog/assets/latex"
+	       :publishing-directory "~/org-blog/public_html/assets/latex"
+	       :recursive nil
+	       :preparation-function tor/org-publish-attachment-local
+	       :publishing-function identity
+	       :base-extension "")
+
+	      ("org-posts"
+	       :project-directory "~/org-blog/"
+	       :assets-directory "~/org-blog/assets/"
+	       :base-directory "~/org-blog/posts/"
+	       :base-extension "org"
+	       :exclude ".*\\.org_archive|.*\\.org_old"  ;; HACK: this allows us to filter out posts
+	       :publishing-directory "~/org-blog/public_html/posts/"
+	       :recursive nil
+	       :publishing-function tor/org-html-publish-to-html
+	       ;; :preparation-function tor/prepare-blog-post-publish
+	       :headline-levels 4
+	       :auto-preamble t
+	       :html-preamble tor/render-html-preamble--posts
+	       :html-postamble nil
+	       :html-html5-fancy t
+	       :html-metadata-timestamp-format "%Y-%m-%d %a")
+
+	      ("org-posts-index"
+	       :base-directory "~/org-blog/posts"
+	       :base-extension "html"
+	       :publishing-directory "~/org-blog/public_html/posts/"
+	       :publishing-function tor/publish-html
+	       :preparation-function tor/prepare-blog-post-publish
+	       :recursive nil
+	       :auto-preamble nil
+	       :html-postamble nil
+	       :html-preamble nil)
+
+	      ("org-posts-assets"
+	       :base-directory "~/org-blog/posts/"
+	       :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+	       :publishing-directory "~/org-blog/public_html/posts/"
+	       :recursive t
+	       :publishing-function tor/org-publish-attachment)
+
+	      ("org-blog" :components ("org-posts" "org-posts-index" "org-posts-assets"))
+
+	      ("org-notes"
+	       :project-directory "~/org-blog/"
+	       :assets-directory "̃~/org-blog/assets/"
+	       :base-directory "~/org-blog/notes/"
+	       :base-extension "org"
+	       :publishing-directory "~/org-blog/public_html/notes/"
+	       :recursive t
+	       :publishing-function tor/org-html-publish-to-html
+	       :headline-levels 4             ; Just the default for this project.
+	       :auto-preamble t
+	       :html-preamble tor/render-html-preamble
+	       :html-postamble nil
+	       ;; :html-postamble tor/render-html-postamble
+	       ;; :html-html5-fancy t
+	       :html-metadata-timestamp-format "%Y-%m-%d %a"
+	       )
+
+	      ("org-notes-assets"
+	       :base-directory "~/org-blog/notes/"
+	       :base-extension "css\\|js\\|png\\|jpg\\|svg\\|gif\\|mp3\\|ogg\\|swf"
+	       :publishing-directory "~/org-blog/public_html/notes/"
+	       :recursive t
+	       :publishing-function tor/org-publish-attachment)
+
+	      ("org-static"
+	       :project-directory "~/org-blog/"
+	       :base-directory "~/org-blog/assets/"
+	       ;; :base-extension "css\\|js\\|png\\|jpg\\|gif\\|mp3\\|ogg\\|swf"
+	       :base-extension "css\\|js\\|gif\\|mp3\\|ogg\\|swf"
+	       :publishing-directory "~/org-blog/public_html/assets/"
+	       :recursive t
+	       :publishing-function tor/org-publish-attachment)
+
+	      ("org"
+	       :components ("org-notes" "org-notes-assets" "org-static"))
+
+	      ("org-papers"
+	       ;; :base-directory "~/Dropbox/bibliography/notes/"
+	       :project-directory "~/org-blog/"
+	       :assets-directory "̃~/org-blog/assets/"
+	       :base-directory "~/org-blog/papers/"
+	       :base-extension "org"
+	       :publishing-directory "~/org-blog/public_html/papers/"
+	       :recursive nil
+	       :publishing-function tor/org-html-publish-to-html
+	       :headline-levels 4
+	       :auto-premable t
+	       :html-postamble nil)
+	      ))
 
   :custom
   ;; Now that we have `org-cite.el`, we can use stuff like CSL.
