@@ -2996,6 +2996,7 @@ If the region is not active, use the current line."
 #+name: org
 #+begin_src emacs-lisp
 <<org--tors-reading-list>>
+<<org--publishing>>
 <<org--agenda-utilities>>
 <<org--main>>
 
