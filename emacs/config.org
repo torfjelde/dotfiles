@@ -1787,6 +1787,24 @@ Return output file name."
 ;; NOTE: useful for asynchrnous publishing.
 (setq my/publish-filters '())
 
+(defun my/publish-filter--exclude-folder-starting-with-dot (path)
+  "Exclude folders starting with a dot."
+  (not (string-match "/\\..+" path)))
+
+(add-to-list 'my/publish-filters 'my/publish-filter--exclude-folder-starting-with-dot)
+
+(defun my/publish-filter--exclude-files-in-research-folder (path)
+  "Exclude files in the research folder."
+  (not (string-match "/research/" path)))
+
+(defun my/publish-filter--only-files-in-research-folder (path)
+  "Only include files in the research folder."
+  (string-match "/research/" path))
+
+(defun my/publish-filter--only-files-in-quick-and-dirty-folder (path)
+  "Only include files in the research folder."
+  (string-match "/quick-and-dirty/" path))
+
 (defun my/publish-blog-async (&optional seconds-wait &rest filters)
   "Publish the blog asynchronously."
   (let ((files (directory-files-recursively "~/org-blog/notes/" ".+\.org$")))
@@ -2115,6 +2133,46 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; ox-publish
   (require 'ox-publish)
   (require 'org-element)
+
+  ;; `org-publish' resolves file links using `org-publish-file-relative-name'.
+  ;; This uses the `:base-directory' specified in `org-publish-project-alist'.
+  ;; For example if we have `base-directory' and we're exporting
+  ;; `base-directory/a/x.org' which contain a link to `base-directory/b/y.org'
+  ;; then the link will be resolved to `a/b/y.org'.
+  ;; HACK: To "fix" this, we'll override `org-publish-file-relative-name' allowing
+  ;; us to customize the behavior in two additional ways:
+  ;; 1. We can use the (non-official) property `:project-directory' to resolve links
+  ;;    instead of `:base-directory'.
+  ;; 2. Use _actual_ relative name, i.e. in the above scenario we get `../b/y.org'.
+  ;;    IMO this works quite nicely overall, so uncertain why we don't do this always.
+  (defcustom my/org-publish-relative-file-name-use-project-directory-as-base t
+    "If non-nil, use the project directory as the base directory for relative file names.
+If nil, use the base directory of the current file as the base directory for relative file names."
+    :group 'org-publish
+    :type 'boolean)
+  
+  (defcustom my/org-publish-relative-file-name-use-base-directory nil
+    "If non-nil, use the base directory of the current file as the base directory for relative file names.
+If nil, use the directory of the current file as the base directory for relative file names."
+    :group 'org-publish
+    :type 'boolean)
+
+  (defun org-publish-file-relative-name (filename info)
+    "Convert FILENAME to be relative to current project's base directory.
+INFO is the plist containing the current export state.  The
+function does not change relative file names."
+    (let* ((base (if my/org-publish-relative-file-name-use-project-directory-as-base
+                     (plist-get info :project-directory)
+                   (plist-get info :base-directory)))
+           (relative-dir (if my/org-publish-relative-file-name-use-base-directory
+                            base
+                          (file-name-directory (plist-get info :input-file)))))
+      (if (and base
+	           (file-name-absolute-p filename)
+	           (file-in-directory-p filename base))
+	      (file-relative-name filename relative-dir)
+        filename)))
+  
   ;; HACK: override `org-publish-resolve-external-link' to allow resolving external links
   ;; using names, i.e. `#+NAME: ...'.
   (defun org-publish-resolve-external-link (search file &optional prefer-custom)
