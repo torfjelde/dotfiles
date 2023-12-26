@@ -1772,6 +1772,45 @@ Return output file name."
 			    ,(ht ("category" "About me") ("link" "../about.html"))))))))
 #+end_src
 
+#+begin_src emacs-lisp
+(defmacro with-temporary-file-buffer (file-path &rest body)
+  "Open FILE-PATH in a buffer, execute BODY, and then kill the buffer if it was not already open."
+  `(let* ((buffer (find-buffer-visiting ,file-path))
+          (is-existing-buffer (buffer-live-p buffer)))
+     (unless is-existing-buffer
+       (setq buffer (find-file-noselect ,file-path)))
+     (with-current-buffer buffer
+       ,@body)
+     (unless is-existing-buffer
+       (and (buffer-live-p buffer) (kill-buffer buffer)))))
+
+;; NOTE: useful for asynchrnous publishing.
+(setq my/publish-filters '())
+
+(defun my/publish-blog-async (&optional seconds-wait &rest filters)
+  "Publish the blog asynchronously."
+  (let ((files (directory-files-recursively "~/org-blog/notes/" ".+\.org$")))
+    (-map
+     (lambda (fname)
+       (message "Publishing %s" fname)
+       ;; Find the file and open the buffer.
+       (with-temporary-file-buffer
+        fname
+        ;; Spawn the export process.
+        (org-publish-current-file t t))
+       ;; Sleep for a few seconds.
+       (sleep-for (or seconds-wait 2)))
+     ;; Filter `files' using the functions in `my/publish-filters'.
+     (-filter
+      (lambda (fname)
+        (seq-every-p
+         (lambda (filter)
+           (funcall filter fname))
+         (or filters my/publish-filters)))
+      files)))
+  )
+#+end_src
+
 ** Agenda utilities
 #+name: org--agenda-utilities
 #+begin_src emacs-lisp 
