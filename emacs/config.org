@@ -1675,7 +1675,9 @@ Return output file name."
 
 (defun tor/org-publish-attachment-local (plist)
   "Use PLIST to copy the entire base-directory to publishing-directory."
-  (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
+  ;; NOTE:: requires `rsync` to be installed.
+  ;; (shell-command (concat "cp -r " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/"))
+  (shell-command (concat "rsync -a " (plist-get plist :base-directory) "/* " (plist-get plist :publishing-directory) "/")))
 
 (defun tor/filename-to-title (filename)
   "Transform FILENAME into title by splitting on _ and concatenating."
@@ -1833,13 +1835,17 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :config
   ;; TODO: Move many of these `setq' statements to `:custom' below.
   ;; Customization for latex-preview in org-mode
-  (setq org-format-latex-options '(:foreground default
-                                               :background default
-                                               :scale 1.5
-                                               :html-foreground "steelblue"
-                                               :html-background "Transparent"
-                                               :html-scale 1.0
-                                               :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+  (setq org-format-latex-options
+        '(
+          :foreground default
+          :background default
+          :scale 2.0
+          ;; TODO: using `steelblue' results in a strange cyan color ONLY IF
+          ;; the block contains other color usages, e.g. `{\color{red} ...}'.
+          :html-foreground "white"
+          :html-background "Transparent"
+          :html-scale 1.0
+          :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
 
   ;; During LaTeX export, try to preserve the labels defined by the user.
   (setq org-latex-prefer-user-labels t)
@@ -2069,6 +2075,78 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
   ;; ox-publish
   (require 'ox-publish)
+  (require 'org-element)
+  ;; HACK: override `org-publish-resolve-external-link' to allow resolving external links
+  ;; using names, i.e. `#+NAME: ...'.
+  (defun org-publish-resolve-external-link (search file &optional prefer-custom)
+    "Return reference for element matching string SEARCH in FILE.
+
+Return value is an internal reference, as a string.
+
+This function allows resolving external links with a search
+option, e.g.,
+
+  [[file:file.org::*heading][description]]
+  [[file:file.org::#custom-id][description]]
+  [[file:file.org::fuzzy][description]]
+
+When PREFER-CUSTOM is non-nil, and SEARCH targets a headline in
+FILE, return its custom ID, if any.
+
+It only makes sense to use this if export back-end builds
+references with `org-export-get-reference'."
+    (cond
+     ((and prefer-custom
+	       (if (string-prefix-p "#" search)
+	           (substring search 1)
+	         (with-current-buffer (find-file-noselect file)
+	           (org-with-point-at 1
+	             (let ((org-link-search-must-match-exact-headline t))
+		           (condition-case err
+		               (org-link-search search nil t)
+		             (error
+		              (signal 'org-link-broken (cdr err)))))
+                 ;; HACK: This is the change.
+	             (or (org-string-nw-p (org-entry-get (point) "CUSTOM_ID"))
+                     (org-string-nw-p
+                      (let ((res (org-element-property :name (org-element-at-point))))
+                        res)))
+
+                 )))))
+     ((not org-publish-cache)
+      (progn
+        (message "Reference %S in file %S cannot be resolved without publishing"
+	             search
+	             file)
+        "MissingReference"))
+     (t
+      (let* ((filename (file-truename file))
+	         (crossrefs
+	          (org-publish-cache-get-file-property filename :crossrefs nil t))
+	         (cells (org-export-string-to-search-cell search)))
+        (or
+         ;; Look for reference associated to search cells triggered by
+         ;; LINK.  It can match when targeted file has been published
+         ;; already.
+         (let ((known (cdr (cl-some (lambda (c) (assoc c crossrefs)) cells))))
+	       (and known (org-export-format-reference known)))
+         ;; Search cell is unknown so far.  Generate a new internal
+         ;; reference that will be used when the targeted file will be
+         ;; published.
+         (let ((new (org-export-new-reference crossrefs)))
+	       (dolist (cell cells) (push (cons cell new) crossrefs))
+	       (org-publish-cache-set-file-property filename :crossrefs crossrefs)
+	       (org-export-format-reference new)))))))
+
+  ;; Allow unresolved links.
+  (setq org-export-with-broken-links t)
+  ;; Don't inline CSS for code blocks, etc.
+  (setq org-html-htmlize-output-type 'css)
+  ;; Disable default style.
+  (setq org-html-head-include-default-style nil)
+  ;; Prefer user labels, i.e. `#+NAME:', when available.
+  (setq org-html-prefer-user-labels t)
+  ;; Set the publish projects.
   (setq org-publish-project-alist
 	    '(
 	      ;; ... add all the components here (see below)...
@@ -2183,6 +2261,9 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      (t csl)))
   ;; TODO: Maybe just clone the repo from init if it doesn't exist?
   (org-cite-csl-styles-dir "/home/tor/Projects/public/styles/")
+  ;; Set the default bibliography.
+  (org-cite-global-bibliography
+   (list (file-truename "~/Dropbox/bibliography/references.bib")))
 
   ;; Latex stuff.
   (org-format-latex-header
@@ -2250,7 +2331,55 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                   ("pdflatex -interaction nonstopmode -output-directory %o %f")
                   :image-converter
                   ("convert -density %D -trim -antialias %f -quality 100 %O"))))
-  )
+
+  ;; Disable the indentation of the first line in a citation.
+  (org-cite-csl-html-hanging-indent "0px"))
+
+;; NOTE: Automatically insert a bibliography at the end of the buffer if
+;; citations are present and we aren't already printing a bibliography.
+(require 'oc-csl)
+
+(defun my/org-has-print-bibliography ()
+  "Return non-nil if the current buffer has a print bibliography."
+  ;; Ignore case when searching.
+  (save-excursion
+    (goto-char (point-max))
+    (let ((case-fold-search t))
+      (re-search-backward "^#\\+print_bibliography:" nil t))))
+
+(defun my/org-has-citations ()
+  "Return non-nil if the current buffer has citations."
+  (save-excursion
+    (goto-char (point-min))
+    (re-search-forward "cite:@" nil t)))
+
+(defun my/org-insert-bibliography (backend)
+  "Insert a bibliography at the end of the buffer."
+  (save-excursion
+    ;; Insert references section at the end of the buffer.
+    (goto-char (point-max))
+    (my/org-insert-bibliography-at-point backend)))
+
+(defun my/org-insert-bibliography--print-bibliography ()
+  (insert "\n#+print_bibliography:\n"))
+
+(cl-defgeneric my/org-insert-bibliography-at-point (backend)
+  "Insert a bibliography at the end of the buffer."
+  ;; In general we also need to insert the backend.
+  (insert "\n\n* References\n")
+  ;; Insert printing of bibliography.
+  (my/org-insert-bibliography--print-bibliography))
+
+(cl-defmethod my/org-insert-bibliography-at-point ((backend (eql latex)))
+  (my/org-insert-bibliography--print-bibliography))
+
+(defun my/org-add-references-section-if-not-exists (backend)
+  "Append a references section if it does not exist."
+  ;; Let's check if there are any citations in the document.
+  (when (and (my/org-has-citations) (not (my/org-has-print-bibliography)))
+    (my/org-insert-bibliography backend)))
+
+(add-hook 'org-export-before-processing-hook #'my/org-add-references-section-if-not-exists)
 #+end_src
 
 ** Babel
