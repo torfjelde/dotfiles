@@ -1988,7 +1988,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
 
            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
-            "* TODO %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+            "* FIRST %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
 
            ("R" "Research" entry (file "~/org-blog/notes/research.org")
             "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
