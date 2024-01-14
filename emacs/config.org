@@ -2085,6 +2085,16 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                       (org-agenda-files '("~/Dropbox/org/gtd.org")))))
            ((org-agenda-compact-blocks nil)))))
 
+  ;; Also show the effort estimate in the agenda view.
+  (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t%-6e% s")
+                                   (todo . " %i %-12:c")
+                                   (tags . " %i %-12:c")
+                                   (search . " %i %-12:c")))
+
+  ;; Make the habit bar show up more to the right than default (which is 40),
+  ;; so we avoid the bar overlapping with the text.
+  (setq org-habit-graph-column 60)
+
   ;; `org-agenda-date-later' allows us to move an entry to a later date.
   ;; Adding it to `org-agenda-bulk-custom-functions' so we can apply it to multiple entries at the same time.
   ;; Ref: https://stackoverflow.com/a/57829278
