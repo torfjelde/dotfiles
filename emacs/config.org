@@ -3067,7 +3067,7 @@ below the results."
    (t (concat "src " (string-replace "-mode" "" (symbol-name mode))))))
   
 
-(defun org-region-to-include-keyword ()
+(defun my/org-region-to-include-keyword ()
   "Convert the current region into an #+INCLUDE keyword and add to kill ring.
 
 If the region is not active, use the current line."
@@ -3090,7 +3090,7 @@ If the region is not active, use the current line."
 ;; included file.
 
 ;; TODO: Either make use of the arguments or just remove them.
-(defun org-export-expand-include-keyword-at-point (&optional included dir footnotes)
+(defun my/org-export-expand-include-keyword-at-point (&optional included dir footnotes)
   "Expand the INCLUDE keyword at point."
   (interactive "P")
   (let ((includer-file (buffer-file-name (buffer-base-buffer)))
@@ -3175,15 +3175,19 @@ If the region is not active, use the current line."
 			       (arg-str (if (stringp args) (format " %s" args) ""))
 			       (contents
 			        (org-escape-code-in-string
-			         (org-export--prepare-file-contents file lines))))
-		       (format "%s#+BEGIN_%s%s\n%s%s#+END_%s\n"
-			           ind-str block arg-str contents ind-str block))))
+			         (org-export--prepare-file-contents file lines)))
+                   ;; NOTE(tor): Want to insert the relative path to the file as a comment.
+                   (relative-path (file-relative-name file (file-name-directory includer-file)))
+                   )
+               ;; TODO(tor): should we only do the below only if there is a `comment-start' symbol?
+		       (format "%s#+begin_%s%s\n%s\n%s%s#+end_%s\n"
+			           ind-str block arg-str (concat comment-start " " relative-path (if lines (concat ":" lines) "")) contents ind-str block))))
 	       ((stringp block)
 		    (insert
 		     (let ((ind-str (make-string ind ?\s))
 			       (contents
 			        (org-export--prepare-file-contents file lines)))
-		       (format "%s#+BEGIN_%s\n%s%s#+END_%s\n"
+		       (format "%s#+begin_%s\n%s%s#+end_%s\n"
 			           ind-str block contents ind-str block))))
 	       (t
 		    (insert
