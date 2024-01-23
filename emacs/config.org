@@ -1568,27 +1568,29 @@ To achieve the above, I need to define some methods before I can define the =org
 (defun tor/reading-list-sort (&optional level)
   "Sort reading list at LEVEL."
   (interactive)
-  (let* ((i 0)
-	 (headline-level (or level 1))
-	 (parsed (org-element-parse-buffer))
-	 (headlines (-filter (lambda (el) (= (org-element-property :level el) headline-level)) 
-			    (org-element-map parsed 'headline 'identity)))
-	 (start (-min (-map 'tor/element--get-begin headlines)))
-	 (end (-max (-map 'tor/element--get-end headlines))))
-    (delete-region start end)
-    (goto-char start)
-    (insert (string-join
-	     ;; TODO: update indices
-	     (-map
-	      (lambda (el)
-		(progn
-		  (setq i (+ i 1))
-		  (replace-regexp-in-string "* TODO [0-9]+\\."
-					    (format "* TODO %03d." i)
-					     el)))
-	      (-map 'org-element-interpret-data
-			 (sort headlines 'tor/element--sort-elements-by-raw-value)))
-	     ""))))
+  (save-excursion
+    (goto-char (point-min))
+
+    ;; Sort reading list.
+    (org-sort-entries nil ?n)
+
+    ;; Update indices.
+    ;; Bring us back to the beginning of the buffer.
+    (goto-char (point-min))
+    (let ((i 1))
+      ;; Move to the next heading until we reach the end of the buffer.
+      (org-next-visible-heading 1)
+      ;; Iterate until we hit the same heading twice.
+      (while (not (eobp))
+        ;; Perform regex search only on the current heading.
+        (re-search-forward "\\([0-9]+\\.\\)" (point-at-eol) t 1)
+        ;; Replace the number with the new index.
+        (when (match-string 1)
+          ;; Bump index if we found match.
+          (replace-match (format "%03d." i) nil nil nil 1)
+          (setq i (+ i 1)))
+        ;; Next heading.
+        (org-next-visible-heading 1)))))
 
 (defun tor/reading-list--get-next-idx (&optional level category)
   "Get index for reading list at LEVEL and ."
