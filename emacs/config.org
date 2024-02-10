@@ -1904,7 +1904,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         '(
           :foreground default
           :background default
-          :scale 2.0
+          :scale 1.5
           ;; TODO: using `steelblue' results in a strange cyan color ONLY IF
           ;; the block contains other color usages, e.g. `{\color{red} ...}'.
           :html-foreground "white"
