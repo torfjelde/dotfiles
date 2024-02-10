@@ -1569,6 +1569,8 @@ To achieve the above, I need to define some methods before I can define the =org
   "Get end of EL."
   (org-element-property :end el))
 
+(defvar tor/reading-list-file "~/Dropbox/org/reading.org")
+
 (defun tor/reading-list-sort (&optional level)
   "Sort reading list at LEVEL."
   (interactive)
@@ -1618,7 +1620,7 @@ To achieve the above, I need to define some methods before I can define the =org
 
 (defun tor/reading-list-next-idx ()
   (save-excursion
-    (with-current-buffer (find-file-noselect "~/Dropbox/org/reading.org")
+    (with-current-buffer (find-file-noselect tor/reading-list-file)
       (format "%03d" (tor/reading-list--get-next-idx)))))
 #+end_src
 
@@ -3293,11 +3295,195 @@ Example: ':/path/to/test.pdf:PDF'."
               (push escaped filenames))))))
     (nreverse filenames)))
 
+;; Integrating my reading list functionality with `citar'.
+(defun my/reading-list--get-archived-file ()
+  "Return the path to the archived reading list file."
+  (f-join (f-parent tor/reading-list-file)
+          (concat (f-base tor/reading-list-file) ".org_archive")))
+
+(defun my/reading-list--go-to-entry (citekey &optional noerror)
+  "Go to the entry with CITEKEY in the reading list.
+
+If NOERROR is non-nil, return nil if the entry is not found."
+  (goto-char (point-min))
+  (if (re-search-forward (format "%s" citekey) nil t)
+      (progn
+        (org-back-to-heading)
+        (point))
+    (if noerror
+        nil
+      (error "Entry with key %s not found in the reading list." citekey))))
+
+(defun my/reading-list--go-to-entry-in-current (citekey &optional noerror)
+  "Go to the entry with CITEKEY in the current reading list.
+
+If NOERROR is non-nil, return nil if the entry is not found."
+  (with-current-buffer (find-file tor/reading-list-file)
+    (my/reading-list--go-to-entry citekey noerror)))
+
+(defun my/reading-list--go-to-entry-in-archived (citekey &optional noerror)
+  "Go to the entry with CITEKEY in the archived reading list.
+
+If NOERROR is non-nil, return nil if the entry is not found."
+  (let ((file (my/reading-list--get-archived-file)))
+    (if (f-exists? file)
+        (with-current-buffer (find-file file)
+          (my/reading-list--go-to-entry citekey noerror))
+      (if noerror
+          nil
+        (error "Archived reading list file not found.")))))
+
+(defun my/reading-list--entry-exists-in-file-p (citekey file)
+  "Search for the CITEKEY in the reading list FILE."
+  (save-excursion
+    (with-current-buffer (find-file-noselect file)
+      (my/reading-list--go-to-entry citekey t))))
+
+(defun my/reading-list--entry-exists-in-current-p (citekey)
+  "Search for the CITEKEY in the current reading list."
+  (my/reading-list--entry-exists-in-file-p citekey tor/reading-list-file))
+
+(defun my/reading-list--entry-exists-in-archived-p (citekey)
+  "Search for the CITEKEY in the archived reading list."
+  (let ((file (my/reading-list--get-archived-file)))
+    (if (f-exists? file)
+        (my/reading-list--entry-exists-in-file-p citekey file)
+      nil)))
+
+(defun my/reading-list--entry-exists-p (citekey)
+  "Search for the CITEKEY in the reading list file."
+  (save-excursion
+    ;; Need to check both the current and the archived reading list.
+    (or (my/reading-list--entry-exists-in-current-p citekey)
+        (my/reading-list--entry-exists-in-archived-p citekey))))
+
+(defun my/reading-list--entry-exists-p (citekey)
+  "Search for the CITEKEY in the reading list file."
+  (save-excursion
+    ;; Need to check both the current and the archived reading list.
+    (or (my/reading-list--entry-exists-in-file-p citekey tor/reading-list-file)
+        (let ((file (my/reading-list--get-archived-file)))
+          (if (f-exists? file)
+              (my/reading-list--entry-exists-in-file-p citekey file)
+            nil)))))
+
+(defun my/reading-list-add-entry (citekey title idx-string)
+  "Add the CITEKEY to the reading list with the TITLE and index IDX-STRING."
+  (with-current-buffer (find-file-noselect tor/reading-list-file)
+    (goto-char (point-max))
+    ;; Insert the heading for the entry.
+    (insert (format "* FIRST %s. %s" idx-string title))
+    ;; Insert new line if we're not currently at the beginning of a line.
+    (when (not (bolp))
+      (insert "\n"))
+    ;; Add the properties drawer with the `citekey'.
+    (insert (format ":PROPERTIES:\n:CITEKEY: %s\n:END:\n" citekey))
+    ;; Insert an inactive date stamp.
+    (insert "Entered on ")
+    (org-insert-time-stamp (current-time) t t)
+    (insert "\n\n")))
+
+(defun my/reading-list-get-status--for-file (citekey file)
+  "Get the TODO status of the CITEKEY in the reading list FILE."
+  (with-current-buffer (find-file-noselect file)
+    (goto-char (point-min))
+    (if (re-search-forward (format "%s" citekey) nil t)
+        (progn
+          ;; Go to the heading of the entry.
+          (org-back-to-heading)
+          ;; Get the status of the entry.
+          (let ((status (org-entry-get (point) "TODO")))
+            (if status
+                status
+              (error "Entry with key %s has no status." citekey))))
+      nil
+      )))
+
+(defun my/reading-list-get-status--current (citekey)
+  "Get the TODO status of the CITEKEY in the reading list."
+  (my/reading-list-get-status--for-file citekey tor/reading-list-file))
+
+(defun my/reading-list-get-status--archived (citekey)
+  "Get the TODO status of the CITEKEY in the archived reading list."
+  (let ((file (my/reading-list--get-archived-file)))
+    (if (f-exists? file)
+        (my/reading-list-get-status--for-file citekey file)
+      nil)))
+
+(defun my/reading-list-get-status (citekey)
+  "Get the TODO status of the CITEKEY in the reading list."
+  (let ((status (my/reading-list-get-status--current citekey)))
+    (if status
+        status
+      (let ((status-archived (my/reading-list-get-status--archived citekey)))
+        (if status-archived
+            status-archived
+          nil)))))
+
+(defun my/add-citar-entry-to-reading-list (entry &optional idx-string)
+  "Add the CITEKEY to the reading list."
+  (let ((citekey (cdr (assoc "=key=" entry)))
+        (title (citar-format--entry (citar--get-template 'preview) entry)))
+    ;; Search for that entry in the reading list file.
+    (if (my/reading-list--entry-exists-p citekey)
+        (let ((status (my/reading-list-get-status citekey)))
+          (message "Entry with key %s is already in the reading list with status %s." citekey status))
+      (let ((idx (or idx-string (tor/reading-list-next-idx))))
+        (my/reading-list-add-entry citekey title idx)
+        (message "Entry with key %s added to the reading list." citekey)))))
+
+(defun my/citar-add-to-reading-list (citekey)
+  "Add the CITEKEY to the reading list."
+  ;; TODO: Allow specification specification of the index to insert the entry at.
+  (interactive (list (citar-select-ref)))
+  (my/add-citar-entry-to-reading-list (citar-get-entry citekey)))
+
+(defun my/citar-reading-list-update-status (citekey)
+  "Mark the CITEKEY as read in the reading list."
+  (interactive (list (citar-select-ref)))
+  (let ((status (my/reading-list-get-status citekey)))
+    (if status
+        (if (string= status "DONE")
+            (message "Entry with key %s is already marked as read." citekey)
+          ;; NOTE: Should never be here for archived entries.
+          (save-excursion
+            (with-current-buffer (find-file tor/reading-list-file)
+              (my/reading-list--go-to-entry citekey)
+              (org-todo)
+              ;; Get status of current heading.
+              (let ((status-new (org-entry-get (point) "TODO")))
+                (if (string= status-new "DONE")
+                    (message "Entry with key %s marked as read." citekey)
+                  (message "Entry with key %s set to status %s." citekey status-new))))))
+      (message "Entry with key %s not found in the reading list." citekey))))
+
+(defun my/citar-reading-list-visit (citekey)
+  "Visit the entry with CITEKEY in the reading list.
+
+If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
+  (interactive (list (citar-select-ref)))
+  (if (my/reading-list--entry-exists-in-current-p citekey)
+      (my/reading-list--go-to-entry-in-current citekey)
+    (if (my/reading-list--entry-exists-in-archived-p citekey)
+        (my/reading-list--go-to-entry-in-archived citekey)
+      (progn
+        ;; Create the entry.
+        (my/citar-add-to-reading-list citekey)
+        ;; Go to the entry.
+        (my/reading-list--go-to-entry-in-current citekey)))))
+
+(defun my/reading-list-check-if-read (citekey)
+  "Check if the CITEKEY is in the reading list."
+  (if (my/reading-list--entry-exists-p citekey)
+      (message "Entry with key %s is in the reading list." citekey)
+    (message "Entry with key %s is not in the reading list." citekey)))
+
 (use-package citar
   :straight (:type git :host github :repo "torfjelde/citar" :branch "torfjelde/full-names-rendering")
   :custom
   (citar-bibliography '("~/Dropbox/bibliography/references.bib"))
   (citar-library-paths '("~/Dropbox/bibliography/pdfs/"))
+  (citar-notes-paths '("~/Dropbox/org-blog/papers/"))
   ;; FIXME: For some reason this doesn't work; it then complains that
   ;; it's not actually a list of functions. Instead we have to set it in `custom.el`.
   ;; (citar-file-parser-functions (my/citar--file-parser))
@@ -3316,7 +3502,27 @@ Example: ':/path/to/test.pdf:PDF'."
   ("C-c ]" . citar-open)
   :hook
   (LaTeX-mode . citar-capf-setup)
-  (org-mode . citar-capf-setup))
+  (org-mode . citar-capf-setup)
+  :config
+  ;; We'll add some custom bindings to the `citar-map'.
+  (setq citar-map (let ((map (make-sparse-keymap)))
+                    (define-key map (kbd "c") #'citar-insert-citation)
+                    (define-key map (kbd "k") #'citar-insert-keys)
+                    (define-key map (kbd "r") #'citar-copy-reference)
+                    (define-key map (kbd "R") #'citar-insert-reference)
+                    (define-key map (kbd "b") #'citar-insert-bibtex)
+                    (define-key map (kbd "o") #'citar-open)
+                    (define-key map (kbd "e") #'citar-open-entry)
+                    (define-key map (kbd "l") #'citar-open-links)
+                    (define-key map (kbd "n") #'citar-open-notes)
+                    (define-key map (kbd "f") #'citar-open-files)
+                    (define-key map (kbd "RET") #'citar-run-default-action)
+                    (define-key map (kbd "t") #'my/citar-add-to-reading-list)
+                    (define-key map (kbd "v") #'my/citar-reading-list-visit)
+                    map))
+  ;; Need to update the `citar-embark-map' to use the new `citar-map'.
+  (setq citar-embark-map (make-composed-keymap citar-map embark-general-map))
+  )
 
 (use-package citar-embark
   :delight citar-embark-mode
