@@ -1430,6 +1430,12 @@ highlight color.  With a double prefix argument, prompt for a color."
   ;; :hook
   ;; (python-mode . eglot-ensure)
   )
+
+(use-package pyvenv
+  :demand t
+  :config
+  ;; (setq pyvenv-workon "emacs")  ; Default venv
+  (pyvenv-tracking-mode 1))  ; Automatically use pyvenv-workon via dir-locals
 #+end_src
 
 ** Emacs lisp
