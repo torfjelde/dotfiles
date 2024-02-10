@@ -308,6 +308,10 @@ If we instead wanted to load the minimalist file, we would just replace the last
 
 ;; Use `y' and `n' instead of `yes' and `no'.
 (defalias 'yes-or-no-p 'y-or-n-p)
+
+;; work-around for org-ctags obnoxious behavior
+;; See https://lists.gnu.org/archive/html/emacs-orgmode/2023-03/msg00299.html.
+(with-eval-after-load 'org-ctags (setq org-open-link-functions nil))
 #+end_src
 
 ** Utility functions
