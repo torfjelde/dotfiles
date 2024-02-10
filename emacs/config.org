@@ -3484,12 +3484,37 @@ If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
       (message "Entry with key %s is in the reading list." citekey)
     (message "Entry with key %s is not in the reading list." citekey)))
 
+(defun my/citar-org-format-note-default (key entry)
+  "Format a note from KEY and ENTRY."
+  (let* ((template (citar--get-template 'note))
+         (note-meta (when template
+                      (citar-format--entry template entry)))
+         (filepath (expand-file-name
+                    (concat key ".org")
+                    (car citar-notes-paths)))
+         (buffer (find-file filepath)))
+    (with-current-buffer buffer
+      ;; This just overrides other template insertion.
+      (erase-buffer)
+      (citar-org-roam-make-preamble key)
+      (insert "#+SETUPFILE: ../setup-level-1.org\n")
+      (insert "#+TITLE: ")
+      (when template (insert note-meta))
+      (insert "\n\n")
+      ;; (insert "\n\n|\n\n#+print_bibliography:")
+      ;; (search-backward "|")
+      ;; (delete-char 1)
+      ;; (when (fboundp 'evil-insert)
+      ;;   (evil-insert 1))
+      )))
+
 (use-package citar
   :straight (:type git :host github :repo "torfjelde/citar" :branch "torfjelde/full-names-rendering")
   :custom
   (citar-bibliography '("~/Dropbox/bibliography/references.bib"))
   (citar-library-paths '("~/Dropbox/bibliography/pdfs/"))
-  (citar-notes-paths '("~/Dropbox/org-blog/papers/"))
+  (citar-notes-paths '("~/org-blog/papers/"))
+  (citar-note-format-function 'my/citar-org-format-note-default)
   ;; FIXME: For some reason this doesn't work; it then complains that
   ;; it's not actually a list of functions. Instead we have to set it in `custom.el`.
   ;; (citar-file-parser-functions (my/citar--file-parser))
