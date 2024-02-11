@@ -3508,6 +3508,21 @@ If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
       ;;   (evil-insert 1))
       )))
 
+(defun my/citar-set-keywords (citekey keywords-new)
+  "Set the keywords of the CITEKEY to KEYWORDS-NEW."
+  (save-window-excursion
+    (citar-open-entry citekey)
+    ;; TODO: Maybe don't rely on `org-ref' for this?
+    (org-ref-set-bibtex-keywords keywords-new t)))
+
+(defun my/citar-edit-keywords (citekey)
+  "Edit the keywords of the CITEKEY."
+  (interactive (list (citar-select-ref)))
+  (let* ((entry (citar-get-entry citekey))
+         (keywords (cdr (assoc "keywords" entry)))
+         (new-keywords (read-string "Keywords: " keywords)))
+    (my/citar-set-keywords citekey new-keywords)))
+
 (use-package citar
   :straight (:type git :host github :repo "torfjelde/citar" :branch "torfjelde/full-names-rendering")
   :custom
@@ -3550,6 +3565,7 @@ If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
                     (define-key map (kbd "RET") #'citar-run-default-action)
                     (define-key map (kbd "t") #'my/citar-add-to-reading-list)
                     (define-key map (kbd "v") #'my/citar-reading-list-visit)
+                    (define-key map (kbd "C-k") #'my/citar-edit-keywords)
                     map))
   ;; Need to update the `citar-embark-map' to use the new `citar-map'.
   (setq citar-embark-map (make-composed-keymap citar-map embark-general-map))
