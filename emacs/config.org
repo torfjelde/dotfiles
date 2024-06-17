@@ -320,6 +320,43 @@ If we instead wanted to load the minimalist file, we would just replace the last
 (defun not-nil-p (x)
   "Return `t` if X is not nil."
   (not (not x)))
+
+(defun eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+;; (global-set-key (kbd "C-c e") 'eval-and-replace)
+
+
+;; I have a directory in my Dropbox used for "quick", e.g. notes for a impromptu meeting, a quick project, etc.
+;; The following methods are useful for interacting with this directory.
+(defvar tor/dropbox-quick-directory "~/Dropbox/quick/"
+    "Directory in Dropbox used for quick notes, projects, etc.")
+
+(defun tor/dropbox-quick-make-dir (name)
+  "Create a directory in ~/Dropbox/quick/ with name constructed from current date, time and NAME."
+  (interactive "sName: ")
+  (let* ((timestamp (format-time-string "%Y-%m-%d--%H-%M"))
+         (dir (concat tor/dropbox-quick-directory timestamp "--" name)))
+    (make-directory dir)
+    (find-file dir)))
+
+(defun tor/dropbox-quick-go-to (name)
+  "Go to a directory in ~/Dropbox/quick/ with NAME."
+  ;; Use autocomplete.
+  ;; TODO: Sort according to last modified.
+  (interactive (list (completing-read "Name: " (directory-files tor/dropbox-quick-directory nil "^[^.]"))))
+  (find-file (concat tor/dropbox-quick-directory name)))
+
+(defun tor/bookmark-set ()
+  "Set a bookmark for the current file using the current line number."
+  (interactive)
+  (bookmark-set (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
 #+end_src
 
 ** Make =format-time-string= consistent across OS time settings
