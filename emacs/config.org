@@ -3691,6 +3691,13 @@ If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
          (new-keywords (read-string "Keywords: " keywords)))
     (my/citar-set-keywords citekey new-keywords)))
 
+;; TODO: Make it work for multiple keys?
+(defun my/citar-copy-keys (citekey)
+  "Copy CITEKEYS."
+  (interactive (list (citar-select-ref)))
+  (kill-new citekey)
+  (message "Copied key %s." citekey))
+
 (use-package citar
   :straight (:type git :host github :repo "torfjelde/citar" :branch "torfjelde/full-names-rendering")
   :custom
@@ -3722,6 +3729,7 @@ If CREATE-IF-NOT-EXISTS is non-nil, create the entry if it does not exist."
   (setq citar-map (let ((map (make-sparse-keymap)))
                     (define-key map (kbd "c") #'citar-insert-citation)
                     (define-key map (kbd "k") #'citar-insert-keys)
+                    (define-key map (kbd "K") #'my/citar-copy-keys)
                     (define-key map (kbd "r") #'citar-copy-reference)
                     (define-key map (kbd "R") #'citar-insert-reference)
                     (define-key map (kbd "b") #'citar-insert-bibtex)
