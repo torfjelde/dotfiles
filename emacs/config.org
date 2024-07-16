@@ -2538,6 +2538,86 @@ references with `org-export-get-reference'."
     (my/org-insert-bibliography backend)))
 
 (add-hook 'org-export-before-processing-hook #'my/org-add-references-section-if-not-exists)
+;; Some functionality to copy the previewed LaTeX fragment to the clipboard.
+(defun tor/yank-image-to-clipboard (image-path)
+  "Copy the image at IMAGE-PATH to the clipboard using xclip."
+  (if (file-exists-p image-path)
+      ;; NOTE: The `-quiet' argument is neceessary though I don't quite understand why.
+      (start-process "xclip-proc" nil "xclip" "-quiet" "-selection" "clipboard" "-t" "image/png" "-i" (file-truename image-path))
+    (message "File %s does not exist" image-path)))
+
+(defun tor/yank-image-in-buffer-to-clipboard (arg)
+  "Copy the image in the current buffer to the clipboard.
+
+If the prefix argument is given, a white background is added to the image."
+  (interactive "P")
+  (let ((image-path (buffer-file-name)))
+    ;; If the path points to a PDF, convert it to a PNG and copy it to the clipboard.
+    (if (string-match-p "\\.pdf\\'" image-path)
+        (let ((png-path (concat (file-name-sans-extension image-path) ".png")))
+          (shell-command (format "convert -density 300 %s %s %s" image-path (if arg "-flatten -background white" "") png-path))
+          (tor/yank-image-to-clipboard png-path))
+      (tor/yank-image-to-clipboard image-path))))
+
+(defun tor/org-latex-preview-yank (&optional arg)
+  "Yank the previewed LaTeX fragment to the clipboard.
+
+If the prefix argument is given, just print the path of the image."
+  ;; Adopted from `org-format-latex'.
+  (interactive "P")
+  (let* ((forbuffer 'forbuffer)
+         (dir (if (buffer-file-name)
+                  (file-name-directory (buffer-file-name))
+                nil))
+         (prefix (concat org-preview-latex-image-directory "org-ltximg"))
+         (processing-type 'dvipng)
+         (processing-info
+	      (cdr (assq processing-type org-preview-latex-process-alist)))
+         (context (org-element-context))
+         (value (org-element-property :value context))
+         (fg
+		  (let ((color (plist-get org-format-latex-options
+						          :foreground)))
+            (if forbuffer
+                (cond
+                 ((eq color 'auto)
+                  (face-attribute face :foreground nil 'default))
+                 ((eq color 'default)
+                  (face-attribute 'default :foreground nil))
+                 (t color))
+              color)))
+		 (bg
+		  (let ((color (plist-get org-format-latex-options
+						          :background)))
+            (if forbuffer
+                (cond
+                 ((eq color 'auto)
+                  (face-attribute face :background nil 'default))
+                 ((eq color 'default)
+                  (face-attribute 'default :background nil))
+                 (t color))
+              color)))
+         (hash (sha1 (prin1-to-string
+				      (list org-format-latex-header
+					        org-latex-default-packages-alist
+					        org-latex-packages-alist
+					        org-format-latex-options
+					        forbuffer value fg bg))))
+         (imagetype (or (plist-get processing-info :image-output-type) "png"))
+		 (absprefix (expand-file-name prefix dir))
+		 ;; (linkfile (format "%s_%s.%s" prefix hash imagetype))
+		 (abspath (format "%s_%s.%s" absprefix hash imagetype)))
+
+    ;; Copy the image at the `abspath' to the clipboard.
+    (if (not arg)
+        (progn
+          ;; Yank by default.
+          (tor/yank-image-to-clipboard abspath)
+          (message "Image %s copied to clipboard" abspath))
+      ;; Otherwise, just print the path of the image.
+      (message "Image path: %s" abspath)
+      )
+    ))
 #+end_src
 
 ** Babel
