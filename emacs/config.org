@@ -458,6 +458,20 @@ Currently [2023-07-28 Fri 12:04] I'm mainly using =ace-window= for navigating be
 (global-set-key (kbd "C-s-<down>")  'shrink-window)
 #+end_src
 
+** Dropbox
+#+name: basics--dropbox
+#+begin_src emacs-lisp
+;; TODO: Implement a way to conditionally run code depnding on whether dropbox is available.
+(defun dropbox-available-p ()
+  "Return t if Dropbox is available, nil otherwise."
+  (file-exists-p (expand-file-name "~/Dropbox")))
+
+(defmacro with-dropbox (&rest body)
+  "Execute BODY only if Dropbox is available."
+  `(when (dropbox-available-p)
+     ,@body))
+#+end_src
+
 ** Result
 #+name: basics
 #+begin_src emacs-lisp 
@@ -469,6 +483,7 @@ Currently [2023-07-28 Fri 12:04] I'm mainly using =ace-window= for navigating be
 <<basics--compat>>
 <<basics--dash>>
 <<basics--windmove>>
+<<basics--dropbox>>
 #+end_src
 
 * OS specific setup
@@ -1019,6 +1034,12 @@ The default tab-bar name uses the buffer name."
 (use-package vterm
   :config (setq vterm-buffer-name-string "*vterm [%s]*"))
 #+end_src
+*** Notes on installation
+- MacOS:
+  1. Install =cmake= using =brew=.
+  2. Install =libvterm= using =brew=.
+  3. Then start Emacs and run =vterm=.
+
 ** =isend.el=
 #+name: terminal-emulation--isend-mode
 #+begin_src emacs-lisp
@@ -1097,6 +1118,9 @@ The default tab-bar name uses the buffer name."
   (define-key copilot-completion-map (kbd "M-n") 'copilot-next-completion)
   (define-key copilot-completion-map (kbd "M-RET") 'copilot-accept-completion-by-word)
   (define-key copilot-completion-map (kbd "C-M-<return>") 'copilot-accept-completion-by-line)
+  :custom
+  ;; Disable warning messages regarding indentation offset not being inferred, etc.
+  (copilot-indent-offset-warning-disable t)
   )
 #+end_src
 
@@ -1585,6 +1609,25 @@ This is different from the =jupyter=, since this actually allows us to work with
 <<programming--graphviz-dot>>
 <<programming--rust>>
 #+end_src
+
+#+name: programming-minimal
+#+begin_src emacs-lisp
+<<programming--prog-mode>>
+<<programming--lsp>>
+<<programming--flycheck>>
+;; <<programming--latex>>
+<<programming--markdown>>
+<<programming--polymode>>
+<<programming--yaml>>
+;; <<programming--ess>>
+<<programming--julia>>
+<<programming--python>>
+<<programming--emacs-lisp>>
+;; <<programming--jupyter>>
+;; <<programming--ein>>
+;; <<programming--graphviz-dot>>
+;; <<programming--rust>>
+#+end_src
 * Org
 
 ** Tor's reading list
@@ -1996,145 +2039,153 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;; Don't try to complete headings in steps.
   (setq org-outline-path-complete-in-steps nil)
 
-  (setq org-default-notes-file "~/Dropbox/org/gtd.org")
-  (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)
-                             ("~/Dropbox/org/reading.org" :maxlevel . 1)))
+  (with-dropbox
+   (setq org-default-notes-file "~/Dropbox/org/gtd.org")
+   (setq org-refile-targets '(("~/Dropbox/org/gtd.org" :maxlevel . 2)
+                              ("~/Dropbox/org/reading.org" :maxlevel . 1))))
   ;; Make it so that we can use refile to insert into a file as the top-level heading too,
   ;; and not just as a sub-heading.
   (setq org-refile-use-outline-path 'file)
 
-  (setq org-my-anki-file "~/Dropbox/org/anki.org")
-
   ;; Org-agenda / Org-capture related
-  (setq org-agenda-files
-        (append
-         '("~/Dropbox/org/gtd.org"
-           "~/Dropbox/org/school.org"
-           "~/Dropbox/org/reading.org"
-           "~/Dropbox/org/implement.org"
-           "~/Dropbox/org/interwebs.org")
-         ;; Also add todos from consulting projects.
-         (directory-files-recursively "~/Dropbox/consulting/" "\\todos.org$")))
+  (with-dropbox
+   (setq org-my-anki-file "~/Dropbox/org/anki.org")
+   (setq org-agenda-files
+         (append
+          '("~/Dropbox/org/gtd.org"
+            "~/Dropbox/org/school.org"
+            "~/Dropbox/org/reading.org"
+            "~/Dropbox/org/implement.org"
+            "~/Dropbox/org/interwebs.org")
+          ;; Also add todos from consulting projects.
+          ;; (directory-files-recursively "~/Dropbox/consulting/" "\\todos.org$")
+          )))
 
   (require 'org-protocol)
-  ;; Adds some `private/*' variables that I don't want on my Github.
-  (load (expand-file-name "~/Dropbox/dotfiles/.emacs/agenda.el"))
-  (setq org-capture-templates
-        (append
-         '(("t"        ;; shortcut
-            "Todo"     ;; title
-            entry      ;; type of template
-            (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
-            "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
-            :empty-lines 1 ;; property
+  ;; Adds some `private/org-capture-templates' templates I don't want on my Github.
+  ;; But if it's not defined, we just define it as an empty list.
+  (unless (boundp 'private/org-capture-templates)
+    (setq private/org-capture-templates '()))
+
+  (with-dropbox
+   ;; (load (expand-file-name "~/Dropbox/dotfiles/.emacs/agenda.el"))
+   (setq org-capture-templates
+         (append
+          '(("t"        ;; shortcut
+             "Todo"     ;; title
+             entry      ;; type of template
+             (file+headline "~/Dropbox/org/gtd.org" "Tasks")  ;; what and where to add
+             "* TODO %^{Brief Description} %^g\nEntered on %U\n%?\n%i\n%a"  ;; template
+             :empty-lines 1 ;; property
+             )
+
+            ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
+             "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
+
+            ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
+
+            ("s" "School" entry
+             (file "~/Dropbox/org/school.org")
+             "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
+
+            ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
+             "* FIRST %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+            ("R" "Research" entry (file "~/org-blog/notes/research.org")
+             "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
+
+            ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
+             "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
+
+            ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
+            ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
+            ;; we also get autocomplete for the tags.
+            ("a" "Anki basic"
+             entry
+             (file+headline org-my-anki-file "Dispatch Shelf")
+             "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
+
+            ("A" "Anki cloze"
+             entry
+             (file+headline org-my-anki-file "Dispatch Shelf")
+             "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
+
+            ("c" "Code"
+             entry
+             (file+headline "~/Dropbox/org/gtd.org" "Code")
+             "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
+             :prepend t	 ; properties
+             :empty-lines 1	 ; properties
+             :created t	 ; properties
+             :kill-buffer t)
+
+            ("q" "Quick and dirty"
+             plain
+             (function my/org-capture-quick-and-dirty))
+
+            ;; Template for different projects.
+            ;; NOTE: This is often extended by `private/org-capture-templates'.
+            ("P" "Projects")
+
+            ;; org-protocol.el
+            ;; TODO: Evaluate whether or not we want to keep this.
+            ("p" "Protocol" entry
+             (file "~/Dropbox/org/interwebs.org")
+             "* %U %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
+             :empty-lines 1
+             :created t)
+
+            ("L" "Protocol Link" entry
+             (file "~/Dropbox/org/interwebs.org")
+             ;; "* %^{TITLE}\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n:END:\n%?"
+             "* %U %:description\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%:description]]\n:END:\n%?"
+             :empty-lines 1
+             :created t)
             )
-
-           ("j" "Journal" entry (file+datetree "~/Dropbox/org/journal.org")
-            "* %^{Description}\nEntered on %U\n%a\n%?" :empty-lines 1)
-
-           ("i" "Idea" item (file "~/Dropbox/org/ideas.org"))
-
-           ("s" "School" entry
-            (file "~/Dropbox/org/school.org")
-            "* TODO %^{Brief Description} %^{COURSE}p %^g\n%?" :empty-lines 1)
-
-           ("r" "Reading" entry (file "~/Dropbox/org/reading.org")
-            "* FIRST %(tor/reading-list-next-idx). %?\nEntered on %U\n%a\n%i")
-
-           ("R" "Research" entry (file "~/org-blog/notes/research.org")
-            "* %^{Title} %^g\n:PROPERTIES:\n:DATE: %U\n:SOURCE: %a\n:END:\n%i\n%?")
-
-           ("I" "Implement" entry (file "~/Dropbox/org/implement.org")
-            "* TODO %(tor/impl-list-next-idx). %?\nEntered on %U\n%a\n%i")
-
-           ;; NOTE: the `ANKI_DECK' property will use auto-completion from `anki-editor.el'
-           ;; and thanks to the use of `anki-editor-mode' in `~/Dropbox/org/anki.org'
-           ;; we also get autocomplete for the tags.
-           ("a" "Anki basic"
-            entry
-            (file+headline org-my-anki-file "Dispatch Shelf")
-            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:END:%^{ANKI_DECK}p\n** Front\n%?\n** Back\n%x\n")
-
-           ("A" "Anki cloze"
-            entry
-            (file+headline org-my-anki-file "Dispatch Shelf")
-            "* %U   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:END:%^{ANKI_DECK}p\n** Text\n%x\n** Extra\n")
-
-           ("c" "Code"
-            entry
-            (file+headline "~/Dropbox/org/gtd.org" "Code")
-            "* TODO %^{TITLE} %^G\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n%i%?"
-            :prepend t	 ; properties
-            :empty-lines 1	 ; properties
-            :created t	 ; properties
-            :kill-buffer t)
-
-           ("q" "Quick and dirty"
-            plain
-            (function my/org-capture-quick-and-dirty))
-
-           ;; Template for different projects.
-           ;; NOTE: This is often extended by `private/org-capture-templates'.
-           ("P" "Projects")
-
-           ;; org-protocol.el
-           ;; TODO: Evaluate whether or not we want to keep this.
-           ("p" "Protocol" entry
-            (file "~/Dropbox/org/interwebs.org")
-            "* %U %^{Title}\n:PROPERTIES:\n:Created: %U\n:Source: %a\n:END:\n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?"
-            :empty-lines 1
-            :created t)
-
-           ("L" "Protocol Link" entry
-            (file "~/Dropbox/org/interwebs.org")
-            ;; "* %^{TITLE}\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%(transform-square-brackets-to-round-ones \"%:description\")]]\n:END:\n%?"
-            "* %U %:description\n:PROPERTIES:\n:Created: %U\n:Source: [[%:link][%:description]]\n:END:\n%?"
-            :empty-lines 1
-            :created t)
-           )
-         ;; Some private capture templates.
-         private/org-capture-templates))
+          ;; Some private capture templates.
+          private/org-capture-templates)))
 
   ;; Some custom views for `org-agenda'.
   (require 'org-agenda)
-  (setq org-agenda-custom-commands
-        '(("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
-          ("c" "My agenda view"
-           ((tags "PRIORITY=\"A\""
-                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
-            ;; NOTE: Don't need daily view when we have weekly
-            ;; (agenda "" ((org-agenda-span 1)
-            ;;             (org-habit-graph-column 60)))
-            ;; weekly view
-            (agenda "")
-            ;; readings
-            (todo "FIRST"
-                     ((org-agenda-files '("~/Dropbox/org/reading.org"))
-                      (org-agenda-overriding-header "Papers (1st pass):")
-                      (org-agenda-max-entries 5)
-                      (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
-            (todo "SECOND"
-                  ((org-agenda-files '("~/Dropbox/org/reading.org"))
-                   (org-agenda-overriding-header "Papers (2nd pass):")
-                   (org-agenda-max-entries 5)
-                   (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
-            (todo "THIRD"
-                  ((org-agenda-files '("~/Dropbox/org/reading.org"))
-                   (org-agenda-overriding-header "Papers (3rd pass):")
-                   (org-agenda-max-entries 5)
-                   (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
-            (alltodo ""
-                     ((org-agenda-files '("~/Dropbox/org/reading.org"))
-                      (org-agenda-overriding-header "Readings (top 5):")
-                      (org-agenda-max-entries 5)))
-            (alltodo ""
-                     ((org-agenda-skip-function
-                       '(or (my/org-skip-subtree-if-priority ?A)
-                            (org-agenda-skip-if nil '(scheduled deadline))
-                            (org-agenda-skip-subtree-if 'regexp ":RECURRING:")))
-                      (org-agenda-files '("~/Dropbox/org/gtd.org")))))
-           ((org-agenda-compact-blocks nil)))))
+  (with-dropbox
+   (setq org-agenda-custom-commands
+         '(("r" alltodo "" ((org-agenda-files '("~/Dropbox/org/reading.org"))))
+           ("c" "My agenda view"
+            ((tags "PRIORITY=\"A\""
+                   ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                    (org-agenda-overriding-header "High-priority unfinished tasks:")))
+             ;; NOTE: Don't need daily view when we have weekly
+             ;; (agenda "" ((org-agenda-span 1)
+             ;;             (org-habit-graph-column 60)))
+             ;; weekly view
+             (agenda "")
+             ;; readings
+             (todo "FIRST"
+                   ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                    (org-agenda-overriding-header "Papers (1st pass):")
+                    (org-agenda-max-entries 5)
+                    (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+             (todo "SECOND"
+                   ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                    (org-agenda-overriding-header "Papers (2nd pass):")
+                    (org-agenda-max-entries 5)
+                    (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+             (todo "THIRD"
+                   ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                    (org-agenda-overriding-header "Papers (3rd pass):")
+                    (org-agenda-max-entries 5)
+                    (org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp ":BOOK:"))))
+             (alltodo ""
+                      ((org-agenda-files '("~/Dropbox/org/reading.org"))
+                       (org-agenda-overriding-header "Readings (top 5):")
+                       (org-agenda-max-entries 5)))
+             (alltodo ""
+                      ((org-agenda-skip-function
+                        '(or (my/org-skip-subtree-if-priority ?A)
+                             (org-agenda-skip-if nil '(scheduled deadline))
+                             (org-agenda-skip-subtree-if 'regexp ":RECURRING:")))
+                       (org-agenda-files '("~/Dropbox/org/gtd.org")))))
+            ((org-agenda-compact-blocks nil))))))
 
   ;; Also show the effort estimate in the agenda view.
   (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t%-6e% s")
@@ -4653,8 +4704,30 @@ https://github.com/zachcurry/emacs-anywhere
 <<pkg-management>>
 <<basics>>
 <<os-specifics>>
+<<themes>>
 <<the-holy-quaternity>>
 <<load-custom-file>>
 #+end_src
 
 
+** Internship config
+#+name: el-intern-init
+#+begin_src emacs-lisp :comments noweb :tangle init-intern.el :noweb yes
+<<pkg-management>>
+<<basics>>
+<<os-specifics>>
+<<ui>>
+<<project>>
+<<workspace>>
+<<terminal-emulation>>
+<<completion>>
+<<org--tors-reading-list>>
+<<org--main>>
+<<org--org-ref>>
+<<citations>>
+<<programming-minimal>>
+<<file-viewers>>
+<<themes>>
+<<the-holy-quaternity>>
+<<load-custom-file>>
+#+end_src
