@@ -2679,6 +2679,7 @@ If the prefix argument is given, just print the path of the image."
 		 (absprefix (expand-file-name prefix dir))
 		 ;; (linkfile (format "%s_%s.%s" prefix hash imagetype))
 		 (abspath (format "%s_%s.%s" absprefix hash imagetype)))
+    (message "%s vs. %s" imagetype (plist-get processing-info :image-output-type))
 
     ;; Copy the image at the `abspath' to the clipboard.
     (if (not arg)
