@@ -2590,12 +2590,38 @@ references with `org-export-get-reference'."
 
 (add-hook 'org-export-before-processing-hook #'my/org-add-references-section-if-not-exists)
 ;; Some functionality to copy the previewed LaTeX fragment to the clipboard.
-(defun tor/yank-image-to-clipboard (image-path)
+(defun tor/yank-image-to-clipboard--xclip (image-path)
   "Copy the image at IMAGE-PATH to the clipboard using xclip."
   (if (file-exists-p image-path)
       ;; NOTE: The `-quiet' argument is neceessary though I don't quite understand why.
       (start-process "xclip-proc" nil "xclip" "-quiet" "-selection" "clipboard" "-t" "image/png" "-i" (file-truename image-path))
     (message "File %s does not exist" image-path)))
+
+(defun tor/yank-image-to-clipboard--macos (image-path)
+  "Copy the image at IMAGE-PATH to the clipboard using xclip."
+  (if (file-exists-p image-path)
+      ;; NOTE: The `-quiet' argument is neceessary though I don't quite understand why.
+      (start-process "xclip-proc" nil "impbcopy" (file-truename image-path))
+    (message "File %s does not exist" image-path)))
+
+(defun tor/yank-image-to-clipboard (image-path)
+  (message "%s" image-path)
+  (let ((tor/yank-image-to-clipboard--inner (if (eq system-type 'darwin)
+                                                #'tor/yank-image-to-clipboard--macos
+                                              #'tor/yank-image-to-clipboard--xclip)))
+    (cond
+     ;; If the path points to a PDF, convert it to a PNG and copy it to the clipboard.
+     ((string-match-p "\\.pdf\\'" image-path)
+      (let ((png-path (concat (file-name-sans-extension image-path) ".png")))
+        (shell-command (format "convert -density 300 %s %s %s" image-path (if arg "-flatten -background white" "") png-path))
+        (funcall tor/yank-image-to-clipboard--inner png-path)))
+     ;; If it points to an SVG file, do the same.
+     ((string-match-p "\\.svg\\'" image-path)
+      (let ((png-path (concat (file-name-sans-extension image-path) ".png")))
+        (message "%s" png-path)
+        (shell-command (format "convert -density 300 %s %s %s" image-path (if arg "-flatten -background white" "") png-path))
+        (funcall tor/yank-image-to-clipboard--inner png-path)))
+     (t (funcall tor/yank-image-to-clipboard--inner image-path)))))
 
 (defun tor/yank-image-in-buffer-to-clipboard (arg)
   "Copy the image in the current buffer to the clipboard.
@@ -2603,12 +2629,7 @@ references with `org-export-get-reference'."
 If the prefix argument is given, a white background is added to the image."
   (interactive "P")
   (let ((image-path (buffer-file-name)))
-    ;; If the path points to a PDF, convert it to a PNG and copy it to the clipboard.
-    (if (string-match-p "\\.pdf\\'" image-path)
-        (let ((png-path (concat (file-name-sans-extension image-path) ".png")))
-          (shell-command (format "convert -density 300 %s %s %s" image-path (if arg "-flatten -background white" "") png-path))
-          (tor/yank-image-to-clipboard png-path))
-      (tor/yank-image-to-clipboard image-path))))
+    (tor/yank-image-to-clipboard image-path)))
 
 (defun tor/org-latex-preview-yank (&optional arg)
   "Yank the previewed LaTeX fragment to the clipboard.
