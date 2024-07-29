@@ -3193,8 +3193,10 @@ Throw an error if no block is found."
   "Display inline image in results of a code block."
   (interactive)
   (save-excursion
-    (goto-char (org-babel-where-is-src-block-result))
-    (org-display-inline-image-at-point)))
+    (let ((target-point (org-babel-where-is-src-block-result)))
+        (when target-point
+            (goto-char target-point)
+            (org-display-inline-image-at-point)))))
 
 (add-hook 'org-babel-after-execute-hook #'org-display-inline-image-in-results)
 #+end_src
